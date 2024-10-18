@@ -1,35 +1,32 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="container">
+      <h2>도어락 비밀번호 관리</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="text-input-with-label">
+          <label htmlFor="">마스터 비밀번호</label>
+          <input id="master-password-input" type="text"></input>
+        </div>
+        <div className="text-input-with-label">
+          <label htmlFor="">중앙동아리연합회용 비밀번호</label>
+          <input id="master-password-input" type="text"></input>
+        </div>
+        <div className="text-input-with-label">
+          <label htmlFor="">시설팀용 비밀번호</label>
+          <input id="master-password-input" type="text"></input>
+        </div>
+        <div className="form-button">
+          <button type="submit">저장</button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
-export default App
+export default App;
