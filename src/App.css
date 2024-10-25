@@ -47,9 +47,10 @@ input {
 .form-button button {
   display: inline-block;
   padding: 12px 16px;
-  background-color: var(--main-color);
+  background-color: black;
   color: white;
   font-size: medium;
+  font-weight: 500;
   line-height: 1;
   border: none;
   cursor: pointer;
@@ -57,7 +58,7 @@ input {
 }
 
 .form-button button:hover {
-  background-color: var(--main-color-dark);
+  background-color: var(--main-color);
 }
 
 .header {
