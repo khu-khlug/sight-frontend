@@ -1,0 +1,9 @@
+.khlug-icon {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  background: url("https://khlug.org/images/favicon.gif") transparent no-repeat
+    center center;
+  background-size: auto 100%;
+  margin-bottom: -8px;
+}

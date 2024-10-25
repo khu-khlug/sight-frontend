@@ -1,14 +1,27 @@
-.container {
+body {
+  background-color: #fcfcfc;
+}
+
+.content {
   max-width: 768px;
   margin: 0 auto;
+}
+
+.container {
+  margin: 32px 0;
+  padding: 32px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+  border: #f4f4f4 1px solid;
 }
 
 input {
   padding: 12px 16px;
   display: inline-block;
+  font-size: medium;
   border: 1px solid #ddd;
   box-sizing: border-box;
-  border-radius: 8px;
 }
 
 .text-input-with-label {
@@ -33,7 +46,7 @@ input {
 
 .form-button button {
   display: inline-block;
-  padding: 10px 12px;
+  padding: 12px 16px;
   background-color: var(--main-color);
   color: white;
   font-size: medium;
@@ -45,4 +58,38 @@ input {
 
 .form-button button:hover {
   background-color: var(--main-color-dark);
+}
+
+.header {
+  height: 120px;
+  border-top: 6px solid var(--main-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 36px;
+  background-color: white;
+}
+
+.description {
+  color: #959595;
+}
+
+.nav-link {
+  text-decoration: none;
+  font-size: large;
+  font-weight: 500;
+  margin-right: 24px;
+  cursor: pointer;
+}
+
+.nav-link:last-child {
+  margin-right: 0;
+}
+
+.nav-link.active {
+  color: var(--main-color);
+}
+
+.current-location {
+  color: #959595;
 }
