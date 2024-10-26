@@ -2,7 +2,7 @@ import "./Header.css";
 
 export default function Header() {
   return (
-    <div className="header">
+    <header className="global-header">
       <div>로고!</div>
       <div>
         <a className="nav-link">소개</a>
@@ -13,6 +13,6 @@ export default function Header() {
         <a className="nav-link">LAB</a>
         <a className="nav-link active">운영</a>
       </div>
-    </div>
+    </header>
   );
 }

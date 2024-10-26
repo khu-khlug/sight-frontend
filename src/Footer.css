@@ -1,0 +1,19 @@
+.global-footer {
+  color: #959595;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.global-footer .sponsor a {
+  color: #959595;
+  text-decoration: none;
+  margin-right: 16px;
+}
+
+.global-footer .sponsor img {
+  height: 17px;
+  vertical-align: bottom;
+  margin-right: 4px;
+}

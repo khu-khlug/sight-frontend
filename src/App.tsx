@@ -1,7 +1,8 @@
 import Location from "./Location";
+import Header from "./Header";
+import Footer from "./Footer";
 
 import "./App.css";
-import Header from "./Header";
 
 function App() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -37,6 +38,7 @@ function App() {
           </form>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

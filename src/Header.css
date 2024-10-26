@@ -1,4 +1,4 @@
-.header {
+.global-header {
   height: 120px;
   border-top: 6px solid var(--main-color);
   display: flex;
