@@ -1,5 +1,5 @@
 body {
-  background-color: #fcfcfc;
+  background-color: #fbfbfb;
 }
 
 .content {
@@ -8,11 +8,10 @@ body {
 }
 
 .container {
-  margin: 32px 0;
+  margin: 32px 8px;
   padding: 32px;
   background-color: white;
   border-radius: 8px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
   border: #f4f4f4 1px solid;
 }
 
@@ -41,7 +40,7 @@ input {
 
 .form-button {
   text-align: right;
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .form-button button {
@@ -61,34 +60,8 @@ input {
   background-color: var(--main-color);
 }
 
-.header {
-  height: 120px;
-  border-top: 6px solid var(--main-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 36px;
-  background-color: white;
-}
-
 .description {
   color: #959595;
-}
-
-.nav-link {
-  text-decoration: none;
-  font-size: large;
-  font-weight: 500;
-  margin-right: 24px;
-  cursor: pointer;
-}
-
-.nav-link:last-child {
-  margin-right: 0;
-}
-
-.nav-link.active {
-  color: var(--main-color);
 }
 
 .current-location {
