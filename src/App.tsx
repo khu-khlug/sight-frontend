@@ -1,6 +1,7 @@
 import Location from "./Location";
 import Header from "./Header";
 import Footer from "./Footer";
+import Button from "./components/Button";
 
 import "./App.css";
 
@@ -33,7 +34,7 @@ function App() {
               <small className="description mr-16">
                 비밀번호를 사용하면 운영진에게 알람이 갑니다.
               </small>
-              <button type="submit">저장</button>
+              <Button type="submit">저장</Button>
             </div>
           </form>
         </div>

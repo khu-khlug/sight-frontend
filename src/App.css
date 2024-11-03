@@ -40,20 +40,8 @@ input {
 }
 
 .form-button button {
-  display: inline-block;
-  padding: 12px 16px;
-  background-color: black;
-  color: white;
   font-size: medium;
   font-weight: 500;
-  line-height: 1;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.form-button button:hover {
-  background-color: var(--main-color);
 }
 
 .description {
