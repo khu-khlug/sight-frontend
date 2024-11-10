@@ -1,7 +1,6 @@
 import Location from "./Location";
-import Header from "./Header";
-import Footer from "./Footer";
 import Button from "./components/Button";
+import SightLayout from "./layouts/SightLayout";
 
 import "./App.css";
 
@@ -11,8 +10,7 @@ function App() {
   };
 
   return (
-    <>
-      <Header />
+    <SightLayout>
       <Location label="infraBlue" />
       <main className="content">
         <div className="container">
@@ -39,8 +37,7 @@ function App() {
           </form>
         </div>
       </main>
-      <Footer />
-    </>
+    </SightLayout>
   );
 }
 
