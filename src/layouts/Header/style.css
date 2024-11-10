@@ -1,0 +1,168 @@
+.global-header {
+  border-top: 6px solid var(--main-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+}
+
+.global-header__bars-button {
+  display: none;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+}
+
+@media screen and (min-width: 768px) {
+  .global-header {
+    height: 120px;
+    padding: 0 36px;
+  }
+
+  .menu {
+    display: flex;
+    align-items: center;
+  }
+
+  .menu .nav-container {
+    font-size: large;
+    margin-right: 32px;
+    padding-bottom: 2px;
+    position: relative;
+  }
+
+  .menu .nav-container:last-child {
+    margin-right: 0;
+  }
+
+  .menu .nav-container .sub-nav {
+    position: absolute;
+    top: 120%;
+    left: -12px;
+    width: 120px;
+    max-height: 0px;
+    background-color: #ffffffae;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    z-index: 1;
+  }
+
+  .menu .nav-container .sub-nav a {
+    display: block;
+    padding: 6px 12px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 400;
+    text-decoration: none;
+    color: black;
+  }
+
+  .menu .nav-container .sub-nav a:hover {
+    background-color: var(--main-color);
+    color: white;
+  }
+
+  .menu .nav-container .sub-nav a:first-child {
+    margin-top: 6px;
+  }
+
+  .menu .nav-container .sub-nav a:last-child {
+    margin-bottom: 6px;
+  }
+
+  .menu .nav-container .sub-nav hr {
+    margin: 4px 8px;
+    border: 0;
+    border-top: 1px solid #ccc;
+  }
+
+  .menu .nav-container:hover .sub-nav {
+    max-height: 600px;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: black;
+  }
+
+  .nav-link.active {
+    color: var(--main-color);
+  }
+
+  .menu .nav-container:hover .nav-link {
+    border-bottom-color: var(--main-color);
+    border-bottom-width: 2px;
+    border-bottom-style: solid;
+  }
+
+  .menu button {
+    font-size: 16px;
+    font-weight: 400;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .global-header {
+    height: 80px;
+    padding: 0 16px;
+  }
+
+  .global-header__bars-button {
+    display: block;
+    font-size: 24px;
+  }
+
+  .menu {
+    display: flex;
+    flex-direction: column;
+    width: 120px;
+    padding: 8px;
+    border: 3px solid var(--main-color);
+    background-color: #222;
+    position: absolute;
+    top: 80px;
+    right: -200px;
+    transition: right 0.3s ease;
+    overflow: scroll;
+    max-height: 500px;
+  }
+
+  .menu.show {
+    right: 16px;
+  }
+
+  .sub-nav {
+    position: relative;
+    max-height: none;
+  }
+
+  .nav-container {
+    margin: 12px 0;
+  }
+
+  .nav-container:first-child,
+  .nav-container:last-child {
+    margin: 0;
+  }
+
+  .nav-container a {
+    display: block;
+    padding: 6px 12px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 400;
+    text-decoration: none;
+    color: white;
+  }
+
+  a.nav-link {
+    padding: 6px 6px;
+    color: var(--main-color);
+  }
+
+  .menu .nav-container .sub-nav hr {
+    margin: 4px 8px;
+    border: 0;
+    border-top: 1px solid #ccc;
+  }
+}

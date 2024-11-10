@@ -1,11 +1,26 @@
-import Button from "./components/Button";
-import "./Header.css";
+import { useState } from "react";
+import classNames from "classnames";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
+
+import Button from "../../components/Button";
+
+import "./style.css";
 
 export default function Header() {
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const toggleMenu = () => {
+    setMenuVisible(!menuVisible);
+  };
+
   return (
     <header className="global-header">
       <div>로고!</div>
-      <div className="menu">
+      <button className="global-header__bars-button" onClick={toggleMenu}>
+        <FontAwesomeIcon icon={faBars} />
+      </button>
+      <div className={classNames("menu", { show: menuVisible })}>
         <div className="nav-container">
           <a href="https://khlug.org/about" className="nav-link">
             소개
