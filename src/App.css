@@ -51,3 +51,22 @@ input {
 .current-location {
   color: #959595;
 }
+
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .text-input-with-label {
+    flex-wrap: wrap;
+  }
+
+  .text-input-with-label label {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .text-input-with-label input {
+    width: 100%;
+  }
+}
