@@ -135,9 +135,12 @@
     margin: 12px 0;
   }
 
-  .nav-container:first-child,
+  .nav-container:first-child {
+    margin-top: 0;
+  }
+
   .nav-container:last-child {
-    margin: 0;
+    margin-bottom: 0;
   }
 
   .nav-container a {
