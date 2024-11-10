@@ -113,13 +113,13 @@
   }
 
   .menu {
+    position: fixed;
     display: flex;
     flex-direction: column;
     width: 120px;
     padding: 8px;
     border: 3px solid var(--main-color);
     background-color: #222;
-    position: absolute;
     top: 80px;
     right: -200px;
     transition: right 0.3s ease;
@@ -129,11 +129,6 @@
 
   .menu.show {
     right: 16px;
-  }
-
-  .sub-nav {
-    position: relative;
-    max-height: none;
   }
 
   .nav-container {
