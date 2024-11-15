@@ -1,0 +1,18 @@
+.container {
+  margin: 32px 0px;
+  padding: 32px;
+  background-color: white;
+  border-radius: 8px;
+  border: #f4f4f4 1px solid;
+}
+
+.container.error {
+  background-color: rgb(238, 208, 208);
+  border: #cf9c9c 1px solid;
+}
+
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+}
