@@ -1,9 +1,9 @@
 import { useState } from "react";
-import classNames from "classnames";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
 
 import Button from "../../components/Button";
+import { cn } from "../../util/cn";
 
 import "./style.css";
 
@@ -20,7 +20,7 @@ export default function Header() {
       <button className="global-header__bars-button" onClick={toggleMenu}>
         <FontAwesomeIcon icon={faBars} />
       </button>
-      <div className={classNames("menu", { show: menuVisible })}>
+      <div className={cn("menu", { show: menuVisible })}>
         <div className="nav-container">
           <a href="https://khlug.org/about" className="nav-link">
             소개
