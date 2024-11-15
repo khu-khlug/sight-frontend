@@ -1,14 +1,7 @@
 .content {
   max-width: 768px;
   margin: 0 auto;
-}
-
-.container {
-  margin: 32px 8px;
-  padding: 32px;
-  background-color: white;
-  border-radius: 8px;
-  border: #f4f4f4 1px solid;
+  padding: 0px 8px;
 }
 
 input {
@@ -53,10 +46,6 @@ input {
 }
 
 @media screen and (max-width: 768px) {
-  .container {
-    padding: 16px;
-  }
-
   .text-input-with-label {
     flex-wrap: wrap;
   }
