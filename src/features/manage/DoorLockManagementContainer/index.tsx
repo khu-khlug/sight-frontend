@@ -18,7 +18,7 @@ export default function DoorLockManagementContainer() {
     retry: 0,
   });
 
-  const { mutate } = useMutation({
+  const { mutate, isPending: isUpdatePending } = useMutation({
     mutationFn: updateDoorLockPassword,
   });
 
@@ -96,7 +96,9 @@ export default function DoorLockManagementContainer() {
                   <small className="description mr-16">
                     비밀번호를 사용하면 운영진에게 알람이 갑니다.
                   </small>
-                  <Button type="submit">저장</Button>
+                  <Button type="submit" disabled={isUpdatePending}>
+                    저장
+                  </Button>
                 </div>
               </form>
             );
