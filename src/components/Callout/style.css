@@ -1,0 +1,38 @@
+.callout {
+  margin: 16px 0;
+  padding: 24px;
+  background-color: white;
+  border-radius: 8px;
+  border: #f4f4f4 1px solid;
+  display: flex;
+  align-items: center;
+}
+
+.callout .callout__exclamation-icon {
+  margin-right: 16px;
+  font-size: 1.5em;
+}
+
+.callout.normal {
+  background-color: rgb(208, 238, 208);
+  border: #9ccf9c 1px solid;
+}
+
+.callout.normal .callout__exclamation-icon {
+  color: #4bb64b;
+}
+
+.callout.error {
+  background-color: rgb(255, 228, 228);
+  border: #dfbbbb 1px solid;
+}
+
+.callout.error .callout__exclamation-icon {
+  color: #c37272;
+}
+
+@media screen and (max-width: 768px) {
+  .callout {
+    padding: 16px;
+  }
+}
