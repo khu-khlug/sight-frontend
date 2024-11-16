@@ -1,6 +1,6 @@
-import KhlugIcon from "./KhlugIcon";
+import KhlugIcon from "../KhlugIcon";
 
-import "./Location.css";
+import "./style.css";
 
 type Props = {
   label: string;

@@ -1,18 +1,7 @@
-import Location from "./Location";
-import SightLayout from "./layouts/SightLayout";
-import DoorLockManagementContainer from "./features/manage/DoorLockManagementContainer";
-
-import "./App.css";
+import InfraBluePage from "./pages/manage/infraBlue";
 
 function App() {
-  return (
-    <SightLayout>
-      <Location label="infraBlue" />
-      <main className="content">
-        <DoorLockManagementContainer />
-      </main>
-    </SightLayout>
-  );
+  return <InfraBluePage />;
 }
 
 export default App;

@@ -11,6 +11,8 @@ import Callout from "../../../components/Callout";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 
+import "./style.css";
+
 export default function DoorLockManagementContainer() {
   const { status, data, error } = useQuery({
     queryKey: ["door-lock-password"],
