@@ -12,3 +12,8 @@
 .component-button:hover {
   background-color: var(--main-color);
 }
+
+.component-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
