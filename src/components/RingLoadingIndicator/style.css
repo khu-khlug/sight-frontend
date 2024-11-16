@@ -1,0 +1,55 @@
+@keyframes lds-dual-ring {
+  0% {
+    transform: rotate(0);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lds-dual-ring_reverse {
+  0% {
+    transform: rotate(0);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+
+.ring-loading-indicator {
+  width: 80px;
+  height: 80px;
+  --indicator-width: 9px;
+  --indicator-gap: 2px;
+}
+
+.ring-loading-indicator {
+  position: relative;
+}
+
+.ring-loading-indicator .lds-dual-ring div {
+  position: absolute;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: var(--indicator-width) solid #000;
+  border-color: #003a8f transparent #003a8f transparent;
+  animation: lds-dual-ring 1.5s linear infinite;
+}
+
+.ring-loading-indicator .lds-dual-ring div:nth-child(2) {
+  width: calc(100% - var(--indicator-width) * 2 - var(--indicator-gap) * 2);
+  height: calc(100% - var(--indicator-width) * 2 - var(--indicator-gap) * 2);
+  top: calc(var(--indicator-width) + var(--indicator-gap));
+  left: calc(var(--indicator-width) + var(--indicator-gap));
+  border-color: transparent #00a0e9 transparent #00a0e9;
+  animation: lds-dual-ring_reverse 1.5s linear infinite;
+}
+
+.center-ring-loading-indicator__wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
