@@ -107,7 +107,7 @@ export default function Header() {
             <a href="https://khlug.org/manage/slack">Slack 참여자</a>
             <hr />
             <a href="https://khlug.org/manage/sightbot">사이트봇</a>
-            <a href="https://khlug.org/manage/infrablue">infraBlue</a>
+            <a href="https://app.khlug.org/manage/infra-blue">infraBlue</a>
             <hr />
             <a href="https://khlug.org/manage/blog">Hello 블로그</a>
             <hr />
