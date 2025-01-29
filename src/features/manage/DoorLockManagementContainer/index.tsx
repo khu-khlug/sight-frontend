@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
   getDoorLockPassword,
   updateDoorLockPassword,
-} from "../../../api/doorLockPassword";
+} from "../../../api/manage/doorLockPassword";
 import Button from "../../../components/Button";
 import Container from "../../../components/Container";
 import Callout from "../../../components/Callout";
@@ -59,7 +59,7 @@ export default function DoorLockManagementContainer() {
   };
 
   return (
-    <Container>
+    <Container className="door-lock-management-container">
       <h2>도어락 비밀번호 관리</h2>
       {(() => {
         switch (status) {

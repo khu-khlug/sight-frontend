@@ -1,4 +1,4 @@
-import apiClient from "./client";
+import apiClient from "../client";
 
 export type GetDoorLockPasswordResponseDto = {
   master: string;

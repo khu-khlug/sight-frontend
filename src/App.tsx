@@ -6,12 +6,14 @@ import {
 } from "react-router-dom";
 
 import InfraBluePage from "./pages/manage/infraBlue";
+import MemberV2Page from "./pages/manage/member-v2";
 
 function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/">
         <Route path="/manage/infra-blue" element={<InfraBluePage />} />
+        <Route path="/manage/member-v2" element={<MemberV2Page />} />
       </Route>
     ),
     {

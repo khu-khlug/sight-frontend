@@ -1,0 +1,46 @@
+.member-search-form {
+  margin-top: 16px;
+}
+
+.member-search-form .member-search-query {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.member-search-query label {
+  display: block;
+  color: #959595;
+  font-size: small;
+  margin-bottom: 2px;
+}
+
+.member-search-query .search-input {
+  width: 240px;
+}
+
+.member-search-query .grade-input {
+  width: 80px;
+}
+
+.member-search-query input,
+select {
+  padding: 6px 8px;
+  height: 40px;
+  display: inline-block;
+  font-size: medium;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.member-search-button {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.member-search-button button {
+  width: 80px;
+  font-size: medium;
+}

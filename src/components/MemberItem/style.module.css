@@ -1,0 +1,76 @@
+.container {
+  display: flex;
+  position: relative;
+  margin-top: 24px;
+}
+
+.container:first-of-type {
+  margin-top: 0;
+}
+
+.first-panel {
+  border-right: 1px solid #eee;
+  width: 250px;
+  height: auto;
+}
+
+.name {
+  font-size: 18px;
+  font-weight: bold;
+  color: black;
+}
+
+.identifier {
+  font-size: 12px;
+  font-weight: bold;
+  color: #a9a9a9;
+  margin-left: 4px;
+}
+
+.contact {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #7f7f7f;
+}
+
+.contact p {
+  margin: 0;
+}
+
+.second-panel {
+  padding: 0 32px;
+}
+
+.second-panel p {
+  margin: 0;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #7f7f7f;
+  font-size: 12px;
+}
+
+.second-panel p:first-of-type {
+  margin-top: 0;
+}
+
+.more-button {
+  background-color: white;
+  border: 1px solid #eee;
+  color: #7f7f7f;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+
+  position: absolute;
+  cursor: pointer;
+  right: 0px;
+  top: 0px;
+
+  /*
+    (32px - 1px * 2 - 16px) / 2 = 7px
+    (<전체 너비> - <border 너비> * 2 - <아이콘 너비>) / 2
+  */
+  padding: 7px;
+}
