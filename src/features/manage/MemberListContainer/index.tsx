@@ -9,7 +9,7 @@ import { UserState } from "../../../constant";
 import styles from "./style.module.css";
 import MemberItem from "../../../components/MemberItem";
 
-type SearchType = "email" | "name" | "department";
+type SearchType = "email" | "phone" | "name" | "number" | "department";
 
 const data: ManageUserApiDto["ListUserResponseDto"] = {
   count: 5,
@@ -192,7 +192,9 @@ const MemberListContainer = () => {
                 onChange={(e) => setSearchType(e.target.value as SearchType)}
               >
                 <option value="email">이메일</option>
+                <option value="phone">전화번호</option>
                 <option value="name">이름</option>
+                <option value="number">학번</option>
                 <option value="department">학과</option>
               </select>
               <input
