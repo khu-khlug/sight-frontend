@@ -44,3 +44,16 @@ select {
   width: 80px;
   font-size: medium;
 }
+
+.member-counter {
+  margin: 0;
+  color: black;
+}
+
+.member-counter span {
+  color: var(--main-color);
+}
+
+.member-list {
+  margin-top: 24px;
+}

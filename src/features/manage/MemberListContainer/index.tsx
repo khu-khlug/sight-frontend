@@ -228,10 +228,15 @@ const MemberListContainer = () => {
           </div>
         </form>
       </Container>
-      <Container className={styles["member-list-container"]}>
-        {data.users.map((user) => (
-          <MemberItem key={user.id} user={user} />
-        ))}
+      <Container>
+        <h2 className={styles["member-counter"]}>
+          검색 결과 <span>{data.count}명</span>
+        </h2>
+        <div className={styles["member-list"]}>
+          {data.users.map((user) => (
+            <MemberItem key={user.id} user={user} />
+          ))}
+        </div>
       </Container>
     </>
   );
