@@ -30,6 +30,7 @@ type UserResponse = {
   returnReason: string | null;
   lastLoginAt: Date;
   lastEnterAt: Date;
+  tags: string[];
   createdAt: Date;
   updatedAt: Date;
 };

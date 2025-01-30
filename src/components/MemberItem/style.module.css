@@ -10,6 +10,7 @@
 
 .first-panel {
   border-right: 1px solid #eee;
+  padding-right: 16px;
   width: 250px;
   height: auto;
 }
@@ -37,8 +38,24 @@
   margin: 0;
 }
 
+.tags {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tags p {
+  margin: 0;
+  padding: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--main-color);
+  background-color: #d9d9d9;
+}
+
 .second-panel {
-  padding: 0 32px;
+  padding-left: 32px;
 }
 
 .second-panel p {

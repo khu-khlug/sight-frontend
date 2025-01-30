@@ -34,6 +34,11 @@ export default function MemberItem({ user }: Props) {
           <p>{user.profile.phone}</p>
           <p>{user.profile.email}</p>
         </div>
+        <div className={styles["tags"]}>
+          {user.tags.map((tag) => (
+            <p key={`${user.id}-${tag}`}>{tag}</p>
+          ))}
+        </div>
       </div>
       <div className={styles["second-panel"]}>
         <p>
