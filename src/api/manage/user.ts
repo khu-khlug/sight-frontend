@@ -1,4 +1,4 @@
-import { UserState } from "../../constant";
+import { StudentStatus, UserStatus } from "../../constant";
 import apiClient from "../client";
 
 type UserProfileResponse = {
@@ -16,12 +16,11 @@ type UserProfileResponse = {
 type UserResponse = {
   id: number;
   name: string;
-  password: string | null;
   profile: UserProfileResponse;
   admission: string;
-  state: UserState;
+  studentStatus: StudentStatus;
   point: number;
-  active: boolean;
+  status: UserStatus;
   manager: boolean;
   slack: string | null;
   rememberToken: string | null;
@@ -30,7 +29,8 @@ type UserResponse = {
   returnReason: string | null;
   lastLoginAt: Date;
   lastEnterAt: Date;
-  tags: string[];
+  normalTags: string[];
+  redTags: string[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -40,7 +40,7 @@ type ListUserRequestDto = {
   name: string | null;
   college: string | null;
   grade: number | null;
-  state: UserState | null;
+  studentStatus: StudentStatus | null;
   limit: number;
   offset: number;
 };

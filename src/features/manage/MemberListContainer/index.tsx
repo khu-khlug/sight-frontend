@@ -4,7 +4,7 @@ import Container from "../../../components/Container";
 import Button from "../../../components/Button";
 
 import { ManageUserApiDto } from "../../../api/manage/user";
-import { UserState } from "../../../constant";
+import { StudentStatus, UserStatus } from "../../../constant";
 
 import styles from "./style.module.css";
 import MemberItem from "../../../components/MemberItem";
@@ -17,7 +17,6 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
     {
       id: 1,
       name: "doralife12",
-      password: null,
       profile: {
         name: "김현우",
         college:
@@ -31,9 +30,9 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
         prefer: "Remote",
       },
       admission: "21",
-      state: UserState.UNDERGRADUATE,
+      studentStatus: StudentStatus.UNDERGRADUATE,
       point: 100,
-      active: true,
+      status: UserStatus.ACTIVE,
       manager: false,
       slack: "john_doe",
       rememberToken: null,
@@ -42,14 +41,14 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
       returnReason: null,
       lastLoginAt: new Date("2023-10-01T12:00:00Z"),
       lastEnterAt: new Date("2023-10-01T12:00:00Z"),
-      tags: ["납부대상1", "납부대상상", "납부대상2", "납부대상3", "납부대상4"],
+      normalTags: ["납부대상1", "납부대상상"],
+      redTags: [],
       createdAt: new Date("2020-09-01T00:00:00Z"),
       updatedAt: new Date("2023-10-01T12:00:00Z"),
     },
     {
       id: 2,
       name: "jane_smith_456",
-      password: null,
       profile: {
         name: "Jane Smith",
         college: "Science",
@@ -62,9 +61,9 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
         prefer: "On-site",
       },
       admission: "2019-09-01",
-      state: UserState.UNDERGRADUATE,
+      studentStatus: StudentStatus.UNDERGRADUATE,
       point: 200,
-      active: false,
+      status: UserStatus.ACTIVE,
       manager: true,
       slack: "jane_smith",
       rememberToken: null,
@@ -73,14 +72,14 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
       returnReason: null,
       lastLoginAt: new Date("2023-09-01T12:00:00Z"),
       lastEnterAt: new Date("2023-09-01T12:00:00Z"),
-      tags: [],
+      normalTags: [],
+      redTags: [],
       createdAt: new Date("2019-09-01T00:00:00Z"),
       updatedAt: new Date("2023-09-01T12:00:00Z"),
     },
     {
       id: 3,
       name: "alice_johnson_789",
-      password: null,
       profile: {
         name: "Alice Johnson",
         college: "Arts",
@@ -93,9 +92,9 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
         prefer: "Hybrid",
       },
       admission: "2018-09-01",
-      state: UserState.ABSENCE,
+      studentStatus: StudentStatus.ABSENCE,
       point: 150,
-      active: true,
+      status: UserStatus.ACTIVE,
       manager: false,
       slack: "alice_johnson",
       rememberToken: null,
@@ -104,14 +103,14 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
       returnReason: null,
       lastLoginAt: new Date("2023-08-01T12:00:00Z"),
       lastEnterAt: new Date("2023-08-01T12:00:00Z"),
-      tags: [],
+      normalTags: [],
+      redTags: [],
       createdAt: new Date("2018-09-01T00:00:00Z"),
       updatedAt: new Date("2023-08-01T12:00:00Z"),
     },
     {
       id: 4,
       name: "bob_brown_101",
-      password: null,
       profile: {
         name: "Bob Brown",
         college: "Business",
@@ -124,9 +123,9 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
         prefer: "Remote",
       },
       admission: "2021-09-01",
-      state: UserState.GRADUATE,
+      studentStatus: StudentStatus.GRADUATE,
       point: 50,
-      active: true,
+      status: UserStatus.ACTIVE,
       manager: false,
       slack: "bob_brown",
       rememberToken: null,
@@ -135,14 +134,14 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
       returnReason: null,
       lastLoginAt: new Date("2023-07-01T12:00:00Z"),
       lastEnterAt: new Date("2023-07-01T12:00:00Z"),
-      tags: [],
+      normalTags: [],
+      redTags: [],
       createdAt: new Date("2021-09-01T00:00:00Z"),
       updatedAt: new Date("2023-07-01T12:00:00Z"),
     },
     {
       id: 5,
       name: "charlie_davis_112",
-      password: null,
       profile: {
         name: "Charlie Davis",
         college: "Law",
@@ -155,9 +154,9 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
         prefer: "On-site",
       },
       admission: "2020-09-01",
-      state: UserState.GRADUATE,
+      studentStatus: StudentStatus.GRADUATE,
       point: 75,
-      active: false,
+      status: UserStatus.ACTIVE,
       manager: true,
       slack: "charlie_davis",
       rememberToken: null,
@@ -166,7 +165,8 @@ const data: ManageUserApiDto["ListUserResponseDto"] = {
       returnReason: null,
       lastLoginAt: new Date("2023-06-01T12:00:00Z"),
       lastEnterAt: new Date("2023-06-01T12:00:00Z"),
-      tags: [],
+      normalTags: [],
+      redTags: [],
       createdAt: new Date("2020-09-01T00:00:00Z"),
       updatedAt: new Date("2023-06-01T12:00:00Z"),
     },
@@ -224,9 +224,9 @@ const MemberListContainer = () => {
                 onChange={(e) => setStatus(e.target.value)}
               >
                 <option></option>
-                <option value={UserState.ABSENCE}>휴학</option>
-                <option value={UserState.UNDERGRADUATE}>재학</option>
-                <option value={UserState.GRADUATE}>졸업</option>
+                <option value={StudentStatus.ABSENCE}>휴학</option>
+                <option value={StudentStatus.UNDERGRADUATE}>재학</option>
+                <option value={StudentStatus.GRADUATE}>졸업</option>
               </select>
             </div>
           </div>
