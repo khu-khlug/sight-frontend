@@ -36,9 +36,11 @@ type UserResponse = {
 };
 
 type ListUserRequestDto = {
-  email: string | null;
   name: string | null;
+  number: string | null;
   college: string | null;
+  email: string | null;
+  phone: string | null;
   grade: number | null;
   studentStatus: StudentStatus | null;
   limit: number;

@@ -19,4 +19,22 @@ export class Validator {
 
     return { result: true };
   }
+
+  static validateGrade(grade: number): ValidateResult {
+    if (Number.isNaN(grade)) {
+      return {
+        result: false,
+        message: "학년은 숫자로 입력해주세요.",
+      };
+    }
+
+    if (grade < 1 || grade > 10) {
+      return {
+        result: false,
+        message: "학년은 1 이상 4 이하로 입력해주세요.",
+      };
+    }
+
+    return { result: true };
+  }
 }
