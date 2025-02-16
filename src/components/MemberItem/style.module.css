@@ -118,3 +118,51 @@ p.stop-info {
   */
   padding: 7px;
 }
+
+.more-button-menu {
+  display: none;
+  position: absolute;
+  background-color: white;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 12px;
+  top: 48px;
+  right: 12px;
+  z-index: 1;
+}
+
+.more-button-menu.opened {
+  display: block;
+}
+
+.more-button-menu button {
+  display: block;
+  border: none;
+  margin-top: 12px;
+
+  background-color: white;
+  color: black;
+  text-align: left;
+  font-size: 16px;
+  line-height: 1;
+
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.more-button-menu button:first-of-type {
+  margin-top: 0;
+}
+
+.more-button-menu button:hover {
+  color: var(--main-color);
+  font-weight: bold;
+}
+
+.more-button-menu button.red {
+  color: red;
+}
+
+.more-button-menu button.red:hover {
+  color: #e00000;
+}

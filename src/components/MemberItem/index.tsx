@@ -1,12 +1,13 @@
 import { DoorOpen, EllipsisVertical, IdCard, Pause } from "lucide-react";
 
 import { ManageUserApiDto } from "../../api/manage/user";
-import { StudentStatus } from "../../constant";
+import { StudentStatus, UserStatus } from "../../constant";
 
 import styles from "./style.module.css";
 import CollegeIcon from "../CollegeIcon";
 import { DateFormats, formatDate } from "../../util/date";
 import { cn } from "../../util/cn";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   user: ManageUserApiDto["UserResponse"];
@@ -19,16 +20,39 @@ const StudentStatusLabel: Record<StudentStatus, string> = {
   [StudentStatus.GRADUATE]: "졸업",
 };
 
-function isGraduated(user: ManageUserApiDto["UserResponse"]) {
-  return user.studentStatus === StudentStatus.GRADUATE;
-}
-
 export default function MemberItem({ user }: Props) {
+  const [moreButtonOpened, setMoreButtonOpened] = useState(false);
+  const moreButtonMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // 메뉴 바깥쪽을 클릭했을 때 메뉴 닫기
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        moreButtonMenuRef.current &&
+        !moreButtonMenuRef.current.contains(event.target as Node)
+      ) {
+        setMoreButtonOpened(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [setMoreButtonOpened]);
+
+  const toggleMoreButtonMenu = () => {
+    setMoreButtonOpened((prev) => !prev);
+  };
+
   const colleges = user.profile.college
     .split(",")
     .map((college) => college.trim());
 
+  const isManager = user.manager;
+  const isGraduated = user.studentStatus === StudentStatus.GRADUATE;
   const isStopped = user.returnAt !== null;
+  const isBlocked = user.status === UserStatus.INACTIVE;
 
   return (
     <div
@@ -61,17 +85,15 @@ export default function MemberItem({ user }: Props) {
         {isStopped && (
           <p className={styles["stop-info"]}>
             <Pause strokeWidth="2" size="16" />
-            <span>
-              ~{formatDate(user.returnAt!, DateFormats.DATE_KOR)},{" "}
-              {user.returnReason}
-            </span>
+            <span>~{formatDate(user.returnAt!, DateFormats.DATE_KOR)}</span>
+            <span>{user.returnReason}</span>
           </p>
         )}
         <p>
           <IdCard strokeWidth="2" size="16" />
+          <span>{user.profile.number}</span>
           <span>
-            {user.profile.number},
-            {isGraduated(user) ? " " : ` ${user.profile.grade}학년 `}
+            {isGraduated ? " " : ` ${user.profile.grade}학년 `}
             {StudentStatusLabel[user.studentStatus]}
           </span>
         </p>
@@ -86,9 +108,28 @@ export default function MemberItem({ user }: Props) {
           </p>
         ))}
       </div>
-      <button className={styles["more-button"]}>
-        <EllipsisVertical size="16" />
-      </button>
+      <div>
+        <button
+          className={styles["more-button"]}
+          onClick={toggleMoreButtonMenu}
+        >
+          <EllipsisVertical size="16" />
+        </button>
+        <div
+          ref={moreButtonMenuRef}
+          className={cn(styles["more-button-menu"], {
+            [styles["opened"]]: moreButtonOpened,
+          })}
+        >
+          <button>{isManager ? "운영진 업무 종료" : "운영진 임명"}</button>
+          <button>{isGraduated ? "재적" : "졸업"}</button>
+          <button>{isStopped ? "정지 해제" : "정지"}</button>
+          <button className={styles["red"]}>
+            {isBlocked ? "차단 해제" : "접속 차단"}
+          </button>
+          <button className={styles["red"]}>제명</button>
+        </div>
+      </div>
     </div>
   );
 }
