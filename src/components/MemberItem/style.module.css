@@ -15,10 +15,24 @@
   height: auto;
 }
 
+.name-area {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .name {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
   color: black;
+}
+
+.manager-chip {
+  padding: 2px;
+  background-color: var(--main-color);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .contact {

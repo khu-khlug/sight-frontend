@@ -30,8 +30,11 @@ export default function MemberItem({ user }: Props) {
   return (
     <div className={styles["container"]}>
       <div className={styles["first-panel"]}>
-        <div>
+        <div className={styles["name-area"]}>
           <span className={styles["name"]}>{user.profile.name}</span>
+          {user.manager && (
+            <span className={styles["manager-chip"]}>운영진</span>
+          )}
         </div>
         <div className={styles["contact"]}>
           <p>{user.name}</p>
