@@ -1,7 +1,13 @@
 .container {
   display: flex;
   position: relative;
-  margin-top: 30px;
+  margin-top: 20px;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.container.stopped {
+  background-color: #00000022;
 }
 
 .container:first-of-type {
@@ -88,6 +94,11 @@
   margin-top: 0;
 }
 
+p.stop-info {
+  color: var(--main-color);
+  font-weight: bold;
+}
+
 .more-button {
   background-color: white;
   border: 1px solid #eee;
@@ -98,8 +109,8 @@
 
   position: absolute;
   cursor: pointer;
-  right: 0px;
-  top: 0px;
+  right: 12px;
+  top: 12px;
 
   /*
     (32px - 1px * 2 - 16px) / 2 = 7px

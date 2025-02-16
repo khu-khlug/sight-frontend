@@ -1,4 +1,4 @@
-import { DoorOpen, EllipsisVertical, IdCard } from "lucide-react";
+import { DoorOpen, EllipsisVertical, IdCard, Pause } from "lucide-react";
 
 import { ManageUserApiDto } from "../../api/manage/user";
 import { StudentStatus } from "../../constant";
@@ -6,6 +6,7 @@ import { StudentStatus } from "../../constant";
 import styles from "./style.module.css";
 import CollegeIcon from "../CollegeIcon";
 import { DateFormats, formatDate } from "../../util/date";
+import { cn } from "../../util/cn";
 
 type Props = {
   user: ManageUserApiDto["UserResponse"];
@@ -27,8 +28,12 @@ export default function MemberItem({ user }: Props) {
     .split(",")
     .map((college) => college.trim());
 
+  const isStopped = user.returnAt !== null;
+
   return (
-    <div className={styles["container"]}>
+    <div
+      className={cn(styles["container"], { [styles["stopped"]]: isStopped })}
+    >
       <div className={styles["first-panel"]}>
         <div className={styles["name-area"]}>
           <span className={styles["name"]}>{user.profile.name}</span>
@@ -53,6 +58,15 @@ export default function MemberItem({ user }: Props) {
         </div>
       </div>
       <div className={styles["second-panel"]}>
+        {isStopped && (
+          <p className={styles["stop-info"]}>
+            <Pause strokeWidth="2" size="16" />
+            <span>
+              ~{formatDate(user.returnAt!, DateFormats.DATE_KOR)},{" "}
+              {user.returnReason}
+            </span>
+          </p>
+        )}
         <p>
           <IdCard strokeWidth="2" size="16" />
           <span>
