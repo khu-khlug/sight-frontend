@@ -12,6 +12,7 @@ import SwitchManagerModal from "../SwitchManagerModal";
 import SwitchGraduatedModal from "../SwitchGraduatedModal";
 import SwitchStoppedModal from "../SwitchStoppedModal";
 import SwitchBlockedModal from "../SwitchBlockedModal";
+import RemoveMemberModal from "../RemoveMemberModal";
 
 type Props = {
   user: ManageUserApiDto["UserResponse"];
@@ -36,6 +37,7 @@ export default function MemberItem({ user }: Props) {
     useState(false);
   const [isSwitchBlockedModalOpen, setIsSwitchBlockedModalOpen] =
     useState(false);
+  const [isRemoveMemberModalOpen, setIsRemoveMemberModalOpen] = useState(false);
 
   useEffect(() => {
     // 메뉴 바깥쪽을 클릭했을 때 메뉴 닫기
@@ -71,6 +73,11 @@ export default function MemberItem({ user }: Props) {
 
   const openSwitchBlockedModal = () => {
     setIsSwitchBlockedModalOpen(true);
+    setMoreButtonOpened(false);
+  };
+
+  const openRemoveMemberModal = () => {
+    setIsRemoveMemberModalOpen(true);
     setMoreButtonOpened(false);
   };
 
@@ -168,7 +175,9 @@ export default function MemberItem({ user }: Props) {
           <button onClick={openSwitchBlockedModal} className={styles["red"]}>
             {isBlocked ? "차단 해제" : "접속 차단"}
           </button>
-          <button className={styles["red"]}>제명</button>
+          <button onClick={openRemoveMemberModal} className={styles["red"]}>
+            제명
+          </button>
         </div>
       </div>
       {isSwitchManagerModalOpen && (
@@ -205,6 +214,14 @@ export default function MemberItem({ user }: Props) {
           targetUserProfile={userProfileForConfirm}
           onConfirm={() => console.log("Confirmed!")}
           onCancel={() => setIsSwitchBlockedModalOpen(false)}
+        />
+      )}
+      {isRemoveMemberModalOpen && (
+        <RemoveMemberModal
+          isOpen={isRemoveMemberModalOpen}
+          targetUserProfile={userProfileForConfirm}
+          onConfirm={() => console.log("Confirmed!")}
+          onCancel={() => setIsRemoveMemberModalOpen(false)}
         />
       )}
     </div>
