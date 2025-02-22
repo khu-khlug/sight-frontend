@@ -1,0 +1,32 @@
+.component-button {
+  display: inline-block;
+  padding: 10px 12px;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 16px;
+}
+
+.component-button.primary {
+  background-color: var(--main-color);
+  color: white;
+}
+
+.component-button.primary:hover {
+  background-color: var(--main-color-hover);
+}
+
+.component-button.neutral {
+  background-color: white;
+  color: var(--main-color);
+}
+
+.component-button.neutral:hover {
+  background-color: #f9f9f9;
+}
+
+.component-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
