@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import SwitchManagerModal from "../SwitchManagerModal";
 import SwitchGraduatedModal from "../SwitchGraduatedModal";
 import SwitchStoppedModal from "../SwitchStoppedModal";
+import SwitchBlockedModal from "../SwitchBlockedModal";
 
 type Props = {
   user: ManageUserApiDto["UserResponse"];
@@ -32,6 +33,8 @@ export default function MemberItem({ user }: Props) {
   const [isSwitchGraduatedModalOpen, setIsSwitchGraduatedModalOpen] =
     useState(false);
   const [isSwitchStoppedModalOpen, setIsSwitchStoppedModalOpen] =
+    useState(false);
+  const [isSwitchBlockedModalOpen, setIsSwitchBlockedModalOpen] =
     useState(false);
 
   useEffect(() => {
@@ -63,6 +66,11 @@ export default function MemberItem({ user }: Props) {
 
   const openSwitchStoppedModal = () => {
     setIsSwitchStoppedModalOpen(true);
+    setMoreButtonOpened(false);
+  };
+
+  const openSwitchBlockedModal = () => {
+    setIsSwitchBlockedModalOpen(true);
     setMoreButtonOpened(false);
   };
 
@@ -157,7 +165,7 @@ export default function MemberItem({ user }: Props) {
           <button onClick={openSwitchStoppedModal}>
             {isStopped ? "정지 해제" : "정지"}
           </button>
-          <button className={styles["red"]}>
+          <button onClick={openSwitchBlockedModal} className={styles["red"]}>
             {isBlocked ? "차단 해제" : "접속 차단"}
           </button>
           <button className={styles["red"]}>제명</button>
@@ -188,6 +196,15 @@ export default function MemberItem({ user }: Props) {
           targetUserProfile={userProfileForConfirm}
           onConfirm={() => console.log("Confirmed!")}
           onCancel={() => setIsSwitchStoppedModalOpen(false)}
+        />
+      )}
+      {isSwitchBlockedModalOpen && (
+        <SwitchBlockedModal
+          isOpen={isSwitchBlockedModalOpen}
+          toBeBlocked={!isBlocked}
+          targetUserProfile={userProfileForConfirm}
+          onConfirm={() => console.log("Confirmed!")}
+          onCancel={() => setIsSwitchBlockedModalOpen(false)}
         />
       )}
     </div>
