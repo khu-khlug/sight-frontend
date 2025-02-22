@@ -8,6 +8,7 @@ import CollegeIcon from "../CollegeIcon";
 import { DateFormats, formatDate } from "../../util/date";
 import { cn } from "../../util/cn";
 import { useEffect, useRef, useState } from "react";
+import SwitchManagerModal from "../SwitchManagerModal";
 
 type Props = {
   user: ManageUserApiDto["UserResponse"];
@@ -23,6 +24,9 @@ const StudentStatusLabel: Record<StudentStatus, string> = {
 export default function MemberItem({ user }: Props) {
   const [moreButtonOpened, setMoreButtonOpened] = useState(false);
   const moreButtonMenuRef = useRef<HTMLDivElement>(null);
+
+  const [isSwitchManagerModalOpen, setIsSwitchManagerModalOpen] =
+    useState(false);
 
   useEffect(() => {
     // 메뉴 바깥쪽을 클릭했을 때 메뉴 닫기
@@ -41,8 +45,9 @@ export default function MemberItem({ user }: Props) {
     };
   }, [setMoreButtonOpened]);
 
-  const toggleMoreButtonMenu = () => {
-    setMoreButtonOpened((prev) => !prev);
+  const openSwitchManagerModal = () => {
+    setIsSwitchManagerModalOpen(true);
+    setMoreButtonOpened(false);
   };
 
   const colleges = user.profile.college
@@ -111,7 +116,7 @@ export default function MemberItem({ user }: Props) {
       <div>
         <button
           className={styles["more-button"]}
-          onClick={toggleMoreButtonMenu}
+          onClick={() => setMoreButtonOpened(true)}
         >
           <EllipsisVertical size="16" />
         </button>
@@ -121,7 +126,9 @@ export default function MemberItem({ user }: Props) {
             [styles["opened"]]: moreButtonOpened,
           })}
         >
-          <button>{isManager ? "운영진 업무 종료" : "운영진 임명"}</button>
+          <button onClick={openSwitchManagerModal}>
+            {isManager ? "운영진 업무 종료" : "운영진 임명"}
+          </button>
           <button>{isGraduated ? "재적" : "졸업"}</button>
           <button>{isStopped ? "정지 해제" : "정지"}</button>
           <button className={styles["red"]}>
@@ -130,6 +137,14 @@ export default function MemberItem({ user }: Props) {
           <button className={styles["red"]}>제명</button>
         </div>
       </div>
+      {isSwitchManagerModalOpen && (
+        <SwitchManagerModal
+          isOpen={isSwitchManagerModalOpen}
+          targetUser={user}
+          onConfirm={() => console.log("Confirmed!")}
+          onCancel={() => setIsSwitchManagerModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

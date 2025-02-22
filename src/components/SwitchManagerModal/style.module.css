@@ -1,0 +1,32 @@
+.modal-content h2 {
+  text-align: center;
+}
+
+.modal-content p {
+  text-align: center;
+  line-height: 1.5;
+}
+
+.target-user-info {
+  background-color: #00000010;
+  border: 1px solid #0000001a;
+  background-clip: padding-box;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.target-user-info ul {
+  padding-left: 16px;
+  margin: 0;
+}
+
+.target-user-info li:not(:first-child) {
+  margin-top: 4px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+}
