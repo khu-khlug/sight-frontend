@@ -10,6 +10,7 @@ import { cn } from "../../util/cn";
 import { useEffect, useRef, useState } from "react";
 import SwitchManagerModal from "../SwitchManagerModal";
 import SwitchGraduatedModal from "../SwitchGraduatedModal";
+import SwitchStoppedModal from "../SwitchStoppedModal";
 
 type Props = {
   user: ManageUserApiDto["UserResponse"];
@@ -29,6 +30,8 @@ export default function MemberItem({ user }: Props) {
   const [isSwitchManagerModalOpen, setIsSwitchManagerModalOpen] =
     useState(false);
   const [isSwitchGraduatedModalOpen, setIsSwitchGraduatedModalOpen] =
+    useState(false);
+  const [isSwitchStoppedModalOpen, setIsSwitchStoppedModalOpen] =
     useState(false);
 
   useEffect(() => {
@@ -55,6 +58,11 @@ export default function MemberItem({ user }: Props) {
 
   const openSwitchGraduatedModal = () => {
     setIsSwitchGraduatedModalOpen(true);
+    setMoreButtonOpened(false);
+  };
+
+  const openSwitchStoppedModal = () => {
+    setIsSwitchStoppedModalOpen(true);
     setMoreButtonOpened(false);
   };
 
@@ -146,7 +154,9 @@ export default function MemberItem({ user }: Props) {
           <button onClick={openSwitchGraduatedModal}>
             {isGraduated ? "재적" : "졸업"}
           </button>
-          <button>{isStopped ? "정지 해제" : "정지"}</button>
+          <button onClick={openSwitchStoppedModal}>
+            {isStopped ? "정지 해제" : "정지"}
+          </button>
           <button className={styles["red"]}>
             {isBlocked ? "차단 해제" : "접속 차단"}
           </button>
@@ -169,6 +179,15 @@ export default function MemberItem({ user }: Props) {
           targetUserProfile={userProfileForConfirm}
           onConfirm={() => console.log("Confirmed!")}
           onCancel={() => setIsSwitchGraduatedModalOpen(false)}
+        />
+      )}
+      {isSwitchStoppedModalOpen && (
+        <SwitchStoppedModal
+          isOpen={isSwitchStoppedModalOpen}
+          toBeStopped={!isStopped}
+          targetUserProfile={userProfileForConfirm}
+          onConfirm={() => console.log("Confirmed!")}
+          onCancel={() => setIsSwitchStoppedModalOpen(false)}
         />
       )}
     </div>
