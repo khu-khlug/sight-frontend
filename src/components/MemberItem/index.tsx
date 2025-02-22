@@ -9,6 +9,7 @@ import { DateFormats, formatDate } from "../../util/date";
 import { cn } from "../../util/cn";
 import { useEffect, useRef, useState } from "react";
 import SwitchManagerModal from "../SwitchManagerModal";
+import SwitchGraduatedModal from "../SwitchGraduatedModal";
 
 type Props = {
   user: ManageUserApiDto["UserResponse"];
@@ -26,6 +27,8 @@ export default function MemberItem({ user }: Props) {
   const moreButtonMenuRef = useRef<HTMLDivElement>(null);
 
   const [isSwitchManagerModalOpen, setIsSwitchManagerModalOpen] =
+    useState(false);
+  const [isSwitchGraduatedModalOpen, setIsSwitchGraduatedModalOpen] =
     useState(false);
 
   useEffect(() => {
@@ -50,6 +53,11 @@ export default function MemberItem({ user }: Props) {
     setMoreButtonOpened(false);
   };
 
+  const openSwitchGraduatedModal = () => {
+    setIsSwitchGraduatedModalOpen(true);
+    setMoreButtonOpened(false);
+  };
+
   const colleges = user.profile.college
     .split(",")
     .map((college) => college.trim());
@@ -58,6 +66,12 @@ export default function MemberItem({ user }: Props) {
   const isGraduated = user.studentStatus === StudentStatus.GRADUATE;
   const isStopped = user.returnAt !== null;
   const isBlocked = user.status === UserStatus.INACTIVE;
+
+  const userProfileForConfirm = {
+    name: user.profile.name,
+    number: user.profile.number!,
+    college: user.profile.college,
+  };
 
   return (
     <div
@@ -129,7 +143,9 @@ export default function MemberItem({ user }: Props) {
           <button onClick={openSwitchManagerModal}>
             {isManager ? "운영진 업무 종료" : "운영진 임명"}
           </button>
-          <button>{isGraduated ? "재적" : "졸업"}</button>
+          <button onClick={openSwitchGraduatedModal}>
+            {isGraduated ? "재적" : "졸업"}
+          </button>
           <button>{isStopped ? "정지 해제" : "정지"}</button>
           <button className={styles["red"]}>
             {isBlocked ? "차단 해제" : "접속 차단"}
@@ -140,9 +156,19 @@ export default function MemberItem({ user }: Props) {
       {isSwitchManagerModalOpen && (
         <SwitchManagerModal
           isOpen={isSwitchManagerModalOpen}
-          targetUser={user}
+          toBeManager={!isManager}
+          targetUserProfile={userProfileForConfirm}
           onConfirm={() => console.log("Confirmed!")}
           onCancel={() => setIsSwitchManagerModalOpen(false)}
+        />
+      )}
+      {isSwitchGraduatedModalOpen && (
+        <SwitchGraduatedModal
+          isOpen={isSwitchGraduatedModalOpen}
+          toBeGraduated={!isGraduated}
+          targetUserProfile={userProfileForConfirm}
+          onConfirm={() => console.log("Confirmed!")}
+          onCancel={() => setIsSwitchGraduatedModalOpen(false)}
         />
       )}
     </div>

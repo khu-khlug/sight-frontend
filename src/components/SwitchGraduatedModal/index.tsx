@@ -4,7 +4,7 @@ import styles from "./style.module.css";
 
 type Props = {
   isOpen: boolean;
-  toBeManager: boolean;
+  toBeGraduated: boolean;
   targetUserProfile: {
     name: string;
     number: number;
@@ -14,9 +14,9 @@ type Props = {
   onCancel: () => void;
 };
 
-export default function SwitchManagerModal({
+export default function SwitchGraduatedModal({
   isOpen,
-  toBeManager,
+  toBeGraduated,
   targetUserProfile,
   onConfirm,
   onCancel,
@@ -24,15 +24,15 @@ export default function SwitchManagerModal({
   return (
     <TargetUserConfirmationModal
       isOpen={isOpen}
-      title={toBeManager ? "운영진 임명" : "운영진 업무 종료"}
+      title={toBeGraduated ? "졸업 처리" : "졸업 취소 처리"}
       targetUserProfile={targetUserProfile}
       onConfirm={onConfirm}
       onCancel={onCancel}
     >
       <p className={styles["content"]}>
-        {toBeManager
-          ? `${targetUserProfile.name} 님을 운영진으로 임명하시겠습니까?`
-          : `${targetUserProfile.name} 님의 운영진 업무를 종료시키시겠습니까?`}
+        {toBeGraduated
+          ? `${targetUserProfile.name} 님이 졸업하신 것으로 확인되었습니까?`
+          : `${targetUserProfile.name} 님이 아직 졸업하지 않은 것으로 확인되었습니까?`}
         <br />
         대상이 맞는지 다시 한 번 확인해주세요.
       </p>
