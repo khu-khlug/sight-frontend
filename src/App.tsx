@@ -7,11 +7,17 @@ import {
 
 import InfraBluePage from "./pages/manage/infraBlue";
 import MemberV2Page from "./pages/manage/member-v2";
+import IntegrateDiscordPage from "./pages/member/integrate-discord";
 
 function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/">
+        <Route
+          path="/member/integrate-discord"
+          element={<IntegrateDiscordPage />}
+        />
+
         <Route path="/manage/infra-blue" element={<InfraBluePage />} />
         <Route path="/manage/member-v2" element={<MemberV2Page />} />
       </Route>

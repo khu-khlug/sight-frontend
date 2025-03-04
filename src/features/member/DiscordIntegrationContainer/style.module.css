@@ -1,0 +1,20 @@
+.discord-integration-container {
+  line-height: 1.5;
+}
+
+.discord-integration-info {
+  padding: 8px;
+  background-color: #f7f7f7;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+}
+
+.button-wrapper {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.button-wrapper button {
+  width: 100px;
+  font-size: medium;
+}
