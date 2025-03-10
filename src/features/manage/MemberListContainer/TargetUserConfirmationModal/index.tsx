@@ -1,5 +1,5 @@
-import BaseModal from "../BaseModal";
-import Button from "../Button";
+import BaseModal from "../../../../components/BaseModal";
+import Button from "../../../../components/Button";
 
 import styles from "./style.module.css";
 

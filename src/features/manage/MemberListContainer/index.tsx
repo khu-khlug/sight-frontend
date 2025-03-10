@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
@@ -6,13 +7,13 @@ import Button from "../../../components/Button";
 import { ManageUserApiDto, UserManageApi } from "../../../api/manage/user";
 import { StudentStatus } from "../../../constant";
 
-import styles from "./style.module.css";
-import MemberItem from "../../../components/MemberItem";
-import { useQuery } from "@tanstack/react-query";
+import MemberItem from "./MemberItem";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 import Callout from "../../../components/Callout";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { Validator } from "../../../util/validator";
+
+import styles from "./style.module.css";
 
 type SearchType = "name" | "number" | "department" | "email" | "phone";
 

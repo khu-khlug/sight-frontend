@@ -1,18 +1,18 @@
+import { useEffect, useRef, useState } from "react";
 import { DoorOpen, EllipsisVertical, IdCard, Pause } from "lucide-react";
 
-import { ManageUserApiDto } from "../../api/manage/user";
-import { StudentStatus, UserStatus } from "../../constant";
-
-import styles from "./style.module.css";
-import CollegeIcon from "../CollegeIcon";
-import { DateFormats, formatDate } from "../../util/date";
-import { cn } from "../../util/cn";
-import { useEffect, useRef, useState } from "react";
+import { ManageUserApiDto } from "../../../../api/manage/user";
+import { StudentStatus, UserStatus } from "../../../../constant";
+import CollegeIcon from "../../../../components/CollegeIcon";
+import { DateFormats, formatDate } from "../../../../util/date";
+import { cn } from "../../../../util/cn";
 import SwitchManagerModal from "../SwitchManagerModal";
 import SwitchGraduatedModal from "../SwitchGraduatedModal";
 import SwitchStoppedModal from "../SwitchStoppedModal";
 import SwitchBlockedModal from "../SwitchBlockedModal";
 import RemoveMemberModal from "../RemoveMemberModal";
+
+import styles from "./style.module.css";
 
 type Props = {
   user: ManageUserApiDto["UserResponse"];
