@@ -10,6 +10,7 @@ import { StudentStatus } from "../../../constant";
 import MemberItem from "./MemberItem";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 import Callout from "../../../components/Callout";
+import PageNavigator from "../../../components/PageNavigator";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { Validator } from "../../../util/validator";
 
@@ -28,9 +29,10 @@ const MemberListContainer = () => {
   const [studentStatus, setStudentStatus] = useState<StudentStatus | null>(
     null
   );
+  const [page, setPage] = useState(1);
 
-  const offset = 0;
   const limit = 20;
+  const offset = (page - 1) * limit;
 
   const buildListUserRequestDto = () => {
     const dto: ManageUserApiDto["ListUserRequestDto"] = {
@@ -72,7 +74,7 @@ const MemberListContainer = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["member-list"],
+    queryKey: ["member-list", page],
     queryFn: () => UserManageApi.listUserForManager(buildListUserRequestDto()),
     retry: 0,
   });
@@ -88,6 +90,7 @@ const MemberListContainer = () => {
     }
 
     refetch();
+    setPage(1);
   };
 
   return (
@@ -167,6 +170,12 @@ const MemberListContainer = () => {
                       <MemberItem key={user.id} user={user} />
                     ))}
                   </div>
+                  <PageNavigator
+                    currentPage={page}
+                    countPerPage={limit}
+                    totalCount={data.count}
+                    onPageChange={(page) => setPage(page)}
+                  />
                 </>
               );
           }
