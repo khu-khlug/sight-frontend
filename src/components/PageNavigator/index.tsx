@@ -11,6 +11,44 @@ type Props = {
   onPageChange: (page: number) => void;
 };
 
+function calcPageNumbers(
+  currentPage: number,
+  countPerPage: number,
+  totalCount: number
+): number[] {
+  const totalPages = Math.ceil(totalCount / countPerPage);
+  const halfCount = Math.floor(MAX_PAGE_COUNT / 2);
+
+  const pages: number[] = [];
+
+  if (totalPages === 0) {
+    return [1];
+  }
+
+  if (totalPages <= MAX_PAGE_COUNT) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  if (currentPage <= halfCount) {
+    // 왼쪽 끝
+    for (let i = 1; i <= MAX_PAGE_COUNT; i++) {
+      pages.push(i);
+    }
+  } else if (currentPage > totalPages - halfCount) {
+    // 오른쪽 끝
+    for (let i = totalPages - MAX_PAGE_COUNT + 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+  } else {
+    // 중앙 처리
+    for (let i = currentPage - halfCount; i <= currentPage + halfCount; i++) {
+      pages.push(i);
+    }
+  }
+
+  return pages;
+}
+
 export default function PageNavigator({
   currentPage,
   countPerPage,
@@ -19,16 +57,7 @@ export default function PageNavigator({
 }: Props) {
   const totalPages = Math.ceil(totalCount / countPerPage);
 
-  const startPage = Math.min(
-    Math.max(1, currentPage - Math.floor(MAX_PAGE_COUNT / 2)),
-    totalPages - MAX_PAGE_COUNT + 1
-  );
-  const endPage = Math.min(totalPages, startPage + MAX_PAGE_COUNT - 1);
-
-  const pages = Array.from(
-    { length: endPage - startPage + 1 },
-    (_, i) => i + startPage
-  );
+  const pages = calcPageNumbers(currentPage, countPerPage, totalCount);
 
   return (
     <div className={styles["page-navigator"]}>
