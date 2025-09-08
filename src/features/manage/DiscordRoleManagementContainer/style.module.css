@@ -1,0 +1,63 @@
+.discord-role-management {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.role-section {
+  padding: 1rem;
+}
+
+.role-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--main-color);
+}
+
+.role-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-weight: 500;
+  color: #333;
+}
+
+.input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--main-color);
+}
+
+.info-text {
+  margin: 1rem 0 0 0;
+  color: #959595;
+  font-size: 0.9rem;
+}
+
+@media (min-width: 768px) {
+  .role-form {
+    flex-direction: row;
+    align-items: end;
+    gap: 1rem;
+  }
+  
+  .input-group {
+    flex: 1;
+  }
+}
