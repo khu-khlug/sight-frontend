@@ -16,7 +16,7 @@ export type UpdateDiscordRoleRequest = {
 
 export const getDiscordRoles = async (): Promise<GetDiscordRoleResponse[]> => {
   const response = await apiClient.get<GetDiscordRoleResponse[]>(
-    "/discord-roles"
+    "/manager/discord-roles"
   );
   return response.data;
 };
@@ -26,7 +26,7 @@ export const updateDiscordRole = async (
   request: UpdateDiscordRoleRequest
 ): Promise<GetDiscordRoleResponse> => {
   const response = await apiClient.put<GetDiscordRoleResponse>(
-    `/discord-roles/${id}`,
+    `/manager/discord-roles/${id}`,
     request
   );
   return response.data;
