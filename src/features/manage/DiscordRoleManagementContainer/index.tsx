@@ -6,8 +6,8 @@ import {
   DiscordRoleApi,
   DiscordRoleType,
 } from "../../../api/manage/discordRole";
-import Button from "../../../components/Button";
 import Container from "../../../components/Container";
+import Callout from "../../../components/Callout";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 
@@ -51,7 +51,6 @@ export default function DiscordRoleManagementContainer() {
     MANAGER: { id: null, roleId: "" },
   });
 
-
   useEffect(() => {
     if (data) {
       const newRoles: Record<DiscordRoleType, RoleState> = {
@@ -74,83 +73,87 @@ export default function DiscordRoleManagementContainer() {
   const handleRoleIdChange = (roleType: DiscordRoleType, value: string) => {
     setRoles((prev) => ({
       ...prev,
-      [roleType]: {
-        ...prev[roleType],
-        roleId: value,
-      },
+      [roleType]: { ...prev[roleType], roleId: value },
     }));
   };
 
-  const handleSubmit = (roleType: DiscordRoleType) => {
+  const validateRoleId = (roleId: string) => roleId.trim().length > 0;
+
+  const handleSubmit = (
+    e: React.FormEvent<HTMLFormElement>,
+    roleType: DiscordRoleType
+  ) => {
+    e.preventDefault();
+
     const role = roles[roleType];
-    if (role.id && role.roleId.trim()) {
+    if (role.id && role.roleId.trim() && validateRoleId(role.roleId)) {
       mutate({ id: role.id, roleId: role.roleId.trim() });
     }
   };
 
-  const validateRoleId = (roleId: string) => roleId.trim().length > 0;
+  const hasNullIdRoles = data
+    ? Object.values(roles).some((role) => role.id === null)
+    : false;
 
   if (status === "pending") {
     return <CenterRingLoadingIndicator />;
   }
 
   if (status === "error") {
-    toast.error(
-      `디스코드 역할 정보를 불러오는 중 오류가 발생했습니다: ${extractErrorMessage(error)}`
-    );
+    toast.error(extractErrorMessage(error));
     return <CenterRingLoadingIndicator />;
   }
 
-  return (
-    <div className={styles["discord-role-management"]}>
-      {(Object.keys(ROLE_TYPE_LABELS) as DiscordRoleType[]).map((roleType) => {
-        const role = roles[roleType];
-        const isValid = validateRoleId(role.roleId);
-        const canUpdate = role.id && isValid && !isUpdatePending;
+  if (hasNullIdRoles) {
+    return (
+      <Container>
+        <div className={styles["discord-role-management"]}>
+          <h2>디스코드 역할 관리</h2>
+          <Callout type="error">
+            디스코드 역할이 아직 설정되지 않았습니다. 개발 운영진에게
+            문의해주세요.
+          </Callout>
+        </div>
+      </Container>
+    );
+  }
 
-        return (
-          <Container key={roleType}>
-            <div className={styles["role-section"]}>
-              <h3 className={styles["role-title"]}>
-                {ROLE_TYPE_LABELS[roleType]} 역할
-              </h3>
-              <div className={styles["role-form"]}>
-                <div className={styles["input-group"]}>
-                  <label
-                    htmlFor={`roleId-${roleType}`}
-                    className={styles["label"]}
-                  >
-                    디스코드 역할 ID
-                  </label>
-                  <input
-                    id={`roleId-${roleType}`}
-                    type="text"
-                    value={role.roleId}
-                    onChange={(e) =>
-                      handleRoleIdChange(roleType, e.target.value)
-                    }
-                    placeholder="디스코드 역할 ID를 입력하세요"
-                    className={styles["input"]}
-                  />
-                </div>
-                <Button
-                  onClick={() => handleSubmit(roleType)}
-                  disabled={!canUpdate}
-                  variant="primary"
-                >
-                  {isUpdatePending ? "업데이트 중..." : "업데이트"}
-                </Button>
+  return (
+    <Container>
+      <div className={styles["discord-role-management"]}>
+        <h2>디스코드 역할 관리</h2>
+        {(Object.keys(ROLE_TYPE_LABELS) as DiscordRoleType[]).map(
+          (roleType) => {
+            const role = roles[roleType];
+
+            return (
+              <div key={roleType} className={styles["role-section"]}>
+                <form onSubmit={(e) => handleSubmit(e, roleType)}>
+                  <div className={styles["input-group"]}>
+                    <label
+                      htmlFor={`roleId-${roleType}`}
+                      className={styles["label"]}
+                    >
+                      {ROLE_TYPE_LABELS[roleType]}
+                    </label>
+                    <input
+                      id={`roleId-${roleType}`}
+                      type="text"
+                      value={role.roleId}
+                      onChange={(e) =>
+                        handleRoleIdChange(roleType, e.target.value)
+                      }
+                      placeholder="디스코드 역할 ID를 입력하세요"
+                      className={styles["input"]}
+                      disabled={isUpdatePending}
+                    />
+                  </div>
+                </form>
               </div>
-              {role.id === null && (
-                <p className={styles["info-text"]}>
-                  이 역할에 대한 설정이 없습니다. 역할 ID를 입력하고
-                  업데이트하세요.
-                </p>
-              )}
-            </div>
-          </Container>
-        );
-      })}
-    </div>
+            );
+          }
+        )}
+      </div>
+    </Container>
   );
 }
