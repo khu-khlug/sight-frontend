@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 
 import {
   DiscordRoleApi,
@@ -7,7 +8,6 @@ import {
 } from "../../../api/manage/discordRole";
 import Button from "../../../components/Button";
 import Container from "../../../components/Container";
-import Callout from "../../../components/Callout";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 
@@ -20,7 +20,7 @@ type RoleState = {
 
 const ROLE_TYPE_LABELS: Record<DiscordRoleType, string> = {
   MEMBER: "회원",
-  GRADUATED_MEMBER: "졸업생 회원",
+  GRADUATED_MEMBER: "명예회원",
   MANAGER: "운영진",
 };
 
@@ -38,10 +38,10 @@ export default function DiscordRoleManagementContainer() {
       DiscordRoleApi.updateDiscordRole(id, { roleId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["discord-roles"] });
-      setUpdateMessage({ type: "success", text: "역할이 성공적으로 업데이트되었습니다." });
+      toast.success("역할이 성공적으로 업데이트되었습니다.");
     },
     onError: (error) => {
-      setUpdateMessage({ type: "error", text: extractErrorMessage(error) });
+      toast.error(extractErrorMessage(error));
     },
   });
 
@@ -51,10 +51,6 @@ export default function DiscordRoleManagementContainer() {
     MANAGER: { id: null, roleId: "" },
   });
 
-  const [updateMessage, setUpdateMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
 
   useEffect(() => {
     if (data) {
@@ -99,25 +95,14 @@ export default function DiscordRoleManagementContainer() {
   }
 
   if (status === "error") {
-    return (
-      <Container>
-        <Callout type="error">
-          디스코드 역할 정보를 불러오는 중 오류가 발생했습니다: {extractErrorMessage(error)}
-        </Callout>
-      </Container>
+    toast.error(
+      `디스코드 역할 정보를 불러오는 중 오류가 발생했습니다: ${extractErrorMessage(error)}`
     );
+    return <CenterRingLoadingIndicator />;
   }
 
   return (
     <div className={styles["discord-role-management"]}>
-      {updateMessage && (
-        <Container>
-          <Callout type={updateMessage.type === "success" ? "normal" : "error"}>
-            {updateMessage.text}
-          </Callout>
-        </Container>
-      )}
-
       {(Object.keys(ROLE_TYPE_LABELS) as DiscordRoleType[]).map((roleType) => {
         const role = roles[roleType];
         const isValid = validateRoleId(role.roleId);
@@ -131,14 +116,19 @@ export default function DiscordRoleManagementContainer() {
               </h3>
               <div className={styles["role-form"]}>
                 <div className={styles["input-group"]}>
-                  <label htmlFor={`roleId-${roleType}`} className={styles["label"]}>
+                  <label
+                    htmlFor={`roleId-${roleType}`}
+                    className={styles["label"]}
+                  >
                     디스코드 역할 ID
                   </label>
                   <input
                     id={`roleId-${roleType}`}
                     type="text"
                     value={role.roleId}
-                    onChange={(e) => handleRoleIdChange(roleType, e.target.value)}
+                    onChange={(e) =>
+                      handleRoleIdChange(roleType, e.target.value)
+                    }
                     placeholder="디스코드 역할 ID를 입력하세요"
                     className={styles["input"]}
                   />
@@ -153,7 +143,8 @@ export default function DiscordRoleManagementContainer() {
               </div>
               {role.id === null && (
                 <p className={styles["info-text"]}>
-                  이 역할에 대한 설정이 없습니다. 역할 ID를 입력하고 업데이트하세요.
+                  이 역할에 대한 설정이 없습니다. 역할 ID를 입력하고
+                  업데이트하세요.
                 </p>
               )}
             </div>
