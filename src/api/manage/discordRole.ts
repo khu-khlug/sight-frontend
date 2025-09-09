@@ -1,4 +1,4 @@
-import apiClient from "../client";
+import apiClient from "../client/v2";
 
 export type DiscordRoleType = "MEMBER" | "GRADUATED_MEMBER" | "MANAGER";
 
@@ -15,7 +15,9 @@ export type UpdateDiscordRoleRequest = {
 };
 
 export const getDiscordRoles = async (): Promise<GetDiscordRoleResponse[]> => {
-  const response = await apiClient.get<GetDiscordRoleResponse[]>("/discord-roles");
+  const response = await apiClient.get<GetDiscordRoleResponse[]>(
+    "/discord-roles"
+  );
   return response.data;
 };
 
