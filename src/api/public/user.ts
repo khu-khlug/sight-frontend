@@ -1,5 +1,5 @@
 import { isAxiosError } from "axios";
-import apiClient from "../client";
+import apiV2Client from "../client/v2";
 
 type GetDiscordIntegrationResponseDto = {
   id: string;
@@ -14,7 +14,7 @@ type IssueDiscordIntegrationUrlResponseDto = {
 const getDiscordIntegration =
   async (): Promise<GetDiscordIntegrationResponseDto | null> => {
     try {
-      const response = await apiClient.get<GetDiscordIntegrationResponseDto>(
+      const response = await apiV2Client.get<GetDiscordIntegrationResponseDto>(
         "/users/@me/discord-integration"
       );
       return response.data;
@@ -28,14 +28,15 @@ const getDiscordIntegration =
   };
 
 const issueAndRedirectToDiscordOAuth2Url = async (): Promise<void> => {
-  const response = await apiClient.post<IssueDiscordIntegrationUrlResponseDto>(
-    "/users/@me/discord-integration/issue-url"
-  );
+  const response =
+    await apiV2Client.post<IssueDiscordIntegrationUrlResponseDto>(
+      "/users/@me/discord-integration/issue-url"
+    );
   window.location.href = response.data.url;
 };
 
 const disconnectDiscordIntegration = async (): Promise<void> => {
-  await apiClient.delete("/users/@me/discord-integration");
+  await apiV2Client.delete("/users/@me/discord-integration");
 };
 
 export type UserPublicApiDto = {
