@@ -1,0 +1,12 @@
+/* Finance page specific styles */
+.content {
+  padding: 1rem;
+  max-width: 1024px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 0.5rem;
+  }
+}

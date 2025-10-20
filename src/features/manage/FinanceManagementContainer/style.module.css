@@ -1,0 +1,263 @@
+.header-section {
+  margin-bottom: 1rem;
+}
+
+.year-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.year-selector h2 {
+  margin: 0;
+}
+
+.year-select {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.year-select:focus {
+  outline: none;
+  border-color: var(--main-color);
+}
+
+.balance-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.balance-label {
+  color: #666;
+}
+
+.balance-amount {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+/* 월별 집계 섹션 */
+.monthly-aggregate {
+  margin-bottom: 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.aggregate-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.aggregate-row td {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  font-weight: 500;
+}
+
+.aggregate-label {
+  font-weight: bold;
+  text-align: center;
+}
+
+.aggregate-header {
+  font-weight: bold;
+  color: #333;
+}
+
+.aggregate-data-row td {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+/* 안내 메시지 */
+.info-message {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-left: 4px solid #999;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.info-message p {
+  margin: 0.5rem 0;
+}
+
+.info-message p:first-child {
+  margin-top: 0;
+}
+
+.info-message p:last-child {
+  margin-bottom: 0;
+}
+
+/* 연락 정보 */
+.contact-info {
+  margin: 1rem 0 1.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #e3f2fd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #1565c0;
+  text-align: center;
+}
+
+/* 거래 내역 카드 리스트 */
+.transactions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.transaction-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.type-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: white;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.type-badge-income {
+  background-color: #5ba4d8;
+}
+
+.type-badge-expense {
+  background-color: #c94d4d;
+}
+
+.transaction-card {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-radius: 8px;
+}
+
+.card-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.card-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.card-amount {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #000;
+  white-space: nowrap;
+}
+
+.card-breakdown {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.card-details {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.card-date {
+  color: #999;
+}
+
+.card-note {
+  font-size: 0.85rem;
+  color: #666;
+  padding: 0.5rem;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  margin-top: 0.25rem;
+}
+
+.card-balance {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .year-selector {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .balance-display {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .transaction-item {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .type-badge {
+    min-width: auto;
+    padding: 0.5rem;
+    align-self: flex-start;
+  }
+
+  .transaction-card {
+    padding: 1rem;
+  }
+
+  .card-main {
+    flex-direction: column;
+  }
+
+  .card-right {
+    align-items: flex-start;
+  }
+
+  .card-amount {
+    font-size: 1.2rem;
+  }
+}

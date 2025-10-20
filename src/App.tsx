@@ -9,6 +9,7 @@ import InfraBluePage from "./pages/manage/infraBlue";
 import MemberV2Page from "./pages/manage/member-v2";
 import DiscordRolePage from "./pages/manage/discord-role";
 import IntegrateDiscordPage from "./pages/member/integrate-discord";
+import FinancePage from "./pages/finance";
 
 function App() {
   const router = createBrowserRouter(
@@ -22,6 +23,7 @@ function App() {
         <Route path="/manage/infra-blue" element={<InfraBluePage />} />
         <Route path="/manage/member-v2" element={<MemberV2Page />} />
         <Route path="/manage/discord-role" element={<DiscordRolePage />} />
+        <Route path="/finance" element={<FinancePage />} />
       </Route>
     ),
     {
