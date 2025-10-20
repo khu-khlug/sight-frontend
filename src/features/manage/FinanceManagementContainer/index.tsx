@@ -34,136 +34,61 @@ const FinanceManagementContainer = () => {
 
 
   return (
-    <>
-      <Container>
-        <div className={styles["header-section"]}>
-          <div className={styles["year-selector"]}>
-            <h2>동아리비 장부</h2>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className={styles["year-select"]}
-            >
-              {yearOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-          {data && (
-            <div className={styles["balance-display"]}>
-              <span className={styles["balance-label"]}>
-                {selectedYear}. 10. 20. 현재 잔액:
-              </span>
-              <span className={styles["balance-amount"]}>
-                {formatCurrency(data.currentBalance)}
-              </span>
-            </div>
-          )}
+    <Container>
+      <div className={styles["header-section"]}>
+        <div className={styles["year-selector"]}>
+          <h2>동아리비 장부</h2>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className={styles["year-select"]}
+          >
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
         </div>
-      </Container>
+        {data && (
+          <div className={styles["balance-display"]}>
+            <span className={styles["balance-label"]}>
+              {selectedYear}. 10. 20. 현재 잔액:
+            </span>
+            <span className={styles["balance-amount"]}>
+              {formatCurrency(data.currentBalance)}
+            </span>
+          </div>
+        )}
+      </div>
 
-      <Container>
-        {(() => {
-          switch (queryStatus) {
-            case "pending":
-              return <CenterRingLoadingIndicator />;
-            case "error":
-              return (
-                <Callout type="error">{extractErrorMessage(error)}</Callout>
-              );
-            case "success":
-              return (
-                <>
-                  {/* 월별 집계 섹션 */}
-                  <div className={styles["monthly-aggregate"]}>
-                    <table className={styles["aggregate-table"]}>
-                      <tbody>
-                        <tr className={styles["aggregate-row"]}>
-                          <td className={styles["aggregate-label"]}>
-                            {data.monthlyAggregates[0]?.yearMonth}
-                          </td>
-                          <td>
-                            <span className={styles["aggregate-header"]}>
-                              항목
-                            </span>
-                          </td>
-                          <td>
-                            <span className={styles["aggregate-header"]}>
-                              단가
-                            </span>
-                          </td>
-                          <td>
-                            <span className={styles["aggregate-header"]}>
-                              수량
-                            </span>
-                          </td>
-                          <td>
-                            <span className={styles["aggregate-header"]}>
-                              금액
-                            </span>
-                          </td>
-                          <td colSpan={2} style={{ textAlign: "center" }}>
-                            <span className={styles["aggregate-header"]}>
-                              사용/수금자
-                            </span>
-                          </td>
-                          <td colSpan={2} style={{ textAlign: "center" }}>
-                            <span className={styles["aggregate-header"]}>
-                              비고
-                            </span>
-                          </td>
-                          <td>
-                            <span className={styles["aggregate-header"]}>
-                              누적
-                            </span>
-                          </td>
-                        </tr>
-                        <tr className={styles["aggregate-data-row"]}>
-                          <td></td>
-                          <td></td>
-                          <td className={styles["amount-cell"]}>0</td>
-                          <td className={styles["amount-cell"]}>0</td>
-                          <td className={styles["amount-cell"]}>0</td>
-                          <td colSpan={5}></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+      {/* 연락 정보 */}
+      <div className={styles["contact-info"]}>
+        회비 납부 계좌: 하나은행 534-910013-94604 경희대학교 쿠러그
+      </div>
 
-                  {/* 안내 메시지 */}
-                  <div className={styles["info-message"]}>
-                    <p>
-                      수입을 등록하려면 금액을 음수로 입력합니다. return(enter)
-                      키를 눌러 등록합니다.
-                    </p>
-                    <p>
-                      각 항목의 수입/지출을 눌러 반영할 수 있습니다. 단,
-                      취소하더라도 수기 제거는 별도 처리가 필요합니다.
-                    </p>
-                  </div>
-
-                  {/* 연락 정보 */}
-                  <div className={styles["contact-info"]}>
-                    회비 납부 계좌: 하나은행 534-910013-94604 경희대학교 쿠러그
-                  </div>
-
-                  {/* 거래 내역 카드 리스트 */}
-                  <div className={styles["transactions-section"]}>
-                    {data.transactions.map((transaction) => (
-                      <TransactionItem
-                        key={transaction.id}
-                        transaction={transaction}
-                      />
-                    ))}
-                  </div>
-                </>
-              );
-          }
-        })()}
-      </Container>
-    </>
+      {(() => {
+        switch (queryStatus) {
+          case "pending":
+            return <CenterRingLoadingIndicator />;
+          case "error":
+            return (
+              <Callout type="error">{extractErrorMessage(error)}</Callout>
+            );
+          case "success":
+            return (
+              <div className={styles["transactions-section"]}>
+                {data.transactions.map((transaction) => (
+                  <TransactionItem
+                    key={transaction.id}
+                    transaction={transaction}
+                  />
+                ))}
+              </div>
+            );
+        }
+      })()}
+    </Container>
   );
 };
 
