@@ -1,19 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import dayjs from "dayjs";
 
 import Container from "../../../components/Container";
-import Button from "../../../components/Button";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 import Callout from "../../../components/Callout";
 
-import {
-  FinanceApi,
-  Transaction,
-  TransactionType,
-} from "../../../api/manage/finance";
+import { FinanceApi } from "../../../api/manage/finance";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { formatCurrency } from "../../../util/currency";
+import TransactionItem from "./TransactionItem";
 
 import styles from "./style.module.css";
 
@@ -37,53 +32,6 @@ const FinanceManagementContainer = () => {
     (_, i) => 2020 + i
   ).reverse();
 
-  const renderTransactionCard = (transaction: Transaction) => {
-    const isIncome = transaction.type === TransactionType.INCOME;
-    const typeLabel = isIncome ? "수입" : "지출";
-    const badgeClassName = isIncome
-      ? styles["type-badge-income"]
-      : styles["type-badge-expense"];
-
-    return (
-      <div key={transaction.id} className={styles["transaction-item"]}>
-        <div className={`${styles["type-badge"]} ${badgeClassName}`}>
-          {typeLabel}
-        </div>
-        <div className={styles["transaction-card"]}>
-          <div className={styles["card-main"]}>
-            <div className={styles["card-left"]}>
-              <div className={styles["card-title"]}>
-                {transaction.description}
-              </div>
-              <div className={styles["card-details"]}>
-                <span className={styles["card-date"]}>
-                  {dayjs(transaction.date).format("YYYY. MM. DD.")} |{" "}
-                  {transaction.place}
-                </span>
-              </div>
-            </div>
-            <div className={styles["card-right"]}>
-              <div className={styles["card-amount"]}>
-                {formatCurrency(transaction.amount)}
-              </div>
-              {transaction.unitPrice > 0 && transaction.quantity > 0 && (
-                <div className={styles["card-breakdown"]}>
-                  {transaction.unitPrice.toLocaleString("ko-KR")} ×{" "}
-                  {transaction.quantity}
-                </div>
-              )}
-              <div className={styles["card-balance"]}>
-                총 {formatCurrency(transaction.balance)}
-              </div>
-            </div>
-          </div>
-          {transaction.note && (
-            <div className={styles["card-note"]}>비고: {transaction.note}</div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <>
@@ -203,9 +151,12 @@ const FinanceManagementContainer = () => {
 
                   {/* 거래 내역 카드 리스트 */}
                   <div className={styles["transactions-section"]}>
-                    {data.transactions.map((transaction) =>
-                      renderTransactionCard(transaction)
-                    )}
+                    {data.transactions.map((transaction) => (
+                      <TransactionItem
+                        key={transaction.id}
+                        transaction={transaction}
+                      />
+                    ))}
                   </div>
                 </>
               );
