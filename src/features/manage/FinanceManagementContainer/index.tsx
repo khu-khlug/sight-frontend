@@ -32,7 +32,6 @@ const FinanceManagementContainer = () => {
     (_, i) => 2020 + i
   ).reverse();
 
-
   return (
     <Container>
       <div className={styles["header-section"]}>
@@ -72,9 +71,7 @@ const FinanceManagementContainer = () => {
           case "pending":
             return <CenterRingLoadingIndicator />;
           case "error":
-            return (
-              <Callout type="error">{extractErrorMessage(error)}</Callout>
-            );
+            return <Callout type="error">{extractErrorMessage(error)}</Callout>;
           case "success":
             return (
               <div className={styles["transactions-section"]}>

@@ -13,7 +13,7 @@ export type Transaction = {
   unitPrice: number; // 단가
   quantity: number; // 수량
   amount: number; // 금액 (unitPrice * quantity)
-  place: string; // 사용/수금자
+  place: string; // 사용/수급처
   note: string; // 비고
   balance: number; // 누적 잔액
 };

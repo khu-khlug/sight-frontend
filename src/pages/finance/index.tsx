@@ -1,4 +1,5 @@
 import Location from "../../components/Location";
+import AddTransactionFormContainer from "../../features/manage/AddTransactionFormContainer";
 import FinanceManagementContainer from "../../features/manage/FinanceManagementContainer";
 import SightLayout from "../../layouts/SightLayout";
 
@@ -9,6 +10,7 @@ export default function FinancePage() {
     <SightLayout>
       <Location label="동아리비 장부" />
       <main className="content">
+        <AddTransactionFormContainer />
         <FinanceManagementContainer />
       </main>
     </SightLayout>

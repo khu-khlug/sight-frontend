@@ -24,7 +24,7 @@
 }
 
 .member-search-query input,
-select {
+.member-search-query select {
   padding: 6px 8px;
   height: 40px;
   display: inline-block;
