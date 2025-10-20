@@ -24,11 +24,13 @@ export default function TransactionItem({ transaction }: Props) {
       <div className={styles["transaction-card"]}>
         <div className={styles["card-main"]}>
           <div className={styles["card-left"]}>
-            <div className={styles["card-title"]}>{transaction.description}</div>
+            <div className={styles["card-title"]}>
+              {transaction.description}
+            </div>
             <div className={styles["card-details"]}>
               <span className={styles["card-date"]}>
                 {dayjs(transaction.date).format("YYYY. MM. DD.")} |{" "}
-                {transaction.user}
+                {transaction.place}
               </span>
             </div>
           </div>
