@@ -12,7 +12,7 @@ import FinanceHeader from "./FinanceHeader";
 
 import styles from "./style.module.css";
 
-const FinanceManagementContainer = () => {
+const FinanceListContainer = () => {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
@@ -60,4 +60,4 @@ const FinanceManagementContainer = () => {
   );
 };
 
-export default FinanceManagementContainer;
+export default FinanceListContainer;
