@@ -63,6 +63,14 @@
   margin-top: 1.5rem;
 }
 
+/* 페이지네이션 섹션 */
+.pagination-section {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
 .transaction-item {
   display: flex;
   align-items: flex-start;
