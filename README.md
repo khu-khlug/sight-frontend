@@ -35,6 +35,7 @@ sight-frontend/
 │   ├── api/               # API 호출과 관련된 로직
 │   ├── components/        # 공통 UI 컴포넌트
 │   ├── features/          # 페이지별 주요 기능을 담당하는 모듈
+|   ├── hooks/             # 리액트 훅이 정의된 파일
 │   ├── layouts/           # 레이아웃 관련 컴포넌트
 │   ├── pages/             # 라우팅되는 주요 페이지들
 │   ├── util/              # 공통으로 사용되는 유틸리티 함수
