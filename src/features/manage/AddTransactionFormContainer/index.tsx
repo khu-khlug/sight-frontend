@@ -1,12 +1,19 @@
 import { useState, useEffect } from "react";
+
 import Button from "../../../components/Button";
+import Container from "../../../components/Container";
+
 import { TransactionType } from "../../../api/manage/finance";
 
 import styles from "./style.module.css";
-import Container from "../../../components/Container";
+
+const getTodayDate = (): string => {
+  return new Date().toISOString().split("T")[0];
+};
 
 export default function AddTransactionFormContainer() {
   const [type, setType] = useState<TransactionType>(TransactionType.INCOME);
+  const [usedAt, setUsedAt] = useState<string>(getTodayDate());
   const [description, setDescription] = useState("");
   const [unitPrice, setUnitPrice] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("1");
@@ -26,6 +33,7 @@ export default function AddTransactionFormContainer() {
 
     console.log("New transaction:", {
       type,
+      usedAt,
       description,
       unitPrice,
       quantity,
@@ -36,6 +44,7 @@ export default function AddTransactionFormContainer() {
     // TODO: API 호출하여 거래 추가
     // 추가 후 데이터 refetch
 
+    setUsedAt(getTodayDate());
     setDescription("");
     setUnitPrice("");
     setQuantity("1");
@@ -74,6 +83,17 @@ export default function AddTransactionFormContainer() {
                 <span>지출</span>
               </label>
             </div>
+          </div>
+
+          <div className={styles["form-group"]}>
+            <label>날짜</label>
+            <input
+              type="date"
+              value={usedAt}
+              onChange={(e) => setUsedAt(e.target.value)}
+              className={styles["input"]}
+              required
+            />
           </div>
 
           <div className={styles["form-group"]}>
