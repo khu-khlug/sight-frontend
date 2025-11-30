@@ -1,5 +1,16 @@
 import { isAxiosError } from "axios";
 import apiClient from "../client";
+import apiV2Client from "../client/v2";
+
+type GetCurrentUserResponseDto = {
+  id: number;
+  name: string;
+  manager: boolean;
+  status: string;
+  studentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 type GetDiscordIntegrationResponseDto = {
   id: string;
@@ -9,6 +20,13 @@ type GetDiscordIntegrationResponseDto = {
 
 type IssueDiscordIntegrationUrlResponseDto = {
   url: string;
+};
+
+const getCurrentUser = async (): Promise<GetCurrentUserResponseDto> => {
+  const response = await apiV2Client.get<GetCurrentUserResponseDto>(
+    "/users/@me"
+  );
+  return response.data;
 };
 
 const getDiscordIntegration =
@@ -43,6 +61,7 @@ export type UserPublicApiDto = {
 };
 
 export const UserPublicApi = {
+  getCurrentUser,
   getDiscordIntegration,
   issueAndRedirectToDiscordOAuth2Url,
   disconnectDiscordIntegration,
