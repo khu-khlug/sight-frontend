@@ -1,0 +1,29 @@
+.survey-info {
+  margin-top: 24px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.info-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.info-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.label {
+  font-weight: 600;
+  color: #555;
+  min-width: 80px;
+}
+
+.action-buttons {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+}

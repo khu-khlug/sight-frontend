@@ -12,3 +12,25 @@ export const UserStatus = {
   ACTIVE: 1, // 활성
 } as const;
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
+
+export const GroupType = {
+  STUDY: "STUDY",
+  PROJECT: "PROJECT",
+} as const;
+export type GroupType = (typeof GroupType)[keyof typeof GroupType];
+
+export const GroupTypeLabel: Record<GroupType, string> = {
+  [GroupType.STUDY]: "스터디",
+  [GroupType.PROJECT]: "프로젝트",
+};
+
+export const Semester = {
+  FIRST: 1,
+  SECOND: 2,
+} as const;
+export type Semester = (typeof Semester)[keyof typeof Semester];
+
+export const SemesterLabel: Record<Semester, string> = {
+  [Semester.FIRST]: "1학기",
+  [Semester.SECOND]: "2학기",
+};

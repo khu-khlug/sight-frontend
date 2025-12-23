@@ -10,6 +10,11 @@ import MemberV2Page from "./pages/manage/member-v2";
 import DiscordRolePage from "./pages/manage/discord-role";
 import IntegrateDiscordPage from "./pages/member/integrate-discord";
 import FinancePage from "./pages/finance";
+import GroupMatchingPage from "./pages/member/group-matching";
+import GroupMatchingManagementPage from "./pages/manage/group-matching";
+import GroupMatchingAnswersPage from "./pages/manage/group-matching-answers";
+import GroupMatchingFieldsPage from "./pages/manage/group-matching-fields";
+import GroupMatchingFieldRequestsPage from "./pages/manage/group-matching-field-requests";
 
 function App() {
   const router = createBrowserRouter(
@@ -19,10 +24,30 @@ function App() {
           path="/member/integrate-discord"
           element={<IntegrateDiscordPage />}
         />
+        <Route
+          path="/member/group-matching"
+          element={<GroupMatchingPage />}
+        />
 
         <Route path="/manage/infra-blue" element={<InfraBluePage />} />
         <Route path="/manage/member-v2" element={<MemberV2Page />} />
         <Route path="/manage/discord-role" element={<DiscordRolePage />} />
+        <Route
+          path="/manage/group-matching"
+          element={<GroupMatchingManagementPage />}
+        />
+        <Route
+          path="/manage/group-matching-answers"
+          element={<GroupMatchingAnswersPage />}
+        />
+        <Route
+          path="/manage/group-matching-fields"
+          element={<GroupMatchingFieldsPage />}
+        />
+        <Route
+          path="/manage/group-matching-field-requests"
+          element={<GroupMatchingFieldRequestsPage />}
+        />
         <Route path="/finance" element={<FinancePage />} />
       </Route>
     ),

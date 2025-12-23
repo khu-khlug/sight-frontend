@@ -5,11 +5,11 @@ import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons/faCircleE
 import "./style.css";
 
 type Props = {
-  type?: "normal" | "error";
+  type?: "info" | "success" | "error";
   children?: React.ReactNode;
 };
 
-export default function Callout({ type = "normal", children }: Props) {
+export default function Callout({ type = "info", children }: Props) {
   return (
     <div className={cn("callout", { [type]: !!type })}>
       <FontAwesomeIcon
