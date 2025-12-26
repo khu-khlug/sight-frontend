@@ -13,12 +13,21 @@
   font-size: 1.5em;
 }
 
-.callout.normal {
+.callout.info {
+  background-color: rgb(245, 245, 245);
+  border: #d4d4d4 1px solid;
+}
+
+.callout.info .callout__exclamation-icon {
+  color: #888888;
+}
+
+.callout.success {
   background-color: rgb(208, 238, 208);
   border: #9ccf9c 1px solid;
 }
 
-.callout.normal .callout__exclamation-icon {
+.callout.success .callout__exclamation-icon {
   color: #4bb64b;
 }
 
