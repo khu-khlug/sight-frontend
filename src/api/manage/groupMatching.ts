@@ -1,20 +1,145 @@
-// import apiV2Client from "../client/v2";
+import apiV2Client from "../client/v2";
 import { GroupType } from "../../constant";
 
-// DTOs
-export type GroupMatchingDto = {
+// ============================================================================
+// API Request DTOs (요청 타입 - API 명세 그대로)
+// ============================================================================
+
+// POST /group-matchings
+export type CreateGroupMatchingRequest = {
+  year: number;
+  semester: number;
+  closedAt: string; // ISO 8601 datetime
+};
+
+// PATCH /group-matchings/{groupMatchingId}/closed-at
+export type UpdateClosedAtRequest = {
+  closedAt: string; // ISO 8601 datetime
+};
+
+// POST /fields
+export type CreateFieldRequest = {
+  fieldName: string;
+};
+
+// POST /field-requests/{fieldRequestId}/reject
+export type RejectFieldRequestRequest = {
+  rejectReason: string;
+};
+
+// ============================================================================
+// API Response DTOs (응답 타입 - API 명세 그대로)
+// ============================================================================
+
+// POST /group-matchings 응답
+// GET /group-matchings 응답의 각 항목
+export type GroupMatchingResponse = {
   id: string;
   year: number;
   semester: number;
-  closedAt: string;
-  createdAt: string;
+  createdAt: string; // ISO 8601 datetime
+  closedAt: string; // ISO 8601 datetime
 };
+
+// GET /group-matchings 응답
+export type ListGroupMatchingsResponse = {
+  count: number;
+  groupMatchings: GroupMatchingResponse[];
+};
+
+// PATCH /group-matchings/{groupMatchingId}/closed-at 응답
+export type UpdateClosedAtResponse = {
+  groupMatchingId: string;
+  year: number;
+  semester: number;
+  closedAt: string; // ISO 8601 datetime
+  createdAt: string; // ISO 8601 datetime
+};
+
+// GET /group-matchings/{groupMatchingId}/groups 응답의 각 항목
+export type GroupResponse = {
+  id: number;
+  title: string;
+  members: Array<{
+    id: number;
+    userId: number;
+    name: string;
+    number: number;
+  }>;
+  createdAt: string; // ISO 8601 datetime
+};
+
+// GET /group-matchings/{groupMatchingId}/answers 응답의 각 답변 항목
+export type AnswerResponse = {
+  answerId: string;
+  answerUserId: number;
+  createdAt: string; // ISO 8601 datetime
+  updatedAt: string; // ISO 8601 datetime
+  groupType: "STUDY" | "PROJECT";
+  isPreferOnline: boolean;
+  selectedFields: string[];
+  subjectIdeas: string[];
+  matchedGroupIds: number[];
+};
+
+// GET /group-matchings/{groupMatchingId}/answers 응답
+export type ListAnswersResponse = {
+  answers: AnswerResponse[];
+  total: number;
+};
+
+// POST /fields 응답
+export type CreateFieldResponse = {
+  fieldId: string;
+  fieldName: string;
+  createdAt: string; // ISO 8601 datetime
+};
+
+// GET /field-requests 응답의 각 항목
+export type FieldRequestResponse = {
+  id: string;
+  fieldName: string;
+  requestedBy: number;
+  requestedAt: string; // ISO 8601 datetime
+  requestReason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  processDetails: {
+    processedAt: string; // ISO 8601 datetime
+    rejectReason: string | null;
+  } | null;
+};
+
+// POST /field-requests/{fieldRequestId}/approve 응답
+export type ApproveFieldRequestResponse = {
+  field: {
+    id: string;
+    name: string;
+    createdAt: string; // ISO 8601 datetime
+  };
+  approvedAt: string; // ISO 8601 datetime
+};
+
+// POST /field-requests/{fieldRequestId}/reject 응답
+export type RejectFieldRequestResponse = {
+  id: string;
+  requesterUserId: number;
+  fieldName: string;
+  requestReason: string;
+  approvedAt: string | null; // ISO 8601 datetime
+  rejectedAt: string | null; // ISO 8601 datetime
+  rejectReason: string | null;
+  createdAt: string; // ISO 8601 datetime
+};
+
+// ============================================================================
+// 프론트엔드 전용 타입 (UI에서 사용)
+// ============================================================================
 
 export type GroupMatchingFieldDto = {
   id: string;
   name: string;
-  createdAt: string;
-  obsoletedAt: string | null;
+  createdAt?: string;
+  obsoletedAt?: string | null;
 };
 
 export type GroupMatchingFieldRequestDto = {
@@ -47,28 +172,6 @@ export type GroupMatchingAnswerWithUserDto = {
   updatedAt: string;
 };
 
-export type CreateGroupMatchingRequestDto = {
-  year: number;
-  semester: number;
-  closedAt: string;
-};
-
-export type UpdateGroupMatchingRequestDto = {
-  closedAt: string;
-};
-
-export type CreateFieldRequestDto = {
-  name: string;
-};
-
-export type ApproveFieldRequestDto = {
-  fieldName?: string;
-};
-
-export type RejectFieldRequestDto = {
-  rejectReason: string;
-};
-
 export type ListAnswersRequestDto = {
   groupMatchingId: string;
   groupType?: GroupType | null;
@@ -94,288 +197,215 @@ export type ListFieldRequestsResponseDto = {
 };
 
 export type GroupMatchingManageApiDto = {
-  GroupMatchingDto: GroupMatchingDto;
+  GroupMatchingResponse: GroupMatchingResponse;
   GroupMatchingFieldDto: GroupMatchingFieldDto;
   GroupMatchingFieldRequestDto: GroupMatchingFieldRequestDto;
   GroupMatchingAnswerWithUserDto: GroupMatchingAnswerWithUserDto;
-  CreateGroupMatchingRequestDto: CreateGroupMatchingRequestDto;
-  UpdateGroupMatchingRequestDto: UpdateGroupMatchingRequestDto;
-  CreateFieldRequestDto: CreateFieldRequestDto;
-  ApproveFieldRequestDto: ApproveFieldRequestDto;
-  RejectFieldRequestDto: RejectFieldRequestDto;
+  CreateGroupMatchingRequest: CreateGroupMatchingRequest;
+  UpdateClosedAtRequest: UpdateClosedAtRequest;
+  CreateFieldRequest: CreateFieldRequest;
+  RejectFieldRequestRequest: RejectFieldRequestRequest;
   ListAnswersRequestDto: ListAnswersRequestDto;
   ListAnswersResponseDto: ListAnswersResponseDto;
   ListFieldRequestsRequestDto: ListFieldRequestsRequestDto;
   ListFieldRequestsResponseDto: ListFieldRequestsResponseDto;
+  GroupResponse: GroupResponse;
 };
 
-// Mock data generators
-const mockFields: GroupMatchingFieldDto[] = [
-  { id: "1", name: "웹 프론트엔드", createdAt: "2024-01-01T00:00:00Z", obsoletedAt: null },
-  { id: "2", name: "백엔드", createdAt: "2024-01-01T00:00:00Z", obsoletedAt: null },
-  { id: "3", name: "모바일 앱 개발", createdAt: "2024-01-01T00:00:00Z", obsoletedAt: null },
-  { id: "4", name: "인공지능/머신러닝", createdAt: "2024-01-01T00:00:00Z", obsoletedAt: null },
-  { id: "5", name: "데이터 분석", createdAt: "2024-01-01T00:00:00Z", obsoletedAt: null },
-  { id: "6", name: "게임 개발", createdAt: "2024-01-01T00:00:00Z", obsoletedAt: null },
-  { id: "7", name: "블록체인", createdAt: "2024-01-15T00:00:00Z", obsoletedAt: "2024-10-01T00:00:00Z" },
-  { id: "8", name: "DevOps/인프라", createdAt: "2024-02-01T00:00:00Z", obsoletedAt: null },
-];
+// ============================================================================
+// API 함수들
+// ============================================================================
 
-const mockAnswers: GroupMatchingAnswerWithUserDto[] = [
-  {
-    id: "1",
-    userId: 101,
-    userName: "김철수",
-    userNumber: 2021123456,
-    groupType: "STUDY",
-    isPreferOnline: true,
-    fields: [mockFields[0], mockFields[1]],
-    subjects: [
-      { id: "1", subject: "React 학습" },
-      { id: "2", subject: "TypeScript 심화" },
-    ],
-    createdAt: "2024-11-10T10:00:00Z",
-    updatedAt: "2024-11-10T10:00:00Z",
-  },
-  {
-    id: "2",
-    userId: 102,
-    userName: "이영희",
-    userNumber: 2022234567,
-    groupType: "PROJECT",
-    isPreferOnline: false,
-    fields: [mockFields[1], mockFields[3]],
-    subjects: [
-      { id: "3", subject: "AI 챗봇 개발" },
-      { id: "4", subject: "FastAPI 백엔드" },
-    ],
-    createdAt: "2024-11-11T14:30:00Z",
-    updatedAt: "2024-11-11T14:30:00Z",
-  },
-  {
-    id: "3",
-    userId: 103,
-    userName: "박민수",
-    userNumber: 2020345678,
-    groupType: "STUDY",
-    isPreferOnline: false,
-    fields: [mockFields[4]],
-    subjects: [{ id: "5", subject: "데이터 분석 기초" }],
-    createdAt: "2024-11-12T09:15:00Z",
-    updatedAt: "2024-11-15T16:20:00Z",
-  },
-];
-
-const mockFieldRequests: GroupMatchingFieldRequestDto[] = [
-  {
-    id: "1",
-    requesterUserId: 101,
-    requesterName: "김철수",
-    fieldName: "클라우드 컴퓨팅",
-    requestReason: "AWS, GCP 등 클라우드 기술 학습을 위해 필요합니다.",
-    approvedAt: null,
-    rejectedAt: null,
-    rejectReason: null,
-    createdAt: "2024-11-08T13:00:00Z",
-  },
-  {
-    id: "2",
-    requesterUserId: 104,
-    requesterName: "최지훈",
-    fieldName: "사이버 보안",
-    requestReason: "정보보안 분야에 관심이 많아서 추가 요청드립니다.",
-    approvedAt: "2024-11-10T09:00:00Z",
-    rejectedAt: null,
-    rejectReason: null,
-    createdAt: "2024-11-09T11:30:00Z",
-  },
-  {
-    id: "3",
-    requesterUserId: 105,
-    requesterName: "정수진",
-    fieldName: "양자컴퓨팅",
-    requestReason: "미래 기술에 대한 스터디를 하고 싶습니다.",
-    approvedAt: null,
-    rejectedAt: "2024-11-12T10:00:00Z",
-    rejectReason: "현재 관련 분야 전문가가 부족하여 보류합니다.",
-    createdAt: "2024-11-09T15:45:00Z",
-  },
-];
-
-// API functions with mock data
-const getCurrentGroupMatching = async (): Promise<GroupMatchingDto | null> => {
-  // const response = await apiV2Client.get<GroupMatchingDto>("/manager/group-matchings/current");
-  // return response.data;
-
-  // Mock data
-  return {
-    id: "1",
-    year: 2024,
-    semester: 2,
-    closedAt: "2024-12-31T23:59:59Z",
-    createdAt: "2024-11-01T00:00:00Z",
-  };
-};
-
+// POST /group-matchings
 const createGroupMatching = async (
-  dto: CreateGroupMatchingRequestDto
-): Promise<GroupMatchingDto> => {
-  // const response = await apiV2Client.post<GroupMatchingDto>("/manager/group-matchings", dto);
-  // return response.data;
-
-  // Mock data
-  return {
-    id: Math.floor(Math.random() * 10000).toString(),
-    year: dto.year,
-    semester: dto.semester,
-    closedAt: dto.closedAt,
-    createdAt: new Date().toISOString(),
-  };
+  request: CreateGroupMatchingRequest
+): Promise<GroupMatchingResponse> => {
+  const response = await apiV2Client.post<GroupMatchingResponse>(
+    "/group-matchings",
+    request
+  );
+  return response.data;
 };
 
-const updateGroupMatching = async (
-  id: string,
-  dto: UpdateGroupMatchingRequestDto
-): Promise<GroupMatchingDto> => {
-  // const response = await apiV2Client.patch<GroupMatchingDto>(
-  //   `/manager/group-matchings/${id}`,
-  //   dto
-  // );
-  // return response.data;
-
-  // Mock data
-  return {
-    id,
-    year: 2024,
-    semester: 2,
-    closedAt: dto.closedAt,
-    createdAt: "2024-11-01T00:00:00Z",
-  };
+// GET /group-matchings
+const listGroupMatchings = async (): Promise<ListGroupMatchingsResponse> => {
+  const response = await apiV2Client.get<ListGroupMatchingsResponse>(
+    "/group-matchings"
+  );
+  return response.data;
 };
 
+// GET /group-matchings/{groupMatchingId}/groups
+const listGroupsByGroupMatching = async (
+  groupMatchingId: string,
+  groupType?: GroupType | null
+): Promise<GroupResponse[]> => {
+  const response = await apiV2Client.get<GroupResponse[]>(
+    `/group-matchings/${groupMatchingId}/groups`,
+    {
+      params: groupType ? { groupType } : {},
+    }
+  );
+  return response.data;
+};
+
+// PATCH /group-matchings/{groupMatchingId}/closed-at
+const updateGroupMatchingClosedAt = async (
+  groupMatchingId: string,
+  request: UpdateClosedAtRequest
+): Promise<UpdateClosedAtResponse> => {
+  const response = await apiV2Client.patch<UpdateClosedAtResponse>(
+    `/group-matchings/${groupMatchingId}/closed-at`,
+    request
+  );
+  return response.data;
+};
+
+// GET /group-matchings/{groupMatchingId}/answers
 const listAnswers = async (
   dto: ListAnswersRequestDto
 ): Promise<ListAnswersResponseDto> => {
-  // const response = await apiV2Client.get<ListAnswersResponseDto>(
-  //   "/manager/group-matching-answers",
-  //   { params: dto }
-  // );
-  // return response.data;
+  const response = await apiV2Client.get<ListAnswersResponse>(
+    `/group-matchings/${dto.groupMatchingId}/answers`,
+    {
+      params: {
+        groupType: dto.groupType,
+        fieldId: dto.fieldId,
+        offset: dto.offset,
+        limit: dto.limit,
+      },
+    }
+  );
 
-  // Mock data with filtering
-  let filtered = [...mockAnswers];
-
-  if (dto.groupType) {
-    filtered = filtered.filter((a) => a.groupType === dto.groupType);
-  }
-
-  if (dto.fieldId) {
-    filtered = filtered.filter((a) =>
-      a.fields.some((f) => f.id === dto.fieldId)
-    );
-  }
-
-  const count = filtered.length;
-  const paginated = filtered.slice(dto.offset, dto.offset + dto.limit);
+  // 백엔드 응답을 프론트엔드 타입으로 변환
+  const answers: GroupMatchingAnswerWithUserDto[] = response.data.answers.map(
+    (apiAnswer) => ({
+      id: apiAnswer.answerId,
+      userId: apiAnswer.answerUserId,
+      userName: `사용자 ${apiAnswer.answerUserId}`,
+      userNumber: 0,
+      groupType: apiAnswer.groupType as GroupType,
+      isPreferOnline: apiAnswer.isPreferOnline,
+      fields: apiAnswer.selectedFields.map((fieldId) => ({
+        id: fieldId,
+        name: fieldId,
+        createdAt: "",
+        obsoletedAt: null,
+      })),
+      subjects: apiAnswer.subjectIdeas.map((subject, idx) => ({
+        id: `${apiAnswer.answerId}-subject-${idx}`,
+        subject,
+      })),
+      createdAt: apiAnswer.createdAt,
+      updatedAt: apiAnswer.updatedAt,
+    })
+  );
 
   return {
-    count,
-    answers: paginated,
+    count: response.data.total,
+    answers,
   };
 };
 
-const listFields = async (): Promise<GroupMatchingFieldDto[]> => {
-  // const response = await apiV2Client.get<GroupMatchingFieldDto[]>(
-  //   "/manager/group-matching-fields"
-  // );
-  // return response.data;
-
-  // Mock data
-  return mockFields;
-};
-
+// POST /fields
 const createField = async (
-  dto: CreateFieldRequestDto
-): Promise<GroupMatchingFieldDto> => {
-  // const response = await apiV2Client.post<GroupMatchingFieldDto>(
-  //   "/manager/group-matching-fields",
-  //   dto
-  // );
-  // return response.data;
-
-  // Mock data
-  return {
-    id: Math.floor(Math.random() * 10000).toString(),
-    name: dto.name,
-    createdAt: new Date().toISOString(),
-    obsoletedAt: null,
-  };
+  request: CreateFieldRequest
+): Promise<CreateFieldResponse> => {
+  const response = await apiV2Client.post<CreateFieldResponse>(
+    "/fields",
+    request
+  );
+  return response.data;
 };
 
-const obsoleteField = async (id: string): Promise<void> => {
-  // await apiV2Client.delete(`/manager/group-matching-fields/${id}`);
-
-  // Mock - no-op
-  console.log("Mock: Field obsoleted", id);
+// DELETE /fields/{fieldId}
+const obsoleteField = async (fieldId: string): Promise<void> => {
+  await apiV2Client.delete(`/fields/${fieldId}`);
 };
 
+// GET /fields (Public API이지만 manage에서도 사용)
+const listFields = async (): Promise<GroupMatchingFieldDto[]> => {
+  const response = await apiV2Client.get<GroupMatchingFieldDto[]>("/fields");
+  return response.data;
+};
+
+// GET /field-requests
 const listFieldRequests = async (
   dto: ListFieldRequestsRequestDto
 ): Promise<ListFieldRequestsResponseDto> => {
-  // const response = await apiV2Client.get<ListFieldRequestsResponseDto>(
-  //   "/manager/group-matching-field-requests",
-  //   { params: dto }
-  // );
-  // return response.data;
+  const response = await apiV2Client.get<FieldRequestResponse[]>(
+    "/field-requests"
+  );
 
-  // Mock data with filtering
-  let filtered = [...mockFieldRequests];
+  // API 응답을 프론트엔드 타입으로 변환
+  let requests: GroupMatchingFieldRequestDto[] = response.data.map((item) => ({
+    id: item.id,
+    requesterUserId: item.requestedBy,
+    requesterName: `사용자 ${item.requestedBy}`,
+    fieldName: item.fieldName,
+    requestReason: item.requestReason,
+    approvedAt:
+      item.status === "APPROVED" && item.processDetails
+        ? item.processDetails.processedAt
+        : null,
+    rejectedAt:
+      item.status === "REJECTED" && item.processDetails
+        ? item.processDetails.processedAt
+        : null,
+    rejectReason: item.processDetails?.rejectReason || null,
+    createdAt: item.requestedAt,
+  }));
 
+  // 클라이언트 측 필터링
   if (dto.status === "pending") {
-    filtered = filtered.filter((r) => !r.approvedAt && !r.rejectedAt);
+    requests = requests.filter((r) => !r.approvedAt && !r.rejectedAt);
   } else if (dto.status === "approved") {
-    filtered = filtered.filter((r) => r.approvedAt !== null);
+    requests = requests.filter((r) => r.approvedAt !== null);
   } else if (dto.status === "rejected") {
-    filtered = filtered.filter((r) => r.rejectedAt !== null);
+    requests = requests.filter((r) => r.rejectedAt !== null);
   }
 
-  const count = filtered.length;
-  const paginated = filtered.slice(dto.offset, dto.offset + dto.limit);
+  // 페이지네이션
+  const paginated = requests.slice(dto.offset, dto.offset + dto.limit);
 
   return {
-    count,
+    count: requests.length,
     requests: paginated,
   };
 };
 
+// POST /field-requests/{fieldRequestId}/approve
 const approveFieldRequest = async (
-  id: string,
-  dto: ApproveFieldRequestDto
-): Promise<void> => {
-  // await apiV2Client.post(`/manager/group-matching-field-requests/${id}/approve`, dto);
-
-  // Mock - no-op
-  console.log("Mock: Field request approved", id, dto);
+  fieldRequestId: string
+): Promise<ApproveFieldRequestResponse> => {
+  const response = await apiV2Client.post<ApproveFieldRequestResponse>(
+    `/field-requests/${fieldRequestId}/approve`,
+    {}
+  );
+  return response.data;
 };
 
+// POST /field-requests/{fieldRequestId}/reject
 const rejectFieldRequest = async (
-  id: string,
-  dto: RejectFieldRequestDto
-): Promise<void> => {
-  // await apiV2Client.post(`/manager/group-matching-field-requests/${id}/reject`, dto);
-
-  // Mock - no-op
-  console.log("Mock: Field request rejected", id, dto);
+  fieldRequestId: string,
+  request: RejectFieldRequestRequest
+): Promise<RejectFieldRequestResponse> => {
+  const response = await apiV2Client.post<RejectFieldRequestResponse>(
+    `/field-requests/${fieldRequestId}/reject`,
+    request
+  );
+  return response.data;
 };
 
 export const GroupMatchingManageApi = {
-  getCurrentGroupMatching,
   createGroupMatching,
-  updateGroupMatching,
+  listGroupMatchings,
+  listGroupsByGroupMatching,
+  updateGroupMatchingClosedAt,
   listAnswers,
-  listFields,
   createField,
   obsoleteField,
+  listFields,
   listFieldRequests,
   approveFieldRequest,
   rejectFieldRequest,

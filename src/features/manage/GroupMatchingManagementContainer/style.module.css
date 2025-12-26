@@ -1,8 +1,32 @@
-.survey-info {
-  margin-top: 24px;
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+}
+
+.survey-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.survey-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   padding: 20px;
   background-color: #f8f9fa;
   border-radius: 4px;
+  gap: 20px;
+}
+
+.survey-info {
+  flex: 1;
 }
 
 .info-row {
@@ -23,7 +47,7 @@
 }
 
 .action-buttons {
-  margin-top: 24px;
   display: flex;
   gap: 12px;
+  flex-shrink: 0;
 }

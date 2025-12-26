@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
@@ -15,6 +16,7 @@ import CreateFieldModal from "./CreateFieldModal";
 import styles from "./style.module.css";
 
 export default function GroupMatchingFieldManagementContainer() {
+  const navigate = useNavigate();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const {
@@ -27,6 +29,20 @@ export default function GroupMatchingFieldManagementContainer() {
     queryFn: GroupMatchingManageApi.listFields,
     retry: 0,
   });
+
+  // 미처리 관심 분야 요청 개수 조회
+  const { data: pendingRequestsData } = useQuery({
+    queryKey: ["group-matching-field-requests-pending-count"],
+    queryFn: () =>
+      GroupMatchingManageApi.listFieldRequests({
+        status: "pending",
+        limit: 1000,
+        offset: 0,
+      }),
+    retry: 0,
+  });
+
+  const pendingCount = pendingRequestsData?.count || 0;
 
   const { mutateAsync: obsoleteField } = useMutation({
     mutationFn: GroupMatchingManageApi.obsoleteField,
@@ -48,14 +64,26 @@ export default function GroupMatchingFieldManagementContainer() {
     }
   };
 
+  const handleGoToFieldRequests = () => {
+    navigate("/manage/group-matching-field-requests");
+  };
+
   return (
     <>
       <Container>
         <div className={styles["header"]}>
           <h2>관심 분야 관리</h2>
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            분야 추가
-          </Button>
+          <div className={styles["header-buttons"]}>
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              분야 추가
+            </Button>
+            <Button variant="neutral" onClick={handleGoToFieldRequests}>
+              관심 분야 요청 목록
+              {pendingCount > 0 && (
+                <span className={styles["badge"]}>{pendingCount}</span>
+              )}
+            </Button>
+          </div>
         </div>
 
         {(() => {
@@ -80,15 +108,19 @@ export default function GroupMatchingFieldManagementContainer() {
                           {field.name}
                         </span>
                         <span className={styles["field-meta"]}>
-                          생성:{" "}
-                          {formatDate(
-                            new Date(field.createdAt),
-                            DateFormats.DATE_KOR
+                          {field.createdAt && (
+                            <>
+                              생성:{" "}
+                              {formatDate(
+                                new Date(field.createdAt),
+                                DateFormats.DATE_KOR
+                              )}
+                            </>
                           )}
                           {field.obsoletedAt && (
                             <>
-                              {" "}
-                              · 비활성화:{" "}
+                              {field.createdAt && " · "}
+                              비활성화:{" "}
                               {formatDate(
                                 new Date(field.obsoletedAt),
                                 DateFormats.DATE_KOR

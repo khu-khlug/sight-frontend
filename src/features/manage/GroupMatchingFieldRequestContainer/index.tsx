@@ -34,8 +34,8 @@ export default function GroupMatchingFieldRequestContainer() {
   });
 
   const { mutateAsync: approveRequest } = useMutation({
-    mutationFn: ({ id, fieldName }: { id: string; fieldName?: string }) =>
-      GroupMatchingManageApi.approveFieldRequest(id, { fieldName }),
+    mutationFn: (id: string) =>
+      GroupMatchingManageApi.approveFieldRequest(id),
     onSuccess: () => {
       refetch();
     },
@@ -52,23 +52,12 @@ export default function GroupMatchingFieldRequestContainer() {
   });
 
   const handleApprove = async (requestId: string, fieldName: string) => {
-    const modifiedName = prompt(
-      "분야 이름 (수정하려면 입력, 그대로 사용하려면 취소)",
-      fieldName
-    );
-
-    if (modifiedName === null) {
-      // User cancelled, use original name
-      if (!confirm(`"${fieldName}" 분야를 그대로 승인하시겠습니까?`)) {
-        return;
-      }
+    if (!confirm(`"${fieldName}" 분야를 승인하시겠습니까?`)) {
+      return;
     }
 
     try {
-      await approveRequest({
-        id: requestId,
-        fieldName: modifiedName || undefined,
-      });
+      await approveRequest(requestId);
       alert("요청이 승인되었습니다.");
     } catch (error) {
       alert(extractErrorMessage(error as Error));

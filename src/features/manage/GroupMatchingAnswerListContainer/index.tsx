@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
@@ -16,6 +17,7 @@ import AnswerItem from "./AnswerItem";
 import styles from "./style.module.css";
 
 export default function GroupMatchingAnswerListContainer() {
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [filterGroupType, setFilterGroupType] = useState<GroupType | null>(null);
   const [filterFieldId, setFilterFieldId] = useState<string | null>(null);
@@ -23,12 +25,20 @@ export default function GroupMatchingAnswerListContainer() {
   const limit = 20;
   const offset = (page - 1) * limit;
 
-  // Get current survey
-  const { data: survey } = useQuery({
-    queryKey: ["current-group-matching-admin"],
-    queryFn: GroupMatchingManageApi.getCurrentGroupMatching,
+  // URL 파라미터에서 surveyId 가져오기
+  const surveyIdFromUrl = searchParams.get("surveyId");
+
+  // Get current survey or specific survey by ID
+  const { data: groupMatchingsData } = useQuery({
+    queryKey: ["group-matchings-admin"],
+    queryFn: GroupMatchingManageApi.listGroupMatchings,
     retry: 0,
   });
+
+  // URL에 surveyId가 있으면 해당 설문을, 없으면 최신 설문을 사용
+  const survey = surveyIdFromUrl
+    ? groupMatchingsData?.groupMatchings.find((s) => s.id === surveyIdFromUrl) || null
+    : groupMatchingsData?.groupMatchings[0] || null;
 
   // Get fields for filter
   const { data: fields } = useQuery({
@@ -66,6 +76,15 @@ export default function GroupMatchingAnswerListContainer() {
   }
 
   const activeFields = fields?.filter((f) => !f.obsoletedAt) || [];
+
+  // fields를 id → name 매핑 객체로 변환
+  const fieldNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    fields?.forEach(field => {
+      map[field.id] = field.name;
+    });
+    return map;
+  }, [fields]);
 
   return (
     <>
@@ -134,7 +153,7 @@ export default function GroupMatchingAnswerListContainer() {
                   </h3>
                   <div className={styles["answer-list"]}>
                     {data.answers.map((answer) => (
-                      <AnswerItem key={answer.id} answer={answer} />
+                      <AnswerItem key={answer.id} answer={answer} fieldNameMap={fieldNameMap} />
                     ))}
                   </div>
                   <PageNavigator

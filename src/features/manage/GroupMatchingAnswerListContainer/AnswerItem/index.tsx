@@ -6,15 +6,15 @@ import styles from "./style.module.css";
 
 type Props = {
   answer: GroupMatchingManageApiDto["GroupMatchingAnswerWithUserDto"];
+  fieldNameMap: Record<string, string>;
 };
 
-export default function AnswerItem({ answer }: Props) {
+export default function AnswerItem({ answer, fieldNameMap }: Props) {
   return (
     <div className={styles["container"]}>
       <div className={styles["header"]}>
         <div className={styles["user-info"]}>
-          <span className={styles["name"]}>{answer.userName}</span>
-          <span className={styles["number"]}>{answer.userNumber}</span>
+          <span className={styles["name"]}>사용자 ID: {answer.userId}</span>
         </div>
         <span className={styles["group-type-badge"]}>
           {GroupTypeLabel[answer.groupType]}
@@ -32,7 +32,7 @@ export default function AnswerItem({ answer }: Props) {
           <div className={styles["fields"]}>
             {answer.fields.map((field) => (
               <span key={field.id} className={styles["field-chip"]}>
-                {field.name}
+                {fieldNameMap[field.id] || field.id}
               </span>
             ))}
           </div>

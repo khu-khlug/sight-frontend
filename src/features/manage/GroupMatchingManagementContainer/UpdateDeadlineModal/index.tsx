@@ -15,7 +15,7 @@ import styles from "./style.module.css";
 
 type Props = {
   isOpen: boolean;
-  survey: GroupMatchingManageApiDto["GroupMatchingDto"];
+  survey: GroupMatchingManageApiDto["GroupMatchingResponse"];
   onClose: () => void;
   onSuccess: () => void;
 };
@@ -31,8 +31,8 @@ export default function UpdateDeadlineModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { mutateAsync: updateSurvey, isPending } = useMutation({
-    mutationFn: (dto: GroupMatchingManageApiDto["UpdateGroupMatchingRequestDto"]) =>
-      GroupMatchingManageApi.updateGroupMatching(survey.id, dto),
+    mutationFn: (dto: GroupMatchingManageApiDto["UpdateClosedAtRequest"]) =>
+      GroupMatchingManageApi.updateGroupMatchingClosedAt(survey.id, dto),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

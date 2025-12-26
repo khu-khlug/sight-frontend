@@ -34,7 +34,7 @@ export default function CreateFieldModal({ isOpen, onClose, onSuccess }: Props) 
     }
 
     try {
-      await createField({ name: fieldName.trim() });
+      await createField({ fieldName: fieldName.trim() });
       alert("분야가 추가되었습니다.");
       onSuccess();
     } catch (error) {
