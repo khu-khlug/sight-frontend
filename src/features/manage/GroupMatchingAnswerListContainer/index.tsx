@@ -1,6 +1,14 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import {
+  Heading,
+  VStack,
+  HStack,
+  Text,
+  NativeSelectRoot,
+  NativeSelectField,
+} from "@chakra-ui/react";
 
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
@@ -13,8 +21,6 @@ import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { GroupType, GroupTypeLabel } from "../../../constant";
 
 import AnswerItem from "./AnswerItem";
-
-import styles from "./style.module.css";
 
 export default function GroupMatchingAnswerListContainer() {
   const [searchParams] = useSearchParams();
@@ -89,51 +95,63 @@ export default function GroupMatchingAnswerListContainer() {
   return (
     <>
       <Container>
-        <h2>응답 목록</h2>
+        <Heading as="h2" size="lg" mb={5}>
+          응답 목록
+        </Heading>
 
         {/* Filters */}
-        <div className={styles["filter-section"]}>
-          <div className={styles["filter-group"]}>
-            <label>그룹 유형</label>
-            <select
-              value={filterGroupType || ""}
-              onChange={(e) =>
-                setFilterGroupType(
-                  e.target.value === "" ? null : (e.target.value as GroupType)
-                )
-              }
-            >
-              <option value="">전체</option>
-              <option value={GroupType.STUDY}>
-                {GroupTypeLabel[GroupType.STUDY]}
-              </option>
-              <option value={GroupType.PROJECT}>
-                {GroupTypeLabel[GroupType.PROJECT]}
-              </option>
-            </select>
-          </div>
-
-          <div className={styles["filter-group"]}>
-            <label>관심 분야</label>
-            <select
-              value={filterFieldId || ""}
-              onChange={(e) =>
-                setFilterFieldId(
-                  e.target.value === "" ? null : e.target.value
-                )
-              }
-            >
-              <option value="">전체</option>
-              {activeFields.map((field) => (
-                <option key={field.id} value={field.id}>
-                  {field.name}
+        <HStack gap={4} mb={5}>
+          <VStack align="stretch" gap={2} flex={1}>
+            <Text fontWeight="medium" fontSize="sm">
+              그룹 유형
+            </Text>
+            <NativeSelectRoot>
+              <NativeSelectField
+                value={filterGroupType || ""}
+                onChange={(e) =>
+                  setFilterGroupType(
+                    e.target.value === "" ? null : (e.target.value as GroupType)
+                  )
+                }
+              >
+                <option value="">전체</option>
+                <option value={GroupType.STUDY}>
+                  {GroupTypeLabel[GroupType.STUDY]}
                 </option>
-              ))}
-            </select>
-          </div>
+                <option value={GroupType.PROJECT}>
+                  {GroupTypeLabel[GroupType.PROJECT]}
+                </option>
+              </NativeSelectField>
+            </NativeSelectRoot>
+          </VStack>
 
-          <Button onClick={handleSearch}>검색</Button>
-        </div>
+          <VStack align="stretch" gap={2} flex={1}>
+            <Text fontWeight="medium" fontSize="sm">
+              관심 분야
+            </Text>
+            <NativeSelectRoot>
+              <NativeSelectField
+                value={filterFieldId || ""}
+                onChange={(e) =>
+                  setFilterFieldId(
+                    e.target.value === "" ? null : e.target.value
+                  )
+                }
+              >
+                <option value="">전체</option>
+                {activeFields.map((field) => (
+                  <option key={field.id} value={field.id}>
+                    {field.name}
+                  </option>
+                ))}
+              </NativeSelectField>
+            </NativeSelectRoot>
+          </VStack>
+
+          <Button onClick={handleSearch} alignSelf="flex-end">
+            검색
+          </Button>
+        </HStack>
       </Container>
 
       <Container>
@@ -148,14 +166,14 @@ export default function GroupMatchingAnswerListContainer() {
             case "success":
               return (
                 <>
-                  <h3 className={styles["answer-counter"]}>
-                    총 <span>{data.count}개</span> 응답
-                  </h3>
-                  <div className={styles["answer-list"]}>
+                  <Heading as="h3" size="md" mb={4}>
+                    총 <Text as="span" color="brand.500">{data.count}개</Text> 응답
+                  </Heading>
+                  <VStack gap={4} align="stretch" mb={5}>
                     {data.answers.map((answer) => (
                       <AnswerItem key={answer.id} answer={answer} fieldNameMap={fieldNameMap} />
                     ))}
-                  </div>
+                  </VStack>
                   <PageNavigator
                     currentPage={page}
                     countPerPage={limit}

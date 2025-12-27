@@ -1,29 +1,36 @@
-import ReactModal from "react-modal";
-import { PropsOf } from "../../util/types";
+import { Dialog, Portal } from "@chakra-ui/react";
 
-type Props = Omit<PropsOf<typeof ReactModal>, "style" | "className">;
-
-const customStyles = {
-  content: {
-    top: "50%",
-    left: "50%",
-    right: "auto",
-    bottom: "auto",
-    marginRight: "-50%",
-    transform: "translate(-50%, -50%)",
-    padding: "28px",
-    width: "400px",
-    border: "0px solid var(--main-color)",
-    borderTop: "4px solid var(--main-color)",
-    boxShadow: "0px 0px 8px #00000018",
-    borderRadius: "8px",
-  },
+type Props = {
+  isOpen: boolean;
+  onRequestClose?: () => void;
+  children?: React.ReactNode;
 };
 
-export default function BaseModal({ children, ...rest }: Props) {
+export default function BaseModal({ isOpen, onRequestClose, children }: Props) {
   return (
-    <ReactModal style={customStyles} {...rest}>
-      {children}
-    </ReactModal>
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(details) => {
+        if (!details.open && onRequestClose) {
+          onRequestClose();
+        }
+      }}
+    >
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content
+            p="28px"
+            maxW="400px"
+            borderTop="4px solid"
+            borderColor="brand.500"
+            boxShadow="0px 0px 8px #00000018"
+            borderRadius="8px"
+          >
+            {children}
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
   );
 }

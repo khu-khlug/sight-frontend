@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { Flex, Heading, VStack, HStack, Box, Text, Badge } from "@chakra-ui/react";
 
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
@@ -12,8 +13,6 @@ import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { DateFormats, formatDate } from "../../../util/date";
 
 import CreateFieldModal from "./CreateFieldModal";
-
-import styles from "./style.module.css";
 
 export default function GroupMatchingFieldManagementContainer() {
   const navigate = useNavigate();
@@ -71,20 +70,32 @@ export default function GroupMatchingFieldManagementContainer() {
   return (
     <>
       <Container>
-        <div className={styles["header"]}>
-          <h2>관심 분야 관리</h2>
-          <div className={styles["header-buttons"]}>
+        <Flex justify="space-between" align="center" mb={5}>
+          <Heading as="h2" size="lg">
+            관심 분야 관리
+          </Heading>
+          <HStack gap={3}>
             <Button onClick={() => setIsCreateModalOpen(true)}>
               분야 추가
             </Button>
             <Button variant="neutral" onClick={handleGoToFieldRequests}>
               관심 분야 요청 목록
               {pendingCount > 0 && (
-                <span className={styles["badge"]}>{pendingCount}</span>
+                <Badge
+                  ml={2}
+                  colorPalette="red"
+                  variant="solid"
+                  borderRadius="full"
+                  px={2}
+                  py={0.5}
+                  fontSize="xs"
+                >
+                  {pendingCount}
+                </Badge>
               )}
             </Button>
-          </div>
-        </div>
+          </HStack>
+        </Flex>
 
         {(() => {
           switch (status) {
@@ -96,18 +107,25 @@ export default function GroupMatchingFieldManagementContainer() {
               );
             case "success":
               return (
-                <div className={styles["field-list"]}>
+                <VStack gap={3} align="stretch">
                   {fields.map((field) => (
-                    <div
+                    <Box
                       key={field.id}
-                      className={styles["field-item"]}
-                      data-obsoleted={!!field.obsoletedAt}
+                      p={4}
+                      bg={field.obsoletedAt ? "gray.100" : "white"}
+                      border="1px solid"
+                      borderColor="gray.200"
+                      borderRadius="md"
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      opacity={field.obsoletedAt ? 0.6 : 1}
                     >
-                      <div className={styles["field-info"]}>
-                        <span className={styles["field-name"]}>
+                      <VStack align="start" gap={1}>
+                        <Text fontWeight="semibold" fontSize="md">
                           {field.name}
-                        </span>
-                        <span className={styles["field-meta"]}>
+                        </Text>
+                        <Text fontSize="sm" color="gray.600">
                           {field.createdAt && (
                             <>
                               생성:{" "}
@@ -127,8 +145,8 @@ export default function GroupMatchingFieldManagementContainer() {
                               )}
                             </>
                           )}
-                        </span>
-                      </div>
+                        </Text>
+                      </VStack>
                       {!field.obsoletedAt && (
                         <Button
                           variant="neutral"
@@ -137,9 +155,9 @@ export default function GroupMatchingFieldManagementContainer() {
                           비활성화
                         </Button>
                       )}
-                    </div>
+                    </Box>
                   ))}
-                </div>
+                </VStack>
               );
           }
         })()}

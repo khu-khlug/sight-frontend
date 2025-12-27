@@ -1,22 +1,15 @@
-import { cn } from "../../util/cn";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons/faCircleExclamation";
-
-import "./style.css";
+import { Alert } from "@chakra-ui/react";
 
 type Props = {
-  type?: "info" | "success" | "error";
+  type?: "info" | "success" | "error" | "warning";
   children?: React.ReactNode;
 };
 
 export default function Callout({ type = "info", children }: Props) {
   return (
-    <div className={cn("callout", { [type]: !!type })}>
-      <FontAwesomeIcon
-        icon={faCircleExclamation}
-        className="callout__exclamation-icon"
-      />
-      {children}
-    </div>
+    <Alert.Root status={type} borderRadius="md">
+      <Alert.Indicator />
+      <Alert.Description>{children}</Alert.Description>
+    </Alert.Root>
   );
 }

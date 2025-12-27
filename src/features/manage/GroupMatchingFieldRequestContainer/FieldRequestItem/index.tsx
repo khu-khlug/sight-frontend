@@ -1,8 +1,8 @@
+import { Box, VStack, HStack, Text, Badge } from "@chakra-ui/react";
+
 import Button from "../../../../components/Button";
 import { GroupMatchingManageApiDto } from "../../../../api/manage/groupMatching";
 import { DateFormats, formatDate } from "../../../../util/date";
-
-import styles from "./style.module.css";
 
 type Props = {
   request: GroupMatchingManageApiDto["GroupMatchingFieldRequestDto"];
@@ -19,83 +19,116 @@ export default function FieldRequestItem({
   const isApproved = !!request.approvedAt;
   const isRejected = !!request.rejectedAt;
 
+  const getBgColor = () => {
+    if (isPending) return "yellow.50";
+    if (isApproved) return "green.50";
+    if (isRejected) return "red.50";
+    return "white";
+  };
+
+  const getBadgeColor = () => {
+    if (isPending) return "yellow";
+    if (isApproved) return "green";
+    if (isRejected) return "red";
+    return "gray";
+  };
+
   return (
-    <div
-      className={styles["container"]}
-      data-status={
-        isPending ? "pending" : isApproved ? "approved" : "rejected"
-      }
+    <Box
+      p={4}
+      bg={getBgColor()}
+      border="1px solid"
+      borderColor="gray.200"
+      borderRadius="md"
     >
-      <div className={styles["header"]}>
-        <div className={styles["requester-info"]}>
-          <span className={styles["name"]}>{request.requesterName}</span>
-        </div>
-        <div className={styles["status-badge"]}>
+      <HStack justify="space-between" mb={3}>
+        <Text fontWeight="semibold" fontSize="md">
+          {request.requesterName}
+        </Text>
+        <Badge
+          colorPalette={getBadgeColor()}
+          variant="solid"
+          borderRadius="md"
+          px={3}
+          py={1}
+        >
           {isPending && "대기"}
           {isApproved && "승인"}
           {isRejected && "거부"}
-        </div>
-      </div>
+        </Badge>
+      </HStack>
 
-      <div className={styles["content"]}>
-        <div className={styles["row"]}>
-          <span className={styles["label"]}>분야 이름:</span>
-          <span className={styles["field-name"]}>{request.fieldName}</span>
-        </div>
+      <VStack align="stretch" gap={2}>
+        <HStack>
+          <Text fontWeight="medium" color="gray.600" minW="100px">
+            분야 이름:
+          </Text>
+          <Text fontWeight="semibold">{request.fieldName}</Text>
+        </HStack>
 
-        <div className={styles["row"]}>
-          <span className={styles["label"]}>요청 사유:</span>
-          <p className={styles["reason"]}>{request.requestReason}</p>
-        </div>
+        <HStack align="start">
+          <Text fontWeight="medium" color="gray.600" minW="100px">
+            요청 사유:
+          </Text>
+          <Text>{request.requestReason}</Text>
+        </HStack>
 
-        <div className={styles["row"]}>
-          <span className={styles["label"]}>요청 일시:</span>
-          <span>
+        <HStack>
+          <Text fontWeight="medium" color="gray.600" minW="100px">
+            요청 일시:
+          </Text>
+          <Text>
             {formatDate(new Date(request.createdAt), DateFormats.DATE_KOR)}
-          </span>
-        </div>
+          </Text>
+        </HStack>
 
         {isApproved && (
-          <div className={styles["row"]}>
-            <span className={styles["label"]}>승인 일시:</span>
-            <span>
+          <HStack>
+            <Text fontWeight="medium" color="gray.600" minW="100px">
+              승인 일시:
+            </Text>
+            <Text>
               {formatDate(
                 new Date(request.approvedAt!),
                 DateFormats.DATE_KOR
               )}
-            </span>
-          </div>
+            </Text>
+          </HStack>
         )}
 
         {isRejected && (
           <>
-            <div className={styles["row"]}>
-              <span className={styles["label"]}>거부 일시:</span>
-              <span>
+            <HStack>
+              <Text fontWeight="medium" color="gray.600" minW="100px">
+                거부 일시:
+              </Text>
+              <Text>
                 {formatDate(
                   new Date(request.rejectedAt!),
                   DateFormats.DATE_KOR
                 )}
-              </span>
-            </div>
-            <div className={styles["row"]}>
-              <span className={styles["label"]}>거부 사유:</span>
-              <p className={styles["reason"]}>{request.rejectReason}</p>
-            </div>
+              </Text>
+            </HStack>
+            <HStack align="start">
+              <Text fontWeight="medium" color="gray.600" minW="100px">
+                거부 사유:
+              </Text>
+              <Text>{request.rejectReason}</Text>
+            </HStack>
           </>
         )}
-      </div>
+      </VStack>
 
       {isPending && (
-        <div className={styles["actions"]}>
+        <HStack gap={3} mt={4}>
           <Button onClick={() => onApprove(request.id, request.fieldName)}>
             승인
           </Button>
           <Button variant="neutral" onClick={() => onReject(request.id)}>
             거부
           </Button>
-        </div>
+        </HStack>
       )}
-    </div>
+    </Box>
   );
 }

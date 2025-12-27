@@ -1,5 +1,13 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  VStack,
+  HStack,
+  Input,
+  Text,
+  Box,
+} from "@chakra-ui/react";
 
 import BaseModal from "../../../../components/BaseModal";
 import Button from "../../../../components/Button";
@@ -7,8 +15,6 @@ import Callout from "../../../../components/Callout";
 
 import { GroupMatchingManageApi } from "../../../../api/manage/groupMatching";
 import { extractErrorMessage } from "../../../../util/extractErrorMessage";
-
-import styles from "./style.module.css";
 
 type Props = {
   isOpen: boolean;
@@ -44,32 +50,43 @@ export default function CreateFieldModal({ isOpen, onClose, onSuccess }: Props) 
 
   return (
     <BaseModal isOpen={isOpen} onRequestClose={onClose}>
-      <h3 className={styles["title"]}>분야 추가</h3>
+      <Dialog.Header p={0} mb={4}>
+        <Dialog.Title fontSize="lg" fontWeight="semibold">
+          분야 추가
+        </Dialog.Title>
+      </Dialog.Header>
 
-      {errorMessage && <Callout type="error">{errorMessage}</Callout>}
+      <Dialog.Body p={0}>
+        {errorMessage && (
+          <Box mb={4}>
+            <Callout type="error">{errorMessage}</Callout>
+          </Box>
+        )}
 
-      <form onSubmit={handleSubmit} className={styles["form"]}>
-        <div className={styles["form-group"]}>
-          <label>분야 이름</label>
-          <input
-            type="text"
-            value={fieldName}
-            onChange={(e) => setFieldName(e.target.value)}
-            placeholder="예: 클라우드 컴퓨팅"
-            className={styles["input"]}
-            required
-          />
-        </div>
+        <VStack as="form" onSubmit={handleSubmit} gap={4} align="stretch">
+          <VStack align="stretch" gap={2}>
+            <Text fontWeight="medium">분야 이름</Text>
+            <Input
+              type="text"
+              value={fieldName}
+              onChange={(e) => setFieldName(e.target.value)}
+              placeholder="예: 클라우드 컴퓨팅"
+              required
+            />
+          </VStack>
 
-        <div className={styles["button-group"]}>
-          <Button variant="neutral" onClick={onClose} type="button">
-            취소
-          </Button>
-          <Button type="submit" disabled={isPending}>
-            추가하기
-          </Button>
-        </div>
-      </form>
+          <Dialog.Footer p={0} mt={2}>
+            <HStack gap={3} justify="flex-end">
+              <Button variant="neutral" onClick={onClose} type="button">
+                취소
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                추가하기
+              </Button>
+            </HStack>
+          </Dialog.Footer>
+        </VStack>
+      </Dialog.Body>
     </BaseModal>
   );
 }

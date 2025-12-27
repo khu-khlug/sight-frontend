@@ -1,5 +1,18 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import {
+  Box,
+  VStack,
+  HStack,
+  Heading,
+  Text,
+  Input,
+  RadioGroup,
+  Checkbox,
+  SimpleGrid,
+  IconButton,
+} from "@chakra-ui/react";
+import { X } from "lucide-react";
 
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
@@ -21,8 +34,6 @@ import {
 } from "../../../constant";
 
 import RequestFieldModal from "./RequestFieldModal";
-
-import styles from "./style.module.css";
 
 export default function GroupMatchingSurveyContainer() {
   // Query: Get current survey
@@ -196,7 +207,9 @@ export default function GroupMatchingSurveyContainer() {
   if (!survey) {
     return (
       <Container>
-        <h2>그룹 매칭 설문</h2>
+        <Heading as="h2" size="lg" mb={4}>
+          그룹 매칭 설문
+        </Heading>
         <Callout>현재 진행 중인 그룹 매칭 설문이 없습니다.</Callout>
       </Container>
     );
@@ -207,7 +220,9 @@ export default function GroupMatchingSurveyContainer() {
   if (isClosed && !myAnswer) {
     return (
       <Container>
-        <h2>그룹 매칭 설문</h2>
+        <Heading as="h2" size="lg" mb={4}>
+          그룹 매칭 설문
+        </Heading>
         <Callout type="error">
           설문이 마감되었습니다. (마감일:{" "}
           {formatDate(new Date(survey.closedAt), DateFormats.DATE_KOR)})
@@ -241,18 +256,18 @@ export default function GroupMatchingSurveyContainer() {
   return (
     <>
       <Container>
-        <h2>
+        <Heading as="h2" size="lg" mb={5}>
           {survey.year}년 {SemesterLabel[survey.semester as Semester]} 그룹 매칭
           설문
-        </h2>
+        </Heading>
 
-        <div className={styles["survey-info"]}>
-          <p>
+        <Box bg="gray.50" p={4} borderRadius="md" mb={6}>
+          <Text fontSize="sm" color="gray.600">
             마감일:{" "}
             {formatDate(new Date(survey.closedAt), DateFormats.DATE_KOR)}
-          </p>
+          </Text>
           {myAnswer && (
-            <p className={styles["submitted-info"]}>
+            <Text fontSize="sm" color="brand.500" fontWeight="medium" mt={1}>
               제출일:{" "}
               {formatDate(new Date(myAnswer.createdAt), DateFormats.DATE_KOR)}
               {myAnswer.updatedAt !== myAnswer.createdAt && (
@@ -266,138 +281,156 @@ export default function GroupMatchingSurveyContainer() {
                   )
                 </>
               )}
-            </p>
+            </Text>
           )}
-        </div>
+        </Box>
         {isReadOnly && (
-          <Callout>
-            설문이 마감되었습니다. 제출된 응답은 수정할 수 없습니다.
-          </Callout>
+          <Box mb={6}>
+            <Callout>
+              설문이 마감되었습니다. 제출된 응답은 수정할 수 없습니다.
+            </Callout>
+          </Box>
         )}
 
-        <form onSubmit={handleSubmit} className={styles["form"]}>
+        <VStack as="form" onSubmit={handleSubmit} gap={7} align="stretch">
           {/* Group Type Selection */}
-          <div className={styles["form-group"]}>
-            <label className={styles["form-label"]}>그룹 유형</label>
-            <div className={styles["radio-group"]}>
-              <label className={styles["radio-label"]}>
-                <input
-                  type="radio"
-                  name="groupType"
-                  value={GroupType.STUDY}
-                  checked={groupType === GroupType.STUDY}
-                  onChange={(e) => setGroupType(e.target.value as GroupType)}
-                  disabled={isReadOnly}
-                />
-                <span>{GroupTypeLabel[GroupType.STUDY]}</span>
-              </label>
-              <label className={styles["radio-label"]}>
-                <input
-                  type="radio"
-                  name="groupType"
-                  value={GroupType.PROJECT}
-                  checked={groupType === GroupType.PROJECT}
-                  onChange={(e) => setGroupType(e.target.value as GroupType)}
-                  disabled={isReadOnly}
-                />
-                <span>{GroupTypeLabel[GroupType.PROJECT]}</span>
-              </label>
-            </div>
-          </div>
+          <Box>
+            <Text fontWeight="semibold" fontSize="15px" mb={3}>
+              그룹 유형
+            </Text>
+            <RadioGroup.Root
+              value={groupType}
+              onValueChange={(details) =>
+                setGroupType(details.value as GroupType)
+              }
+              disabled={isReadOnly}
+            >
+              <HStack gap={6}>
+                <RadioGroup.Item value={GroupType.STUDY}>
+                  <RadioGroup.ItemHiddenInput />
+                  <RadioGroup.ItemControl />
+                  <RadioGroup.ItemText>
+                    {GroupTypeLabel[GroupType.STUDY]}
+                  </RadioGroup.ItemText>
+                </RadioGroup.Item>
+                <RadioGroup.Item value={GroupType.PROJECT}>
+                  <RadioGroup.ItemHiddenInput />
+                  <RadioGroup.ItemControl />
+                  <RadioGroup.ItemText>
+                    {GroupTypeLabel[GroupType.PROJECT]}
+                  </RadioGroup.ItemText>
+                </RadioGroup.Item>
+              </HStack>
+            </RadioGroup.Root>
+          </Box>
 
           {/* Online Preference */}
-          <div className={styles["form-group"]}>
-            <label className={styles["form-label"]}>활동 방식</label>
-            <div className={styles["checkbox-group"]}>
-              <label className={styles["checkbox-label"]}>
-                <input
-                  type="checkbox"
-                  checked={isPreferOnline}
-                  onChange={(e) => setIsPreferOnline(e.target.checked)}
-                  disabled={isReadOnly}
-                />
-                <span>온라인 활동 선호</span>
-              </label>
-            </div>
-          </div>
+          <Box>
+            <Text fontWeight="semibold" fontSize="15px" mb={3}>
+              활동 방식
+            </Text>
+            <Checkbox.Root
+              checked={isPreferOnline}
+              onCheckedChange={(details) =>
+                setIsPreferOnline(details.checked === true)
+              }
+              disabled={isReadOnly}
+            >
+              <Checkbox.HiddenInput />
+              <Checkbox.Control>
+                <Checkbox.Indicator />
+              </Checkbox.Control>
+              <Checkbox.Label>온라인 활동 선호</Checkbox.Label>
+            </Checkbox.Root>
+          </Box>
 
           {/* Field Selection (Inline Checkboxes) */}
-          <div className={styles["form-group"]}>
-            <label className={styles["form-label"]}>관심 분야 (최소 1개)</label>
-            <div className={styles["field-checkbox-grid"]}>
+          <Box>
+            <Text fontWeight="semibold" fontSize="15px" mb={3}>
+              관심 분야 (최소 1개)
+            </Text>
+            <SimpleGrid
+              columns={{ base: 1, md: 2, lg: 3 }}
+              gap={3}
+              p={4}
+              bg="gray.50"
+              borderRadius="md"
+              mb={3}
+            >
               {fields?.map((field) => (
-                <label
+                <Checkbox.Root
                   key={field.id}
-                  className={styles["field-checkbox-label"]}
+                  checked={selectedFieldIds.includes(field.id)}
+                  onCheckedChange={() => toggleField(field.id)}
+                  disabled={isReadOnly}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selectedFieldIds.includes(field.id)}
-                    onChange={() => toggleField(field.id)}
-                    disabled={isReadOnly}
-                  />
-                  <span>{field.name}</span>
-                </label>
+                  <Checkbox.HiddenInput />
+                  <Checkbox.Control>
+                    <Checkbox.Indicator />
+                  </Checkbox.Control>
+                  <Checkbox.Label>{field.name}</Checkbox.Label>
+                </Checkbox.Root>
               ))}
-            </div>
+            </SimpleGrid>
             {!isReadOnly && (
-              <div className={styles["field-request-button-wrapper"]}>
-                <Button
-                  type="button"
-                  variant="neutral"
-                  onClick={() => setIsRequestFieldModalOpen(true)}
-                >
-                  새 분야 요청
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="neutral"
+                onClick={() => setIsRequestFieldModalOpen(true)}
+              >
+                새 분야 요청
+              </Button>
             )}
-          </div>
+          </Box>
 
           {/* Subjects (Dynamic List) */}
-          <div className={styles["form-group"]}>
-            <label className={styles["form-label"]}>
+          <Box>
+            <Text fontWeight="semibold" fontSize="15px" mb={3}>
               하고 싶은 주제 (최소 1개, 최대 3개)
-            </label>
-            {subjects.map((subject, index) => (
-              <div key={index} className={styles["subject-input-row"]}>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => handleSubjectChange(index, e.target.value)}
-                  placeholder={`주제 ${index + 1}`}
-                  className={styles["subject-input"]}
-                  disabled={isReadOnly}
-                />
-                {!isReadOnly && subjects.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveSubject(index)}
-                    className={styles["remove-subject-btn"]}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
+            </Text>
+            <VStack gap={3} align="stretch">
+              {subjects.map((subject, index) => (
+                <HStack key={index}>
+                  <Input
+                    value={subject}
+                    onChange={(e) => handleSubjectChange(index, e.target.value)}
+                    placeholder={`주제 ${index + 1}`}
+                    disabled={isReadOnly}
+                  />
+                  {!isReadOnly && subjects.length > 1 && (
+                    <IconButton
+                      type="button"
+                      onClick={() => handleRemoveSubject(index)}
+                      aria-label="Remove subject"
+                      variant="ghost"
+                      colorPalette="red"
+                    >
+                      <X />
+                    </IconButton>
+                  )}
+                </HStack>
+              ))}
+            </VStack>
             {!isReadOnly && subjects.length < 3 && (
               <Button
                 type="button"
                 variant="neutral"
                 onClick={handleAddSubject}
+                mt={3}
               >
                 주제 추가
               </Button>
             )}
-          </div>
+          </Box>
 
           {!isReadOnly && (
-            <div className={styles["submit-button-wrapper"]}>
+            <Box>
               <Button type="submit" disabled={isSubmitting || isUpdating}>
                 {myAnswer ? "수정하기" : "제출하기"}
               </Button>
-            </div>
+            </Box>
           )}
-        </form>
+        </VStack>
       </Container>
 
       {/* Modals */}

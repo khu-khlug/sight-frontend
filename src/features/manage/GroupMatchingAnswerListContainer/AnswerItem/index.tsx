@@ -1,8 +1,8 @@
+import { Box, VStack, HStack, Text, Badge } from "@chakra-ui/react";
+
 import { GroupMatchingManageApiDto } from "../../../../api/manage/groupMatching";
 import { GroupTypeLabel } from "../../../../constant";
 import { DateFormats, formatDate } from "../../../../util/date";
-
-import styles from "./style.module.css";
 
 type Props = {
   answer: GroupMatchingManageApiDto["GroupMatchingAnswerWithUserDto"];
@@ -11,49 +11,72 @@ type Props = {
 
 export default function AnswerItem({ answer, fieldNameMap }: Props) {
   return (
-    <div className={styles["container"]}>
-      <div className={styles["header"]}>
-        <div className={styles["user-info"]}>
-          <span className={styles["name"]}>사용자 ID: {answer.userId}</span>
-        </div>
-        <span className={styles["group-type-badge"]}>
+    <Box
+      p={4}
+      bg="white"
+      border="1px solid"
+      borderColor="gray.200"
+      borderRadius="md"
+    >
+      <HStack justify="space-between" mb={3}>
+        <Text fontWeight="semibold" fontSize="md">
+          사용자 ID: {answer.userId}
+        </Text>
+        <Badge colorPalette="blue" variant="solid" borderRadius="md" px={3} py={1}>
           {GroupTypeLabel[answer.groupType]}
-        </span>
-      </div>
+        </Badge>
+      </HStack>
 
-      <div className={styles["content"]}>
-        <div className={styles["row"]}>
-          <span className={styles["label"]}>활동 방식:</span>
-          <span>{answer.isPreferOnline ? "온라인 선호" : "오프라인"}</span>
-        </div>
+      <VStack align="stretch" gap={2}>
+        <HStack>
+          <Text fontWeight="medium" color="gray.600" minW="100px">
+            활동 방식:
+          </Text>
+          <Text>{answer.isPreferOnline ? "온라인 선호" : "오프라인"}</Text>
+        </HStack>
 
-        <div className={styles["row"]}>
-          <span className={styles["label"]}>관심 분야:</span>
-          <div className={styles["fields"]}>
+        <HStack align="start">
+          <Text fontWeight="medium" color="gray.600" minW="100px">
+            관심 분야:
+          </Text>
+          <HStack flexWrap="wrap" gap={2}>
             {answer.fields.map((field) => (
-              <span key={field.id} className={styles["field-chip"]}>
+              <Badge
+                key={field.id}
+                colorPalette="gray"
+                variant="subtle"
+                borderRadius="md"
+                px={2}
+                py={1}
+              >
                 {fieldNameMap[field.id] || field.id}
-              </span>
+              </Badge>
             ))}
-          </div>
-        </div>
+          </HStack>
+        </HStack>
 
-        <div className={styles["row"]}>
-          <span className={styles["label"]}>하고 싶은 주제:</span>
-          <ul className={styles["subjects"]}>
+        <HStack align="start">
+          <Text fontWeight="medium" color="gray.600" minW="100px">
+            하고 싶은 주제:
+          </Text>
+          <VStack align="start" gap={1} pl={2}>
             {answer.subjects.map((subject) => (
-              <li key={subject.id}>{subject.subject}</li>
+              <Text key={subject.id} fontSize="sm">
+                • {subject.subject}
+              </Text>
             ))}
-          </ul>
-        </div>
+          </VStack>
+        </HStack>
 
-        <div className={styles["row"]}>
-          <span className={styles["label"]}>제출일:</span>
-          <span>
+        <HStack>
+          <Text fontWeight="medium" color="gray.600" minW="100px">
+            제출일:
+          </Text>
+          <Text>
             {formatDate(new Date(answer.createdAt), DateFormats.DATE_KOR)}
-          </span>
-        </div>
-      </div>
-    </div>
+          </Text>
+        </HStack>
+      </VStack>
+    </Box>
   );
 }
