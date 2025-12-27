@@ -15,6 +15,7 @@ import GroupMatchingManagementPage from "./pages/manage/group-matching";
 import GroupMatchingAnswersPage from "./pages/manage/group-matching-answers";
 import GroupMatchingFieldsPage from "./pages/manage/group-matching-fields";
 import GroupMatchingFieldRequestsPage from "./pages/manage/group-matching-field-requests";
+import LoginPage from "./pages/login";
 
 function App() {
   const router = createBrowserRouter(
@@ -28,6 +29,7 @@ function App() {
           path="/member/group-matching"
           element={<GroupMatchingPage />}
         />
+        <Route path="/login" element={<LoginPage />} />
 
         <Route path="/manage/infra-blue" element={<InfraBluePage />} />
         <Route path="/manage/member-v2" element={<MemberV2Page />} />
