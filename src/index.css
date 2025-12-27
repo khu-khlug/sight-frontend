@@ -8,9 +8,12 @@
     "Malgun Gothic", "나눔고딕", "NanumGothic", "돋움", "Dotum", "Sans-serif";
 }
 
+html {
+  background-color: #fcfcfc;
+}
+
 body {
   margin: 0;
-  background-color: #fcfcfc;
 }
 
 h2 {
