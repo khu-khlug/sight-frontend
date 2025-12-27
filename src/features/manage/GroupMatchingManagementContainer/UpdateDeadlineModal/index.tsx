@@ -1,5 +1,13 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  VStack,
+  HStack,
+  Input,
+  Text,
+  Box,
+} from "@chakra-ui/react";
 
 import BaseModal from "../../../../components/BaseModal";
 import Button from "../../../../components/Button";
@@ -10,8 +18,6 @@ import {
   type GroupMatchingManageApiDto,
 } from "../../../../api/manage/groupMatching";
 import { extractErrorMessage } from "../../../../util/extractErrorMessage";
-
-import styles from "./style.module.css";
 
 type Props = {
   isOpen: boolean;
@@ -57,31 +63,42 @@ export default function UpdateDeadlineModal({
 
   return (
     <BaseModal isOpen={isOpen} onRequestClose={onClose}>
-      <h3 className={styles["title"]}>마감일 변경</h3>
+      <Dialog.Header p={0} mb={4}>
+        <Dialog.Title fontSize="lg" fontWeight="semibold">
+          마감일 변경
+        </Dialog.Title>
+      </Dialog.Header>
 
-      {errorMessage && <Callout type="error">{errorMessage}</Callout>}
+      <Dialog.Body p={0}>
+        {errorMessage && (
+          <Box mb={4}>
+            <Callout type="error">{errorMessage}</Callout>
+          </Box>
+        )}
 
-      <form onSubmit={handleSubmit} className={styles["form"]}>
-        <div className={styles["form-group"]}>
-          <label>새 마감일</label>
-          <input
-            type="date"
-            value={closedAt}
-            onChange={(e) => setClosedAt(e.target.value)}
-            className={styles["input"]}
-            required
-          />
-        </div>
+        <VStack as="form" onSubmit={handleSubmit} gap={4} align="stretch">
+          <VStack align="stretch" gap={2}>
+            <Text fontWeight="medium">새 마감일</Text>
+            <Input
+              type="date"
+              value={closedAt}
+              onChange={(e) => setClosedAt(e.target.value)}
+              required
+            />
+          </VStack>
 
-        <div className={styles["button-group"]}>
-          <Button variant="neutral" onClick={onClose} type="button">
-            취소
-          </Button>
-          <Button type="submit" disabled={isPending}>
-            변경하기
-          </Button>
-        </div>
-      </form>
+          <Dialog.Footer p={0} mt={2}>
+            <HStack gap={3} justify="flex-end">
+              <Button variant="neutral" onClick={onClose} type="button">
+                취소
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                변경하기
+              </Button>
+            </HStack>
+          </Dialog.Footer>
+        </VStack>
+      </Dialog.Body>
     </BaseModal>
   );
 }

@@ -1,35 +1,17 @@
-import { ButtonHTMLAttributes } from "react";
-import { cn } from "../../util/cn";
-
-import styles from "./style.module.css";
+import { Button as ChakraButton } from "@chakra-ui/react";
 
 type Variant = "primary" | "neutral";
 
-type Props = {
-  children?: React.ReactNode;
-  className?: string;
-  type?: ButtonHTMLAttributes<HTMLButtonElement>["type"];
+type Props = React.ComponentProps<typeof ChakraButton> & {
   variant?: Variant;
   disabled?: boolean;
   onClick?: () => void;
 };
 
 export default function Button({
-  children,
-  className,
-  type,
   variant = "primary",
-  disabled = false,
-  onClick,
+  disabled,
+  ...props
 }: Props) {
-  return (
-    <button
-      type={type}
-      className={cn(styles["component-button"], styles[variant], className)}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
+  return <ChakraButton variant={variant} disabled={disabled} {...props} />;
 }

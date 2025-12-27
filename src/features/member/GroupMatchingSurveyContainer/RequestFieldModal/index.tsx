@@ -1,5 +1,14 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  VStack,
+  HStack,
+  Input,
+  Textarea,
+  Text,
+  Box,
+} from "@chakra-ui/react";
 
 import BaseModal from "../../../../components/BaseModal";
 import Button from "../../../../components/Button";
@@ -7,8 +16,6 @@ import Callout from "../../../../components/Callout";
 
 import { GroupMatchingPublicApi } from "../../../../api/public/groupMatching";
 import { extractErrorMessage } from "../../../../util/extractErrorMessage";
-
-import styles from "./style.module.css";
 
 type Props = {
   isOpen: boolean;
@@ -49,44 +56,54 @@ export default function RequestFieldModal({ isOpen, onClose }: Props) {
 
   return (
     <BaseModal isOpen={isOpen} onRequestClose={onClose}>
-      <h3 className={styles["title"]}>새 분야 요청</h3>
+      <Dialog.Header p={0} mb={4}>
+        <Dialog.Title fontSize="lg" fontWeight="semibold">
+          새 분야 요청
+        </Dialog.Title>
+      </Dialog.Header>
 
-      {errorMessage && <Callout type="error">{errorMessage}</Callout>}
+      <Dialog.Body p={0}>
+        {errorMessage && (
+          <Box mb={4}>
+            <Callout type="error">{errorMessage}</Callout>
+          </Box>
+        )}
 
-      <form onSubmit={handleSubmit} className={styles["form"]}>
-        <div className={styles["form-group"]}>
-          <label>분야 이름</label>
-          <input
-            type="text"
-            value={fieldName}
-            onChange={(e) => setFieldName(e.target.value)}
-            placeholder="예: 웹 프론트엔드"
-            className={styles["input"]}
-            required
-          />
-        </div>
+        <VStack as="form" onSubmit={handleSubmit} gap={4} align="stretch">
+          <VStack align="stretch" gap={2}>
+            <Text fontWeight="medium">분야 이름</Text>
+            <Input
+              type="text"
+              value={fieldName}
+              onChange={(e) => setFieldName(e.target.value)}
+              placeholder="예: 웹 프론트엔드"
+              required
+            />
+          </VStack>
 
-        <div className={styles["form-group"]}>
-          <label>요청 사유</label>
-          <textarea
-            value={requestReason}
-            onChange={(e) => setRequestReason(e.target.value)}
-            placeholder="이 분야가 필요한 이유를 간단히 설명해주세요."
-            className={styles["textarea"]}
-            rows={4}
-            required
-          />
-        </div>
+          <VStack align="stretch" gap={2}>
+            <Text fontWeight="medium">요청 사유</Text>
+            <Textarea
+              value={requestReason}
+              onChange={(e) => setRequestReason(e.target.value)}
+              placeholder="이 분야가 필요한 이유를 간단히 설명해주세요."
+              rows={4}
+              required
+            />
+          </VStack>
 
-        <div className={styles["button-group"]}>
-          <Button variant="neutral" onClick={onClose} type="button">
-            취소
-          </Button>
-          <Button type="submit" disabled={isPending}>
-            요청하기
-          </Button>
-        </div>
-      </form>
+          <Dialog.Footer p={0} mt={2}>
+            <HStack gap={3} justify="flex-end">
+              <Button variant="neutral" onClick={onClose} type="button">
+                취소
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                요청하기
+              </Button>
+            </HStack>
+          </Dialog.Footer>
+        </VStack>
+      </Dialog.Body>
     </BaseModal>
   );
 }

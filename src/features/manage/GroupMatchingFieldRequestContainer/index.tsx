@@ -1,5 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import {
+  Heading,
+  VStack,
+  HStack,
+  Text,
+  NativeSelectRoot,
+  NativeSelectField,
+} from "@chakra-ui/react";
 
 import Container from "../../../components/Container";
 import Callout from "../../../components/Callout";
@@ -10,8 +18,6 @@ import { GroupMatchingManageApi } from "../../../api/manage/groupMatching";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 
 import FieldRequestItem from "./FieldRequestItem";
-
-import styles from "./style.module.css";
 
 type FilterStatus = "pending" | "approved" | "rejected" | null;
 
@@ -81,26 +87,34 @@ export default function GroupMatchingFieldRequestContainer() {
   return (
     <>
       <Container>
-        <h2>분야 추가 요청</h2>
+        <Heading as="h2" size="lg" mb={5}>
+          분야 추가 요청
+        </Heading>
 
-        <div className={styles["filter-section"]}>
-          <label>상태</label>
-          <select
-            value={filterStatus || ""}
-            onChange={(e) => {
-              const value = e.target.value;
-              setFilterStatus(
-                value === "" ? null : (value as FilterStatus)
-              );
-              setPage(1);
-            }}
-          >
-            <option value="">전체</option>
-            <option value="pending">대기</option>
-            <option value="approved">승인</option>
-            <option value="rejected">거부</option>
-          </select>
-        </div>
+        <HStack gap={4} mb={5}>
+          <VStack align="stretch" gap={2} flex={1} maxW="300px">
+            <Text fontWeight="medium" fontSize="sm">
+              상태
+            </Text>
+            <NativeSelectRoot>
+              <NativeSelectField
+                value={filterStatus || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFilterStatus(
+                    value === "" ? null : (value as FilterStatus)
+                  );
+                  setPage(1);
+                }}
+              >
+                <option value="">전체</option>
+                <option value="pending">대기</option>
+                <option value="approved">승인</option>
+                <option value="rejected">거부</option>
+              </NativeSelectField>
+            </NativeSelectRoot>
+          </VStack>
+        </HStack>
       </Container>
 
       <Container>
@@ -115,10 +129,10 @@ export default function GroupMatchingFieldRequestContainer() {
             case "success":
               return (
                 <>
-                  <h3 className={styles["request-counter"]}>
-                    총 <span>{data.count}개</span> 요청
-                  </h3>
-                  <div className={styles["request-list"]}>
+                  <Heading as="h3" size="md" mb={4}>
+                    총 <Text as="span" color="brand.500">{data.count}개</Text> 요청
+                  </Heading>
+                  <VStack gap={4} align="stretch" mb={5}>
                     {data.requests.map((request) => (
                       <FieldRequestItem
                         key={request.id}
@@ -127,7 +141,7 @@ export default function GroupMatchingFieldRequestContainer() {
                         onReject={handleReject}
                       />
                     ))}
-                  </div>
+                  </VStack>
                   <PageNavigator
                     currentPage={page}
                     countPerPage={limit}

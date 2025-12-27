@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { Flex, Heading, VStack, HStack, Box, Text } from "@chakra-ui/react";
 
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
 import Callout from "../../../components/Callout";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 
-import { GroupMatchingManageApi, GroupMatchingResponse } from "../../../api/manage/groupMatching";
+import {
+  GroupMatchingManageApi,
+  GroupMatchingResponse,
+} from "../../../api/manage/groupMatching";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { DateFormats, formatDate } from "../../../util/date";
 import { Semester, SemesterLabel } from "../../../constant";
@@ -15,19 +19,13 @@ import { Semester, SemesterLabel } from "../../../constant";
 import CreateSurveyModal from "./CreateSurveyModal";
 import UpdateDeadlineModal from "./UpdateDeadlineModal";
 
-import styles from "./style.module.css";
-
 export default function GroupMatchingManagementContainer() {
   const navigate = useNavigate();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedSurvey, setSelectedSurvey] = useState<GroupMatchingResponse | null>(null);
+  const [selectedSurvey, setSelectedSurvey] =
+    useState<GroupMatchingResponse | null>(null);
 
-  const {
-    status,
-    data,
-    error,
-    refetch,
-  } = useQuery({
+  const { status, data, error, refetch } = useQuery({
     queryKey: ["group-matchings-admin"],
     queryFn: GroupMatchingManageApi.listGroupMatchings,
     retry: 0,
@@ -60,49 +58,76 @@ export default function GroupMatchingManagementContainer() {
   return (
     <>
       <Container>
-        <div className={styles["header"]}>
-          <h2>그룹 매칭 목록</h2>
+        <Flex justify="space-between" align="center" mb={5}>
+          <Heading as="h2" size="lg">
+            그룹 매칭 목록
+          </Heading>
           <Button onClick={() => setIsCreateModalOpen(true)}>
             그룹 매칭 생성
           </Button>
-        </div>
+        </Flex>
 
         {data && data.groupMatchings.length > 0 ? (
-          <div className={styles["survey-list"]}>
+          <VStack gap={4} align="stretch">
             {data.groupMatchings.map((survey) => (
-              <div key={survey.id} className={styles["survey-item"]}>
-                <div className={styles["survey-info"]}>
-                  <div className={styles["info-row"]}>
-                    <span className={styles["label"]}>학기:</span>
-                    <span>
-                      {survey.year}년 {SemesterLabel[survey.semester as Semester]}
-                    </span>
-                  </div>
-                  <div className={styles["info-row"]}>
-                    <span className={styles["label"]}>마감일:</span>
-                    <span>
-                      {formatDate(new Date(survey.closedAt), DateFormats.DATE_KOR)}
-                    </span>
-                  </div>
-                  <div className={styles["info-row"]}>
-                    <span className={styles["label"]}>생성일:</span>
-                    <span>
-                      {formatDate(new Date(survey.createdAt), DateFormats.DATE_KOR)}
-                    </span>
-                  </div>
-                </div>
+              <Box
+                key={survey.id}
+                p={5}
+                bg="gray.50"
+                borderRadius="md"
+                display="flex"
+                justifyContent="space-between"
+                alignItems="flex-start"
+                gap={5}
+              >
+                <VStack align="start" flex={1} gap={3}>
+                  <HStack>
+                    <Text fontWeight="semibold" color="gray.600" minW="80px">
+                      학기:
+                    </Text>
+                    <Text>
+                      {survey.year}년{" "}
+                      {SemesterLabel[survey.semester as Semester]}
+                    </Text>
+                  </HStack>
+                  <HStack>
+                    <Text fontWeight="semibold" color="gray.600" minW="80px">
+                      마감일:
+                    </Text>
+                    <Text>
+                      {formatDate(
+                        new Date(survey.closedAt),
+                        DateFormats.DATE_KOR
+                      )}
+                    </Text>
+                  </HStack>
+                  <HStack>
+                    <Text fontWeight="semibold" color="gray.600" minW="80px">
+                      생성일:
+                    </Text>
+                    <Text>
+                      {formatDate(
+                        new Date(survey.createdAt),
+                        DateFormats.DATE_KOR
+                      )}
+                    </Text>
+                  </HStack>
+                </VStack>
 
-                <div className={styles["action-buttons"]}>
+                <HStack gap={3}>
                   <Button onClick={() => handleViewAnswers(survey.id)}>
                     응답 보기
                   </Button>
-                  <Button variant="neutral" onClick={() => handleUpdateDeadline(survey)}>
+                  <Button
+                    variant="neutral"
+                    onClick={() => handleUpdateDeadline(survey)}
+                  >
                     마감일 변경
                   </Button>
-                </div>
-              </div>
+                </HStack>
+              </Box>
             ))}
-          </div>
+          </VStack>
         ) : (
           <Callout>현재 진행 중인 그룹 매칭 설문이 없습니다.</Callout>
         )}

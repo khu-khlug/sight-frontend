@@ -1,5 +1,15 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  VStack,
+  HStack,
+  Input,
+  Text,
+  Box,
+  NativeSelectRoot,
+  NativeSelectField,
+} from "@chakra-ui/react";
 
 import BaseModal from "../../../../components/BaseModal";
 import Button from "../../../../components/Button";
@@ -8,8 +18,6 @@ import Callout from "../../../../components/Callout";
 import { GroupMatchingManageApi } from "../../../../api/manage/groupMatching";
 import { extractErrorMessage } from "../../../../util/extractErrorMessage";
 import { Semester } from "../../../../constant";
-
-import styles from "./style.module.css";
 
 type Props = {
   isOpen: boolean;
@@ -52,57 +60,67 @@ export default function CreateSurveyModal({ isOpen, onClose, onSuccess }: Props)
 
   return (
     <BaseModal isOpen={isOpen} onRequestClose={onClose}>
-      <h3 className={styles["title"]}>새 설문 생성</h3>
+      <Dialog.Header p={0} mb={4}>
+        <Dialog.Title fontSize="lg" fontWeight="semibold">
+          새 설문 생성
+        </Dialog.Title>
+      </Dialog.Header>
 
-      {errorMessage && <Callout type="error">{errorMessage}</Callout>}
+      <Dialog.Body p={0}>
+        {errorMessage && (
+          <Box mb={4}>
+            <Callout type="error">{errorMessage}</Callout>
+          </Box>
+        )}
 
-      <form onSubmit={handleSubmit} className={styles["form"]}>
-        <div className={styles["form-group"]}>
-          <label>연도</label>
-          <input
-            type="number"
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            min={currentYear - 1}
-            max={currentYear + 1}
-            className={styles["input"]}
-            required
-          />
-        </div>
+        <VStack as="form" onSubmit={handleSubmit} gap={4} align="stretch">
+          <VStack align="stretch" gap={2}>
+            <Text fontWeight="medium">연도</Text>
+            <Input
+              type="number"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              min={currentYear - 1}
+              max={currentYear + 1}
+              required
+            />
+          </VStack>
 
-        <div className={styles["form-group"]}>
-          <label>학기</label>
-          <select
-            value={semester}
-            onChange={(e) => setSemester(Number(e.target.value) as Semester)}
-            className={styles["select"]}
-            required
-          >
-            <option value={Semester.FIRST}>1학기</option>
-            <option value={Semester.SECOND}>2학기</option>
-          </select>
-        </div>
+          <VStack align="stretch" gap={2}>
+            <Text fontWeight="medium">학기</Text>
+            <NativeSelectRoot>
+              <NativeSelectField
+                value={semester}
+                onChange={(e) => setSemester(Number(e.target.value) as Semester)}
+              >
+                <option value={Semester.FIRST}>1학기</option>
+                <option value={Semester.SECOND}>2학기</option>
+              </NativeSelectField>
+            </NativeSelectRoot>
+          </VStack>
 
-        <div className={styles["form-group"]}>
-          <label>마감일</label>
-          <input
-            type="date"
-            value={closedAt}
-            onChange={(e) => setClosedAt(e.target.value)}
-            className={styles["input"]}
-            required
-          />
-        </div>
+          <VStack align="stretch" gap={2}>
+            <Text fontWeight="medium">마감일</Text>
+            <Input
+              type="date"
+              value={closedAt}
+              onChange={(e) => setClosedAt(e.target.value)}
+              required
+            />
+          </VStack>
 
-        <div className={styles["button-group"]}>
-          <Button variant="neutral" onClick={onClose} type="button">
-            취소
-          </Button>
-          <Button type="submit" disabled={isPending}>
-            생성하기
-          </Button>
-        </div>
-      </form>
+          <Dialog.Footer p={0} mt={2}>
+            <HStack gap={3} justify="flex-end">
+              <Button variant="neutral" onClick={onClose} type="button">
+                취소
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                생성하기
+              </Button>
+            </HStack>
+          </Dialog.Footer>
+        </VStack>
+      </Dialog.Body>
     </BaseModal>
   );
 }
