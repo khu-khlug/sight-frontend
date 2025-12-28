@@ -1,18 +1,13 @@
-import { formatCurrency } from "../../../../util/currency";
 import styles from "./style.module.css";
 
 interface FinanceHeaderProps {
   selectedYear: number;
   onYearChange: (year: number) => void;
-  currentBalance?: number;
-  accountInfo: string;
 }
 
 const FinanceHeader = ({
   selectedYear,
   onYearChange,
-  currentBalance,
-  accountInfo,
 }: FinanceHeaderProps) => {
   const currentYear = new Date().getFullYear();
 
@@ -21,6 +16,8 @@ const FinanceHeader = ({
     { length: currentYear - 2020 + 1 },
     (_, i) => 2020 + i
   ).reverse();
+
+  const accountInfo = "하나은행 534-910013-94604 경희대학교 쿠러그";
 
   return (
     <div className={styles["header-section"]}>
@@ -39,19 +36,9 @@ const FinanceHeader = ({
         </select>
       </div>
 
-      {/* 계좌 정보 */}
       <div className={styles["account-info"]}>
         회비 납부 계좌: {accountInfo}
       </div>
-
-      {currentBalance !== undefined && (
-        <div className={styles["balance-display"]}>
-          <span className={styles["balance-label"]}>현재 잔액:</span>
-          <span className={styles["balance-amount"]}>
-            {formatCurrency(currentBalance)}
-          </span>
-        </div>
-      )}
     </div>
   );
 };

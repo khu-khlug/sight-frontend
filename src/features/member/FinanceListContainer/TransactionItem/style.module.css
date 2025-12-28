@@ -97,6 +97,32 @@
   color: #666;
 }
 
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+.delete-button {
+  padding: 4px 12px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.delete-button:hover {
+  background-color: #c82333;
+}
+
+.delete-button:active {
+  background-color: #bd2130;
+}
+
 /* 반응형 디자인 */
 @media (max-width: 768px) {
   .transaction-item {

@@ -7,9 +7,10 @@ import styles from "./style.module.css";
 
 type Props = {
   transaction: Transaction;
+  onDelete?: (id: string) => void;
 };
 
-export default function TransactionItem({ transaction }: Props) {
+export default function TransactionItem({ transaction, onDelete }: Props) {
   const isIncome = transaction.type === TransactionType.INCOME;
   const typeLabel = isIncome ? "수입" : "지출";
   const badgeClassName = isIncome
@@ -44,13 +45,21 @@ export default function TransactionItem({ transaction }: Props) {
                 {transaction.quantity}
               </div>
             )}
-            <div className={styles["card-balance"]}>
-              총 {formatCurrency(transaction.balance)}
-            </div>
           </div>
         </div>
         {transaction.note && (
           <div className={styles["card-note"]}>비고: {transaction.note}</div>
+        )}
+
+        {onDelete && (
+          <div className={styles["card-actions"]}>
+            <button
+              onClick={() => onDelete(transaction.id)}
+              className={styles["delete-button"]}
+            >
+              삭제
+            </button>
+          </div>
         )}
       </div>
     </div>

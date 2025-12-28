@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 
 import Button from "../../../components/Button";
 import Container from "../../../components/Container";
 
-import { TransactionType } from "../../../api/manage/finance";
+import { FinanceApi, TransactionType } from "../../../api/manage/finance";
+import { extractErrorMessage } from "../../../util/extractErrorMessage";
 
 import styles from "./style.module.css";
 
@@ -12,6 +15,8 @@ const getTodayDate = (): string => {
 };
 
 export default function AddTransactionFormContainer() {
+  const queryClient = useQueryClient();
+
   const [type, setType] = useState<TransactionType>(TransactionType.INCOME);
   const [usedAt, setUsedAt] = useState<string>(getTodayDate());
   const [description, setDescription] = useState("");
@@ -28,28 +33,39 @@ export default function AddTransactionFormContainer() {
     setAmount(price * qty);
   }, [unitPrice, quantity]);
 
+  const { mutate, isPending } = useMutation({
+    mutationFn: FinanceApi.createTransaction,
+    onSuccess: () => {
+      // 모든 finance 쿼리 무효화 (연도, 페이지 관계없이)
+      queryClient.invalidateQueries({ queryKey: ["finance"] });
+      toast.success("거래 내역이 추가되었습니다.");
+
+      // 폼 초기화
+      setUsedAt(getTodayDate());
+      setDescription("");
+      setUnitPrice("");
+      setQuantity("1");
+      setPlace("");
+      setNote("");
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error));
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("New transaction:", {
+    mutate({
       type,
-      usedAt,
+      date: usedAt,
       description,
-      unitPrice,
-      quantity,
-      amount,
+      unitPrice: parseFloat(unitPrice),
+      quantity: parseInt(quantity, 10),
+      amount: amount,
       place,
       note,
     });
-    // TODO: API 호출하여 거래 추가
-    // 추가 후 데이터 refetch
-
-    setUsedAt(getTodayDate());
-    setDescription("");
-    setUnitPrice("");
-    setQuantity("1");
-    setPlace("");
-    setNote("");
   };
 
   return (
@@ -173,7 +189,9 @@ export default function AddTransactionFormContainer() {
         </div>
 
         <div className={styles["submit-button-wrapper"]}>
-          <Button type="submit">추가</Button>
+          <Button type="submit" disabled={isPending}>
+            추가
+          </Button>
         </div>
       </form>
     </Container>
