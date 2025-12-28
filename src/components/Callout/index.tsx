@@ -7,9 +7,9 @@ type Props = {
 
 export default function Callout({ type = "info", children }: Props) {
   return (
-    <Alert.Root status={type} borderRadius="md">
+    <Alert.Root status={type} borderRadius="md" alignItems="center">
       <Alert.Indicator />
-      <Alert.Description>{children}</Alert.Description>
+      <Alert.Description flex={1}>{children}</Alert.Description>
     </Alert.Root>
   );
 }

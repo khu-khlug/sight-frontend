@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 import {
   Box,
   VStack,
@@ -11,11 +13,12 @@ import {
   Checkbox,
   SimpleGrid,
   IconButton,
+  Button,
+  Flex,
 } from "@chakra-ui/react";
 import { X } from "lucide-react";
 
 import Container from "../../../components/Container";
-import Button from "../../../components/Button";
 import Callout from "../../../components/Callout";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 
@@ -36,6 +39,8 @@ import {
 import RequestFieldModal from "./RequestFieldModal";
 
 export default function GroupMatchingSurveyContainer() {
+  const navigate = useNavigate();
+
   // Query: Get current survey
   const {
     status: surveyStatus,
@@ -185,6 +190,10 @@ export default function GroupMatchingSurveyContainer() {
     }
   };
 
+  const handleGoToLogin = () => {
+    navigate("/login?redirect=/member/group-matching");
+  };
+
   // Loading state
   if (surveyStatus === "pending") {
     return (
@@ -196,9 +205,25 @@ export default function GroupMatchingSurveyContainer() {
 
   // Error state
   if (surveyStatus === "error") {
+    const is401Error =
+      isAxiosError(surveyError) && surveyError.response?.status === 401;
+
     return (
       <Container>
-        <Callout type="error">{extractErrorMessage(surveyError)}</Callout>
+        <Callout type="error">
+          <Flex gap={3} align="center" justify="space-between">
+            <Text flex={1}>{extractErrorMessage(surveyError)}</Text>
+            {is401Error && (
+              <Button
+                onClick={handleGoToLogin}
+                colorPalette="red"
+                variant="subtle"
+              >
+                로그인
+              </Button>
+            )}
+          </Flex>
+        </Callout>
       </Container>
     );
   }
@@ -375,7 +400,7 @@ export default function GroupMatchingSurveyContainer() {
             {!isReadOnly && (
               <Button
                 type="button"
-                variant="neutral"
+                variant="outline"
                 onClick={() => setIsRequestFieldModalOpen(true)}
               >
                 새 분야 요청
@@ -414,7 +439,7 @@ export default function GroupMatchingSurveyContainer() {
             {!isReadOnly && subjects.length < 3 && (
               <Button
                 type="button"
-                variant="neutral"
+                variant="outline"
                 onClick={handleAddSubject}
                 mt={3}
               >
@@ -425,7 +450,11 @@ export default function GroupMatchingSurveyContainer() {
 
           {!isReadOnly && (
             <Box>
-              <Button type="submit" disabled={isSubmitting || isUpdating}>
+              <Button
+                type="submit"
+                variant="solid"
+                disabled={isSubmitting || isUpdating}
+              >
                 {myAnswer ? "수정하기" : "제출하기"}
               </Button>
             </Box>
