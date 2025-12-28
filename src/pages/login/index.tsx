@@ -1,8 +1,8 @@
 import { Box, Input, Text, VStack } from "@chakra-ui/react";
-import axios from "axios";
 import { FormEvent, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
+import legacyClient from "../../api/client/legacy";
 import Button from "../../components/Button";
 import Container from "../../components/Container";
 import SimpleLogoLayout from "../../layouts/SimpleLogoLayout";
@@ -23,8 +23,8 @@ export default function LoginPage() {
 
     try {
       // 1. CSRF 토큰 조회
-      const csrfResponse = await axios.get<{ csrfToken: string }>(
-        "https://khlug.org/csrf-token"
+      const csrfResponse = await legacyClient.get<{ csrfToken: string }>(
+        "/csrf-token"
       );
       const csrfToken = csrfResponse.data.csrfToken;
 
@@ -34,10 +34,7 @@ export default function LoginPage() {
       formData.append("name", username);
       formData.append("password", password);
 
-      const loginResponse = await axios.post(
-        "https://khlug.org/login",
-        formData
-      );
+      const loginResponse = await legacyClient.post("/login", formData);
 
       // 3. 200대 응답이면 redirect
       if (loginResponse.status >= 200 && loginResponse.status < 300) {
