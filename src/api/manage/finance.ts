@@ -1,4 +1,4 @@
-import apiClient from "../client";
+import apiClient from "../client/v2";
 
 // ===== 백엔드 API 타입 =====
 
