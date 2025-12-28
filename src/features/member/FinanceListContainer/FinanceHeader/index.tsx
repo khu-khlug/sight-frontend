@@ -1,4 +1,4 @@
-import styles from "./style.module.css";
+import { Box, Flex, Heading, NativeSelect } from "@chakra-ui/react";
 
 interface FinanceHeaderProps {
   selectedYear: number;
@@ -20,26 +20,37 @@ const FinanceHeader = ({
   const accountInfo = "하나은행 534-910013-94604 경희대학교 쿠러그";
 
   return (
-    <div className={styles["header-section"]}>
-      <div className={styles["year-selector"]}>
-        <h2>동아리비 장부</h2>
-        <select
-          value={selectedYear}
-          onChange={(e) => onYearChange(Number(e.target.value))}
-          className={styles["year-select"]}
-        >
-          {yearOptions.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </div>
+    <Box mb={6}>
+      <Flex align="center" gap={4} mb={3}>
+        <Heading size="lg">동아리비 장부</Heading>
+        <NativeSelect.Root w="auto" maxW="150px">
+          <NativeSelect.Field
+            value={selectedYear.toString()}
+            onChange={(e) => onYearChange(Number(e.target.value))}
+          >
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </NativeSelect.Field>
+          <NativeSelect.Indicator />
+        </NativeSelect.Root>
+      </Flex>
 
-      <div className={styles["account-info"]}>
+      <Box
+        my={4}
+        py={3}
+        px={4}
+        bg="#e3f2fd"
+        borderRadius="md"
+        fontSize="sm"
+        color="#1565c0"
+        textAlign="center"
+      >
         회비 납부 계좌: {accountInfo}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

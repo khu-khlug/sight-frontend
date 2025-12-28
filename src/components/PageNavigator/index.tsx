@@ -1,6 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
-import styles from "./style.module.css";
+import { Flex, IconButton, Button } from "@chakra-ui/react";
 
 const MAX_PAGE_COUNT = 7;
 
@@ -60,28 +59,36 @@ export default function PageNavigator({
   const pages = calcPageNumbers(currentPage, countPerPage, totalCount);
 
   return (
-    <div className={styles["page-navigator"]}>
-      <button
+    <Flex justify="center" align="center" gap={2}>
+      <IconButton
+        aria-label="이전 페이지"
+        size="sm"
+        variant="ghost"
         disabled={currentPage === 1}
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
       >
         <ChevronLeft size={14} />
-      </button>
+      </IconButton>
       {pages.map((page) => (
-        <button
+        <Button
           key={page}
-          className={page === currentPage ? styles["current"] : ""}
+          size="sm"
+          variant={page === currentPage ? "solid" : "ghost"}
+          colorScheme={page === currentPage ? "blue" : "gray"}
           onClick={() => onPageChange(page)}
         >
           {page}
-        </button>
+        </Button>
       ))}
-      <button
+      <IconButton
+        aria-label="다음 페이지"
+        size="sm"
+        variant="ghost"
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
       >
         <ChevronRight size={14} />
-      </button>
-    </div>
+      </IconButton>
+    </Flex>
   );
 }

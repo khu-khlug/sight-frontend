@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
+import { Box, Center, Spinner, VStack } from "@chakra-ui/react";
 
 import Container from "../../../components/Container";
-import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 import Callout from "../../../components/Callout";
 import PageNavigator from "../../../components/PageNavigator";
 
@@ -12,8 +12,6 @@ import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { useIsManager } from "../../../hooks/user/useIsManager";
 import TransactionItem from "./TransactionItem";
 import FinanceHeader from "./FinanceHeader";
-
-import styles from "./style.module.css";
 
 const LIMIT = 20;
 
@@ -42,7 +40,7 @@ const FinanceListContainer = () => {
     mutationFn: FinanceApi.deleteTransaction,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["finance"] });
-      toast.success("거래 내역이 삭제되었습니다.");
+      toast.success("장부 내역이 삭제되었습니다.");
     },
     onError: (error) => {
       toast.error(extractErrorMessage(error));
@@ -56,7 +54,7 @@ const FinanceListContainer = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm("정말 이 거래 내역을 삭제하시겠습니까?")) {
+    if (window.confirm("정말 이 장부 내역을 삭제하시겠습니까?")) {
       deleteMutation(id);
     }
   };
@@ -75,13 +73,17 @@ const FinanceListContainer = () => {
       {(() => {
         switch (queryStatus) {
           case "pending":
-            return <CenterRingLoadingIndicator />;
+            return (
+              <Center py={10}>
+                <Spinner size="xl" color="blue.500" />
+              </Center>
+            );
           case "error":
             return <Callout type="error">{extractErrorMessage(error)}</Callout>;
           case "success":
             return (
               <>
-                <div className={styles["transactions-section"]}>
+                <VStack gap={4} align="stretch" mb={6}>
                   {transactions.map((transaction) => (
                     <TransactionItem
                       key={transaction.id}
@@ -89,15 +91,15 @@ const FinanceListContainer = () => {
                       onDelete={isManager ? handleDelete : undefined}
                     />
                   ))}
-                </div>
-                <div className={styles["pagination-section"]}>
+                </VStack>
+                <Box>
                   <PageNavigator
                     currentPage={currentPage}
                     countPerPage={LIMIT}
                     totalCount={totalCount}
                     onPageChange={setCurrentPage}
                   />
-                </div>
+                </Box>
               </>
             );
         }
