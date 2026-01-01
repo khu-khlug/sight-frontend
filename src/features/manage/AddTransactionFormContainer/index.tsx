@@ -24,21 +24,21 @@ const getTodayDate = (): string => {
 export default function AddTransactionFormContainer() {
   const queryClient = useQueryClient();
 
-  const [type, setType] = useState<TransactionType>(TransactionType.INCOME);
+  const [type, setType] = useState<TransactionType>("INCOME");
   const [usedAt, setUsedAt] = useState<string>(getTodayDate());
-  const [description, setDescription] = useState("");
-  const [unitPrice, setUnitPrice] = useState<string>("");
+  const [item, setItem] = useState("");
+  const [price, setPrice] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("1");
-  const [amount, setAmount] = useState<number>(0);
+  const [total, setTotal] = useState<number>(0);
   const [place, setPlace] = useState("");
   const [note, setNote] = useState("");
 
   // 단가와 수량이 변경될 때마다 금액 자동 계산
   useEffect(() => {
-    const price = parseFloat(unitPrice) || 0;
+    const unitPrice = parseFloat(price) || 0;
     const qty = parseFloat(quantity) || 0;
-    setAmount(price * qty);
-  }, [unitPrice, quantity]);
+    setTotal(unitPrice * qty);
+  }, [price, quantity]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: FinanceApi.createTransaction,
@@ -49,8 +49,8 @@ export default function AddTransactionFormContainer() {
 
       // 폼 초기화
       setUsedAt(getTodayDate());
-      setDescription("");
-      setUnitPrice("");
+      setItem("");
+      setPrice("");
       setQuantity("1");
       setPlace("");
       setNote("");
@@ -65,11 +65,10 @@ export default function AddTransactionFormContainer() {
 
     mutate({
       type,
-      date: usedAt,
-      description,
-      unitPrice: parseFloat(unitPrice),
+      usedAt,
+      item,
+      price: parseFloat(price),
       quantity: parseInt(quantity, 10),
-      amount: amount,
       place,
       note,
     });
@@ -91,12 +90,12 @@ export default function AddTransactionFormContainer() {
                 onValueChange={(e) => setType(e.value as TransactionType)}
               >
                 <Stack direction="row" gap={4}>
-                  <RadioGroup.Item value={TransactionType.INCOME}>
+                  <RadioGroup.Item value="INCOME">
                     <RadioGroup.ItemHiddenInput />
                     <RadioGroup.ItemIndicator />
                     <RadioGroup.ItemText>수입</RadioGroup.ItemText>
                   </RadioGroup.Item>
-                  <RadioGroup.Item value={TransactionType.EXPENSE}>
+                  <RadioGroup.Item value="EXPENSE">
                     <RadioGroup.ItemHiddenInput />
                     <RadioGroup.ItemIndicator />
                     <RadioGroup.ItemText>지출</RadioGroup.ItemText>
@@ -119,8 +118,8 @@ export default function AddTransactionFormContainer() {
               <Text fontWeight="medium">항목 *</Text>
               <Input
                 type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={item}
+                onChange={(e) => setItem(e.target.value)}
                 placeholder="예: 2025-2학기 회비"
                 required
               />
@@ -133,8 +132,8 @@ export default function AddTransactionFormContainer() {
               <Text fontWeight="medium">단가 *</Text>
               <Input
                 type="number"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
                 placeholder="0"
                 min="0"
                 required
@@ -157,7 +156,7 @@ export default function AddTransactionFormContainer() {
               <Text fontWeight="medium">금액 (자동 계산)</Text>
               <Input
                 type="text"
-                value={amount.toLocaleString("ko-KR")}
+                value={total.toLocaleString("ko-KR")}
                 readOnly
                 bg="gray.50"
               />

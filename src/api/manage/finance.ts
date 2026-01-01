@@ -1,13 +1,14 @@
 import apiClient from "../client/v2";
 
-// ===== 백엔드 API 타입 =====
+// ===== API 타입 (DTO) =====
 
-type BackendTransactionType = "INCOME" | "EXPENSE";
+export type TransactionType = "INCOME" | "EXPENSE";
 
-type BackendTransaction = {
+export type Transaction = {
   id: string;
   author: number;
-  item: string | null;
+  type: TransactionType;
+  item: string;
   price: number;
   quantity: number;
   total: number;
@@ -20,12 +21,12 @@ type BackendTransaction = {
 
 type GetTransactionsResponse = {
   count: number;
-  transactions: BackendTransaction[];
+  transactions: Transaction[];
 };
 
 type CreateTransactionRequest = {
-  type: BackendTransactionType;
-  item: string | null;
+  type: TransactionType;
+  item: string;
   price: number;
   quantity: number;
   place: string | null;
@@ -33,56 +34,18 @@ type CreateTransactionRequest = {
   usedAt: string; // ISO 8601 date (YYYY-MM-DD)
 };
 
-type CreateTransactionResponse = BackendTransaction;
-
-// ===== 프론트엔드 타입 =====
-
-export const TransactionType = {
-  INCOME: "income",
-  EXPENSE: "expense",
-} as const;
-export type TransactionType =
-  (typeof TransactionType)[keyof typeof TransactionType];
-
-export type Transaction = {
+type CreateTransactionResponse = {
   id: string;
-  date: string; // YYYY-MM-DD 형식
-  type: TransactionType;
-  description: string; // 항목
-  unitPrice: number; // 단가
-  quantity: number; // 수량
-  amount: number; // 금액 (unitPrice * quantity)
-  place: string; // 사용/수급처
-  note: string; // 비고
+  author: number;
+  item: string | null;
+  price: number;
+  quantity: number;
+  total: number;
+  place: string | null;
+  note: string | null;
+  usedAt: string;
+  createdAt: string;
 };
-
-// ===== 타입 변환 함수 =====
-
-/**
- * 백엔드 거래 데이터를 프론트엔드 형식으로 변환
- */
-function mapBackendToFrontend(backend: BackendTransaction): Transaction {
-  return {
-    id: backend.id,
-    date: backend.usedAt,
-    type: backend.total >= 0 ? TransactionType.INCOME : TransactionType.EXPENSE,
-    description: backend.item || "",
-    unitPrice: backend.price,
-    quantity: backend.quantity,
-    amount: Math.abs(backend.total),
-    place: backend.place || "",
-    note: backend.note || "",
-  };
-}
-
-/**
- * 프론트엔드 TransactionType을 백엔드 형식으로 변환
- */
-function mapFrontendTypeToBackend(
-  type: TransactionType
-): BackendTransactionType {
-  return type === TransactionType.INCOME ? "INCOME" : "EXPENSE";
-}
 
 // ===== API 함수 =====
 
@@ -104,10 +67,7 @@ const getTransactions = async (
     }
   );
 
-  return {
-    count: response.data.count,
-    transactions: response.data.transactions.map(mapBackendToFrontend),
-  };
+  return response.data;
 };
 
 /**
@@ -115,24 +75,14 @@ const getTransactions = async (
  * @param data 생성할 거래 데이터
  */
 const createTransaction = async (
-  data: Omit<Transaction, "id"> & { type: TransactionType }
-): Promise<Transaction> => {
-  const request: CreateTransactionRequest = {
-    type: mapFrontendTypeToBackend(data.type),
-    item: data.description || null,
-    price: data.unitPrice,
-    quantity: data.quantity,
-    place: data.place || null,
-    note: data.note || null,
-    usedAt: data.date,
-  };
-
+  data: CreateTransactionRequest
+): Promise<CreateTransactionResponse> => {
   const response = await apiClient.post<CreateTransactionResponse>(
     "/transactions",
-    request
+    data
   );
 
-  return mapBackendToFrontend(response.data);
+  return response.data;
 };
 
 /**

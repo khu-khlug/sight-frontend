@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { Box, Flex, Text, Button } from "@chakra-ui/react";
 
-import { Transaction, TransactionType } from "../../../../api/manage/finance";
+import { Transaction } from "../../../../api/manage/finance";
 import { formatCurrency } from "../../../../util/currency";
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 };
 
 export default function TransactionItem({ transaction, onDelete }: Props) {
-  const isIncome = transaction.type === TransactionType.INCOME;
+  const isIncome = transaction.type === "INCOME";
   const typeLabel = isIncome ? "수입" : "지출";
   const badgeBg = isIncome ? "#5ba4d8" : "#c94d4d";
 
@@ -39,22 +39,22 @@ export default function TransactionItem({ transaction, onDelete }: Props) {
           {/* 좌측: 설명 */}
           <Box flex={1}>
             <Text fontSize="lg" fontWeight="semibold" color="gray.800" mb={2}>
-              {transaction.description}
+              {transaction.item}
             </Text>
             <Text fontSize="sm" color="gray.500">
-              {dayjs(transaction.date).format("YYYY. MM. DD.")} |{" "}
-              {transaction.place}
+              {dayjs(transaction.usedAt).format("YYYY. MM. DD.")} |{" "}
+              {transaction.place || ""}
             </Text>
           </Box>
 
           {/* 우측: 금액 */}
           <Box textAlign="right">
             <Text fontSize="xl" fontWeight="bold" color="gray.900">
-              {formatCurrency(transaction.amount)}
+              {formatCurrency(Math.abs(transaction.total))}
             </Text>
-            {transaction.unitPrice > 0 && transaction.quantity > 0 && (
+            {transaction.price > 0 && transaction.quantity > 0 && (
               <Text fontSize="sm" color="gray.500">
-                {transaction.unitPrice.toLocaleString("ko-KR")} ×{" "}
+                {transaction.price.toLocaleString("ko-KR")} ×{" "}
                 {transaction.quantity}
               </Text>
             )}
