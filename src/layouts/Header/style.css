@@ -125,6 +125,7 @@
     transition: right 0.3s ease;
     overflow: scroll;
     max-height: calc(100% - 160px);
+    z-index: 100;
   }
 
   .menu.show {
