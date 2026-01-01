@@ -17,11 +17,13 @@ export default function Header() {
 
   return (
     <header className="global-header">
-      <img
-        src="https://cdn.khlug.org/images/khlug-long-logo.png"
-        alt="KHLUG Logo"
-        style={{ height: "40px" }}
-      />
+      <a href="https://khlug.org">
+        <img
+          src="https://cdn.khlug.org/images/khlug-long-logo.png"
+          alt="KHLUG Logo"
+          style={{ height: "40px" }}
+        />
+      </a>
       <button className="global-header__bars-button" onClick={toggleMenu}>
         <FontAwesomeIcon icon={faBars} />
       </button>
