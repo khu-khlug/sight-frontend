@@ -2,13 +2,14 @@ import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
 
-import Button from "../../components/Button";
 import { cn } from "../../util/cn";
+import { useIsManager } from "../../hooks/user/useIsManager";
 
 import "./style.css";
 
 export default function Header() {
   const [menuVisible, setMenuVisible] = useState(false);
+  const { isManager } = useIsManager();
 
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
@@ -16,7 +17,11 @@ export default function Header() {
 
   return (
     <header className="global-header">
-      <div>로고!</div>
+      <img
+        src="https://cdn.khlug.org/images/khlug-long-logo.png"
+        alt="KHLUG Logo"
+        style={{ height: "40px" }}
+      />
       <button className="global-header__bars-button" onClick={toggleMenu}>
         <FontAwesomeIcon icon={faBars} />
       </button>
@@ -40,7 +45,7 @@ export default function Header() {
           </a>
           <div className="sub-nav">
             <a href="https://khlug.org/documents">문서고</a>
-            <a href="https://khlug.org/finance">장부</a>
+            <a href="https://app.khlug.org/finance">장부</a>
             <a href="https://khlug.org/rule">회칙</a>
           </div>
         </div>
@@ -92,33 +97,35 @@ export default function Header() {
             <a href="https://library.khlug.org">library</a>
           </div>
         </div>
-        <div className="nav-container">
-          <a href="#" className="nav-link active">
-            운영
-          </a>
-          <div className="sub-nav">
-            <a href="https://khlug.org/apply">가입 신청</a>
-            <a href="https://khlug.org/manage/member">회원 관리</a>
-            <a href="https://khlug.org/manage/fee">회비 납부</a>
-            <a href="https://khlug.org/manage/seminar">세미나 대상</a>
-            <a href="https://khlug.org/manage/exp">경험치 지급</a>
-            <a href="https://khlug.org/manage/attendance">출석 체크</a>
-            <a href="https://khlug.org/manage/sms">문자 발송</a>
-            <a href="https://khlug.org/manage/slack">Slack 참여자</a>
-            <hr />
-            <a href="https://khlug.org/manage/sightbot">사이트봇</a>
-            <a href="https://app.khlug.org/manage/infra-blue">infraBlue</a>
-            <hr />
-            <a href="https://khlug.org/manage/blog">Hello 블로그</a>
-            <hr />
-            <a href="https://khlug.org/manage/united">교류 단체</a>
-            <a href="https://khlug.org/manage/interest">관심 분야</a>
-            <a href="https://khlug.org/manage/timeline">타임라인</a>
-            <a href="https://khlug.org/manage/rule">회칙 목록</a>
-            <a href="https://khlug.org/manage/page">페이지</a>
+        {isManager && (
+          <div className="nav-container">
+            <a href="#" className="nav-link active">
+              운영
+            </a>
+            <div className="sub-nav">
+              <a href="https://khlug.org/apply">가입 신청</a>
+              <a href="https://khlug.org/manage/member">회원 관리</a>
+              <a href="https://khlug.org/manage/fee">회비 납부</a>
+              <a href="https://khlug.org/manage/seminar">세미나 대상</a>
+              <a href="https://khlug.org/manage/exp">경험치 지급</a>
+              <a href="https://khlug.org/manage/attendance">출석 체크</a>
+              <a href="https://khlug.org/manage/sms">문자 발송</a>
+              <a href="https://khlug.org/manage/slack">Slack 참여자</a>
+              <a href="https://khlug.org/manage/slack">그룹 매칭 관리</a>
+              <hr />
+              <a href="https://khlug.org/manage/sightbot">사이트봇</a>
+              <a href="https://app.khlug.org/manage/infra-blue">infraBlue</a>
+              <hr />
+              <a href="https://khlug.org/manage/blog">Hello 블로그</a>
+              <hr />
+              <a href="https://khlug.org/manage/united">교류 단체</a>
+              <a href="https://khlug.org/manage/interest">관심 분야</a>
+              <a href="https://khlug.org/manage/timeline">타임라인</a>
+              <a href="https://khlug.org/manage/rule">회칙 목록</a>
+              <a href="https://khlug.org/manage/page">페이지</a>
+            </div>
           </div>
-        </div>
-        <Button>로그아웃</Button>
+        )}
       </div>
     </header>
   );
