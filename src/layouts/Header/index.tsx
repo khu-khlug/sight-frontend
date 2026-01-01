@@ -111,7 +111,9 @@ export default function Header() {
               <a href="https://khlug.org/manage/attendance">출석 체크</a>
               <a href="https://khlug.org/manage/sms">문자 발송</a>
               <a href="https://khlug.org/manage/slack">Slack 참여자</a>
-              <a href="https://khlug.org/manage/slack">그룹 매칭 관리</a>
+              <a href="https://app.khlug.org/manage/group-matching">
+                그룹 매칭 관리
+              </a>
               <hr />
               <a href="https://khlug.org/manage/sightbot">사이트봇</a>
               <a href="https://app.khlug.org/manage/infra-blue">infraBlue</a>
