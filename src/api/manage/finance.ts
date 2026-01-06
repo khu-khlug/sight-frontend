@@ -1,6 +1,8 @@
 import apiClient from "../client/v2";
 
-// ===== API 타입 (DTO) =====
+type GetCurrentCumulativeResponse = {
+  cumulative: number;
+};
 
 export type TransactionType = "INCOME" | "EXPENSE";
 
@@ -47,14 +49,13 @@ type CreateTransactionResponse = {
   createdAt: string;
 };
 
-// ===== API 함수 =====
+const getCurrentCumulative = async (): Promise<number> => {
+  const response = await apiClient.get<GetCurrentCumulativeResponse>(
+    "/current-cumulative"
+  );
+  return response.data.cumulative;
+};
 
-/**
- * 특정 연도의 거래 내역을 조회합니다.
- * @param year 조회할 연도
- * @param offset 페이지 오프셋 (기본값: 0)
- * @param limit 페이지 크기 (기본값: 20)
- */
 const getTransactions = async (
   year: number,
   offset: number = 0,
@@ -70,10 +71,6 @@ const getTransactions = async (
   return response.data;
 };
 
-/**
- * 새로운 거래 내역을 생성합니다.
- * @param data 생성할 거래 데이터
- */
 const createTransaction = async (
   data: CreateTransactionRequest
 ): Promise<CreateTransactionResponse> => {
@@ -85,15 +82,12 @@ const createTransaction = async (
   return response.data;
 };
 
-/**
- * 특정 거래 내역을 삭제합니다.
- * @param id 삭제할 거래의 ID
- */
 const deleteTransaction = async (id: string): Promise<void> => {
   await apiClient.delete(`/transactions/${id}`);
 };
 
 export const FinanceApi = {
+  getCurrentCumulative,
   getTransactions,
   createTransaction,
   deleteTransaction,
