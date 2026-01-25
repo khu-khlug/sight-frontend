@@ -1,0 +1,319 @@
+/* NavigationBar - 상단 고정 네비게이션 바 */
+.navigationBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+.navContainer {
+  max-width: 1024px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+}
+
+.logo {
+  height: 36px;
+}
+
+/* Desktop Menu */
+.desktopMenu {
+  display: none;
+  align-items: center;
+  gap: 32px;
+}
+
+.navItem {
+  position: relative;
+  font-size: 16px;
+}
+
+.navLink {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  padding-bottom: 2px;
+  transition: color 0.2s;
+}
+
+.navLink:hover {
+  color: var(--main-color);
+  border-bottom: 2px solid var(--main-color);
+}
+
+.navLink.active {
+  color: var(--main-color);
+}
+
+.subNav {
+  position: absolute;
+  top: 100%;
+  left: -12px;
+  width: 140px;
+  max-height: 0;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 4px;
+  margin-top: 8px;
+  z-index: 10;
+  opacity: 0;
+  visibility: hidden;
+  transition: max-height 0.3s ease, opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.navItem:hover .subNav {
+  max-height: 600px;
+  opacity: 1;
+  visibility: visible;
+  border: 1px solid #e0e0e0;
+}
+
+.subNav a {
+  display: block;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 400;
+  text-decoration: none;
+  color: #333;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.subNav a:hover {
+  background-color: var(--main-color);
+  color: white;
+}
+
+.subNav a:first-child {
+  margin-top: 4px;
+}
+
+.subNav a:last-child {
+  margin-bottom: 4px;
+}
+
+.subNav hr {
+  margin: 4px 8px;
+  border: 0;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Notification */
+.notificationWrapper {
+  position: relative;
+}
+
+.notificationButton {
+  position: relative;
+  cursor: pointer;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* Notification Dropdown */
+.notificationDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.dropdownTitle {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+}
+
+.dropdownCount {
+  font-size: 14px;
+  color: #666;
+}
+
+.notificationList {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.notificationItem {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.notificationItem:hover {
+  background-color: #f8f8f8;
+}
+
+.notificationItem:last-child {
+  border-bottom: none;
+}
+
+.notificationItem[data-read="false"] {
+  background-color: #f0f8ff;
+}
+
+.notificationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.unreadDot {
+  width: 8px;
+  height: 8px;
+  background-color: #ff4444;
+  border-radius: 50%;
+}
+
+.notificationTitle {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.notificationContent {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.emptyNotification {
+  padding: 40px 16px;
+  text-align: center;
+  color: #999;
+}
+
+.dropdownLoading {
+  padding: 40px 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Mobile Actions */
+.mobileActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mobile Menu */
+.mobileMenu {
+  position: fixed;
+  top: 69px;
+  right: 16px;
+  width: 200px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  background-color: #2a2a2a;
+  border: 2px solid var(--main-color);
+  border-radius: 8px;
+  padding: 12px;
+  z-index: 99;
+}
+
+.mobileNavItem {
+  margin-bottom: 16px;
+}
+
+.mobileNavItem:last-child {
+  margin-bottom: 0;
+}
+
+.mobileNavLink {
+  display: block;
+  padding: 8px 12px;
+  font-size: 16px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--main-color);
+}
+
+.mobileNavLink.active {
+  color: #5dc4ff;
+}
+
+.mobileSubNav a {
+  display: block;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 400;
+  text-decoration: none;
+  color: white;
+}
+
+.mobileSubNav hr {
+  margin: 4px 8px;
+  border: 0;
+  border-top: 1px solid #555;
+}
+
+/* Desktop Media Query */
+@media screen and (min-width: 768px) {
+  .navContainer {
+    padding: 20px 32px;
+  }
+
+  .logo {
+    height: 40px;
+  }
+
+  .desktopMenu {
+    display: flex;
+  }
+
+  .mobileActions {
+    display: none;
+  }
+}
+
+/* Mobile Media Query */
+@media screen and (max-width: 767px) {
+  .navContainer {
+    padding: 16px 16px;
+  }
+
+  .logo {
+    height: 32px;
+  }
+
+  .notificationDropdown {
+    width: 280px;
+  }
+}

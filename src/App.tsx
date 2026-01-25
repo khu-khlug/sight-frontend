@@ -5,6 +5,7 @@ import {
   RouterProvider,
 } from "react-router-dom";
 
+import MainPage from "./pages/main";
 import InfraBluePage from "./pages/manage/infraBlue";
 import MemberV2Page from "./pages/manage/member-v2";
 import DiscordRolePage from "./pages/manage/discord-role";
@@ -21,6 +22,7 @@ function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/">
+        <Route index element={<MainPage />} />
         <Route
           path="/member/integrate-discord"
           element={<IntegrateDiscordPage />}

@@ -7,6 +7,8 @@ import { ToastContainer } from "react-toastify";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/ko";
 
 import App from "./App.tsx";
 import { system } from "./theme";
@@ -16,6 +18,8 @@ import "react-toastify/dist/ReactToastify.css";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(relativeTime);
+dayjs.locale("ko");
 
 const queryClient = new QueryClient();
 
