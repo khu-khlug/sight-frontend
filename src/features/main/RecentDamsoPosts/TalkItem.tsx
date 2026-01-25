@@ -9,6 +9,10 @@ type Props = {
 export default function TalkItem({ talk }: Props) {
   const relativeTimeStr = dayjs(talk.createdAt).fromNow();
 
+  const handleClick = () => {
+    window.open(`https://khlug.org/${talk.id}`, "_blank");
+  };
+
   return (
     <Box
       display="flex"
@@ -20,6 +24,7 @@ export default function TalkItem({ talk }: Props) {
       _hover={{ backgroundColor: "gray.50" }}
       cursor="pointer"
       transition="background-color 0.2s"
+      onClick={handleClick}
     >
       <Box flex="1" minWidth="0">
         <Text
