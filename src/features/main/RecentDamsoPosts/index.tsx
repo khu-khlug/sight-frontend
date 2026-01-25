@@ -1,10 +1,10 @@
-import { useDamsoPosts } from "../../../hooks/main/useDamsoPosts";
+import { useTalks } from "../../../hooks/talk/useTalks";
 import { Box, Text, Spinner } from "@chakra-ui/react";
 import Container from "../../../components/Container";
-import PostItem from "./PostItem";
+import TalkItem from "./TalkItem";
 
 export default function RecentDamsoPosts() {
-  const { data, isLoading } = useDamsoPosts(5);
+  const { data, isLoading } = useTalks({ offset: 0, limit: 5 });
 
   return (
     <Container>
@@ -31,8 +31,8 @@ export default function RecentDamsoPosts() {
 
       {!isLoading && data && data.count > 0 && (
         <Box display="flex" flexDirection="column">
-          {data.posts.map((post) => (
-            <PostItem key={post.id} post={post} />
+          {data.talks.map((talk) => (
+            <TalkItem key={talk.id} talk={talk} />
           ))}
         </Box>
       )}

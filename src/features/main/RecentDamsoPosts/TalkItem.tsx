@@ -1,13 +1,13 @@
-import type { DamsoPost } from "../../../api/main/types";
+import type { Talk } from "../../../api/talk/types";
 import { Box, Text } from "@chakra-ui/react";
 import dayjs from "dayjs";
 
 type Props = {
-  post: DamsoPost;
+  talk: Talk;
 };
 
-export default function PostItem({ post }: Props) {
-  const relativeTimeStr = dayjs(post.createdAt).fromNow();
+export default function TalkItem({ talk }: Props) {
+  const relativeTimeStr = dayjs(talk.createdAt).fromNow();
 
   return (
     <Box
@@ -29,10 +29,10 @@ export default function PostItem({ post }: Props) {
           textOverflow="ellipsis"
           whiteSpace="nowrap"
         >
-          {post.title}
+          {talk.title}
         </Text>
         <Text fontSize="sm" color="gray.600">
-          {post.author.name}
+          {talk.author.realname}
         </Text>
       </Box>
 
