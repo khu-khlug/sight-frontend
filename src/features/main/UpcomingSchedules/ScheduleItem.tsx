@@ -1,18 +1,18 @@
-import type { Schedule } from "../../../api/main/types";
+import type { ScheduleDto } from "../../../api/public/schedule";
 import { Box, Text, Badge } from "@chakra-ui/react";
 import dayjs from "dayjs";
 
 type Props = {
-  schedule: Schedule;
+  schedule: ScheduleDto;
 };
 
-const scheduleTypeLabels: Record<Schedule["type"], string> = {
+const scheduleTypeLabels: Record<ScheduleDto["type"], string> = {
   PERSONAL: "개인",
   CLUB: "동아리",
   GROUP: "그룹",
 };
 
-const scheduleTypeColors: Record<Schedule["type"], string> = {
+const scheduleTypeColors: Record<ScheduleDto["type"], string> = {
   PERSONAL: "blue",
   CLUB: "green",
   GROUP: "purple",

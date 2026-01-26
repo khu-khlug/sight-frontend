@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { MainApi } from "../../api/main";
+import { SchedulePublicApi } from "../../api/public/schedule";
 
 /**
  * 예정된 일정을 조회하는 hook
@@ -8,6 +8,6 @@ import { MainApi } from "../../api/main";
 export const useUpcomingSchedules = (limit = 5) => {
   return useQuery({
     queryKey: ["schedules", "upcoming", { limit }],
-    queryFn: () => MainApi.getUpcomingSchedules(limit),
+    queryFn: () => SchedulePublicApi.listUpcomingSchedules(limit),
   });
 };

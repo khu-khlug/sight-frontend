@@ -1,9 +1,9 @@
 import { Box, Text, VStack, Spinner, Badge } from "@chakra-ui/react";
 import { useNotifications } from "../../hooks/notification/useNotifications";
-import type { Notification } from "../../api/main/types";
+import type { NotificationDto } from "../../api/public/notification";
 import styles from "./style.module.css";
 
-const NotificationItem = ({ notification }: { notification: Notification }) => {
+const NotificationItem = ({ notification }: { notification: NotificationDto }) => {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "COMMENT":

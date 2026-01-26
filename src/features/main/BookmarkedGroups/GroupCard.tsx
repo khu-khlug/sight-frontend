@@ -1,8 +1,8 @@
-import type { BookmarkedGroup } from "../../../api/main/types";
+import type { BookmarkedGroupDto } from "../../../api/public/group";
 import { Card, Text, Box } from "@chakra-ui/react";
 
 type Props = {
-  group: BookmarkedGroup;
+  group: BookmarkedGroupDto;
 };
 
 export default function GroupCard({ group }: Props) {

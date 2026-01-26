@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { MainApi } from "../../api/main";
+import { NotificationPublicApi } from "../../api/public/notification";
 
 /**
  * 알림 목록을 조회하는 hook
@@ -8,7 +8,7 @@ import { MainApi } from "../../api/main";
 export const useNotifications = (unreadOnly = false) => {
   return useQuery({
     queryKey: ["notifications", { unreadOnly }],
-    queryFn: () => MainApi.getNotifications(unreadOnly),
+    queryFn: () => NotificationPublicApi.listNotifications(unreadOnly),
     refetchInterval: 30000, // 30초마다 자동 갱신
   });
 };
