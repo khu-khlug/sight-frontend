@@ -58,7 +58,6 @@ export default function Header() {
           <div className="sub-nav">
             <a href="https://khlug.org/talk">담소</a>
             <a href="https://khlug.org/album">사진첩</a>
-            <a href="https://khlug.org/archive">아카이브</a>
             <a href="https://khlug.org/schedule">일정</a>
           </div>
         </div>
