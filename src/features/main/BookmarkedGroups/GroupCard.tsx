@@ -1,8 +1,9 @@
-import type { BookmarkedGroupDto } from "../../../api/public/group";
+import type { GroupDto } from "../../../api/public/group";
 import { Card, Text, Box } from "@chakra-ui/react";
+import { GroupCategory, GroupCategoryLabel } from "../../../constant";
 
 type Props = {
-  group: BookmarkedGroupDto;
+  group: GroupDto;
 };
 
 export default function GroupCard({ group }: Props) {
@@ -17,10 +18,10 @@ export default function GroupCard({ group }: Props) {
     >
       <Card.Body padding="0">
         <Text fontSize="sm" color="gray.600" marginBottom="8px">
-          {group.category}
+          {GroupCategoryLabel[group.category as GroupCategory] ?? group.category}
         </Text>
         <Text fontSize="lg" fontWeight="bold" marginBottom="12px">
-          {group.name}
+          {group.title}
         </Text>
         <Box display="flex" alignItems="center" gap="4px">
           <Text fontSize="sm" color="gray.600">

@@ -24,6 +24,25 @@ export const GroupTypeLabel: Record<GroupType, string> = {
   [GroupType.PROJECT]: "프로젝트",
 };
 
+export const GroupCategory = {
+  STUDY: "STUDY",
+  PROJECT: "PROJECT",
+  DOCUMENTATION: "DOCUMENTATION",
+  MANAGE: "MANAGE",
+  EDUCATION: "EDUCATION",
+  PROGRAM: "PROGRAM",
+} as const;
+export type GroupCategory = (typeof GroupCategory)[keyof typeof GroupCategory];
+
+export const GroupCategoryLabel: Record<GroupCategory, string> = {
+  [GroupCategory.STUDY]: "스터디",
+  [GroupCategory.PROJECT]: "프로젝트",
+  [GroupCategory.DOCUMENTATION]: "문서화",
+  [GroupCategory.MANAGE]: "운영",
+  [GroupCategory.EDUCATION]: "교육",
+  [GroupCategory.PROGRAM]: "프로그램",
+};
+
 export const Semester = {
   FIRST: 1,
   SECOND: 2,
