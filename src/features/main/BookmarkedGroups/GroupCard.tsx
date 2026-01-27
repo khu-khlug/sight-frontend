@@ -7,9 +7,14 @@ type Props = {
 };
 
 export default function GroupCard({ group }: Props) {
+  const handleClick = () => {
+    window.location.href = `https://khlug.org/group/${group.id}`;
+  };
+
   return (
     <Card.Root
       cursor="pointer"
+      onClick={handleClick}
       _hover={{ borderColor: "var(--main-color)", transform: "translateY(-2px)" }}
       transition="all 0.2s"
       borderWidth="1px"
