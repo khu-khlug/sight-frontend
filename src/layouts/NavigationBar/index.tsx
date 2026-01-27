@@ -48,7 +48,7 @@ export default function NavigationBar() {
             >
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className={styles.notificationBadge}>{unreadCount}</span>
+                <span className={styles.notificationBadge} />
               )}
             </IconButton>
             {notificationVisible && <NotificationDropdown />}
@@ -66,7 +66,7 @@ export default function NavigationBar() {
             >
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className={styles.notificationBadge}>{unreadCount}</span>
+                <span className={styles.notificationBadge} />
               )}
             </IconButton>
             {notificationVisible && <NotificationDropdown />}
