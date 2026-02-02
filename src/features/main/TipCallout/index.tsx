@@ -17,7 +17,5 @@ export default function TipCallout() {
     return null;
   }
 
-  const calloutType = data.type === "WARNING" ? "warning" : "info";
-
-  return <Callout type={calloutType}>{data.content}</Callout>;
+  return <Callout type="info">{data.content}</Callout>;
 }
