@@ -127,7 +127,7 @@ export const NotificationDropdown = () => {
         <Text className={styles.dropdownTitle}>알림</Text>
         <Text className={styles.dropdownCount}>{data.count}개</Text>
       </Box>
-      <VStack className={styles.notificationList} gap={0}>
+      <VStack className={styles.notificationList} gap={0} align="stretch">
         {data.notifications.map((notification) => (
           <NotificationItem
             key={notification.id}
