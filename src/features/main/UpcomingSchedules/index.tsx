@@ -4,7 +4,7 @@ import Container from "../../../components/Container";
 import ScheduleItem from "./ScheduleItem";
 
 export default function UpcomingSchedules() {
-  const { data, isLoading } = useUpcomingSchedules(5);
+  const { data, isLoading, isError } = useUpcomingSchedules(5);
 
   return (
     <Container>
@@ -18,7 +18,18 @@ export default function UpcomingSchedules() {
         </Box>
       )}
 
-      {!isLoading && data && data.count === 0 && (
+      {!isLoading && isError && (
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          padding="40px"
+        >
+          <Text color="red.500">일정을 불러오는 데 실패했습니다.</Text>
+        </Box>
+      )}
+
+      {!isLoading && !isError && data && data.count === 0 && (
         <Box
           display="flex"
           justifyContent="center"
@@ -29,7 +40,7 @@ export default function UpcomingSchedules() {
         </Box>
       )}
 
-      {!isLoading && data && data.count > 0 && (
+      {!isLoading && !isError && data && data.count > 0 && (
         <Box display="flex" flexDirection="column">
           {data.schedules.map((schedule) => (
             <ScheduleItem key={schedule.id} schedule={schedule} />
