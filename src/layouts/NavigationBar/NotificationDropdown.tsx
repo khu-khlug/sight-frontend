@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import { useNotifications } from "../../hooks/notification/useNotifications";
 import { useReadNotifications } from "../../hooks/notification/useReadNotifications";
 import type { NotificationDto } from "../../api/public/notification";
+import { stripHtmlTags } from "../../util/stripHtmlTags";
 import styles from "./style.module.css";
 
 type NotificationItemProps = {
@@ -68,8 +69,8 @@ const NotificationItem = ({ notification, onRead, onNavigate }: NotificationItem
           {isUnread && <Box className={styles.unreadDot} />}
         </Box>
       </Box>
-      <Text className={styles.notificationTitle}>{notification.title}</Text>
-      <Text className={styles.notificationContent}>{notification.content}</Text>
+      <Text className={styles.notificationTitle}>{stripHtmlTags(notification.title)}</Text>
+      <Text className={styles.notificationContent}>{stripHtmlTags(notification.content)}</Text>
     </Box>
   );
 };
