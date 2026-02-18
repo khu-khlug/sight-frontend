@@ -69,7 +69,8 @@
 }
 
 .navItem:hover .subNav {
-  max-height: 600px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
   opacity: 1;
   visibility: visible;
   border: 1px solid #e0e0e0;
