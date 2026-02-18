@@ -47,7 +47,7 @@ export const menuItems: MenuItem[] = [
     href: "https://khlug.org/group",
     subItems: [
       { label: "내 그룹", href: "https://khlug.org/group" },
-      { label: "연구 그룹", href: "https://khlug.org/group/research" },
+      { label: "자율 그룹", href: "https://khlug.org/group/research" },
       { label: "공식 그룹", href: "https://khlug.org/group/program" },
       { label: "", href: "", isDivider: true },
       { label: "진행 그룹", href: "https://khlug.org/group/progress" },

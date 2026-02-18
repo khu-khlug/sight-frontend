@@ -67,7 +67,7 @@ export default function Header() {
           </a>
           <div className="sub-nav">
             <a href="https://khlug.org/group">내 그룹</a>
-            <a href="https://khlug.org/group/research">연구 그룹</a>
+            <a href="https://khlug.org/group/research">자율 그룹</a>
             <a href="https://khlug.org/group/program">공식 그룹</a>
             <hr />
             <a href="https://khlug.org/group/progress">진행 그룹</a>
