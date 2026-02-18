@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 
 import MainLayout from "../../layouts/MainLayout";
+import LegacySiteBanner from "../../features/main/LegacySiteBanner";
 import TipCallout from "../../features/main/TipCallout";
 import BookmarkedGroups from "../../features/main/BookmarkedGroups";
 import UpcomingSchedules from "../../features/main/UpcomingSchedules";
@@ -30,12 +31,11 @@ export default function MainPage() {
 
   return (
     <MainLayout>
-      <>
-        <TipCallout />
-        <BookmarkedGroups />
-        <UpcomingSchedules />
-        <RecentDamsoPosts />
-      </>
+      <LegacySiteBanner />
+      <TipCallout />
+      <BookmarkedGroups />
+      <UpcomingSchedules />
+      <RecentDamsoPosts />
     </MainLayout>
   );
 }
