@@ -40,6 +40,7 @@ export const menuItems: MenuItem[] = [
       { label: "담소", href: "https://khlug.org/talk" },
       { label: "사진첩", href: "https://khlug.org/album" },
       { label: "일정", href: "https://khlug.org/schedule" },
+      { label: "library", href: "https://library.khlug.org" },
     ],
   },
   {
@@ -55,6 +56,8 @@ export const menuItems: MenuItem[] = [
       { label: "", href: "", isDivider: true },
       { label: "세미나", href: "https://khlug.org/seminar" },
       { label: "포트폴리오", href: "https://khlug.org/portfolio" },
+      { label: "", href: "", isDivider: true },
+      { label: "지원 신청", href: "https://khlug.org/support" },
     ],
   },
   {
@@ -65,15 +68,6 @@ export const menuItems: MenuItem[] = [
       { label: "인포21 인증", href: "https://khlug.org/member/khuis" },
       { label: "실적", href: "https://khlug.org/achievement" },
       { label: "회원 명단", href: "https://khlug.org/member" },
-    ],
-  },
-  {
-    label: "LAB",
-    href: "https://khlug.org/lab",
-    subItems: [
-      { label: "지원 신청", href: "https://khlug.org/support" },
-      { label: "", href: "", isDivider: true },
-      { label: "library", href: "https://library.khlug.org" },
     ],
   },
   {
