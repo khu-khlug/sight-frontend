@@ -26,6 +26,8 @@ export type ListGroupsRequestDto = {
   offset?: number;
   limit?: number;
   bookmarked?: boolean;
+  joined?: boolean;
+  orderBy?: "changedAt" | "createdAt";
 };
 
 // API functions
@@ -36,21 +38,22 @@ export type ListGroupsRequestDto = {
 const listGroups = async (
   request: ListGroupsRequestDto = {}
 ): Promise<ListGroupsResponseDto> => {
-  const { offset = 0, limit = 10, bookmarked } = request;
+  const { offset = 0, limit = 10, bookmarked, joined, orderBy } = request;
   const response = await apiV2Client.get<ListGroupsResponseDto>("/groups", {
-    params: { offset, limit, bookmarked },
+    params: { offset, limit, bookmarked, joined, orderBy },
   });
   return response.data;
 };
 
 /**
- * 즐겨찾기한 그룹 목록 조회
+ * 최근 활동한 그룹 목록 조회 (가입한 그룹 중 최근 변경된 순으로)
+ * @param limit 조회할 그룹 수 (기본값: 6)
  */
-const listBookmarkedGroups = async (): Promise<ListGroupsResponseDto> => {
-  return listGroups({ bookmarked: true });
+const listRecentGroups = async (limit: number = 6): Promise<ListGroupsResponseDto> => {
+  return listGroups({ joined: true, orderBy: "changedAt", limit });
 };
 
 export const GroupPublicApi = {
   listGroups,
-  listBookmarkedGroups,
+  listRecentGroups,
 };

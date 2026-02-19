@@ -5,7 +5,7 @@ import { isAxiosError } from "axios";
 import MainLayout from "../../layouts/MainLayout";
 import LegacySiteBanner from "../../features/main/LegacySiteBanner";
 import TipCallout from "../../features/main/TipCallout";
-import BookmarkedGroups from "../../features/main/BookmarkedGroups";
+import RecentGroups from "../../features/main/RecentGroups";
 import UpcomingSchedules from "../../features/main/UpcomingSchedules";
 import RecentDamsoPosts from "../../features/main/RecentDamsoPosts";
 import CenterRingLoadingIndicator from "../../components/RingLoadingIndicator/center";
@@ -33,7 +33,7 @@ export default function MainPage() {
     <MainLayout>
       <LegacySiteBanner />
       <TipCallout />
-      <BookmarkedGroups />
+      <RecentGroups />
       <UpcomingSchedules />
       <RecentDamsoPosts />
     </MainLayout>
