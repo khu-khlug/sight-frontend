@@ -1,6 +1,6 @@
 import { Button as ChakraButton } from "@chakra-ui/react";
 
-type Variant = "primary" | "neutral";
+type Variant = "primary" | "neutral" | "danger";
 
 type Props = React.ComponentProps<typeof ChakraButton> & {
   variant?: Variant;

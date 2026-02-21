@@ -39,6 +39,21 @@ const buttonRecipe = defineRecipe({
           },
         },
       },
+      danger: {
+        bg: "red.500",
+        color: "white",
+        _hover: {
+          bg: "red.600",
+        },
+        _disabled: {
+          bg: "gray.300",
+          cursor: "not-allowed",
+          opacity: 1,
+          _hover: {
+            bg: "gray.300",
+          },
+        },
+      },
     },
   },
   defaultVariants: {

@@ -6,6 +6,10 @@
   border: #f4f4f4 1px solid;
 }
 
+.container.no-margin {
+  margin: 0;
+}
+
 .container.error {
   background-color: rgb(238, 208, 208);
   border: #cf9c9c 1px solid;

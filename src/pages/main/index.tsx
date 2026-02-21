@@ -7,7 +7,7 @@ import LegacySiteBanner from "../../features/main/LegacySiteBanner";
 import TipCallout from "../../features/main/TipCallout";
 import RecentGroups from "../../features/main/RecentGroups";
 import UpcomingSchedules from "../../features/main/UpcomingSchedules";
-import RecentDamsoPosts from "../../features/main/RecentDamsoPosts";
+import DamsoAndIdea from "../../features/main/DamsoAndIdea";
 import CenterRingLoadingIndicator from "../../components/RingLoadingIndicator/center";
 import { useCurrentUser } from "../../hooks/user/useCurrentUser";
 
@@ -35,7 +35,7 @@ export default function MainPage() {
       <TipCallout />
       <RecentGroups />
       <UpcomingSchedules />
-      <RecentDamsoPosts />
+      <DamsoAndIdea />
     </MainLayout>
   );
 }
