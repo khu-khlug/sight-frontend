@@ -12,6 +12,10 @@
   padding-bottom: 40px;
 }
 
+.main-layout__content > * + * {
+  margin-top: 24px;
+}
+
 @media screen and (max-width: 767px) {
   .main-layout__content {
     padding-top: 72px;

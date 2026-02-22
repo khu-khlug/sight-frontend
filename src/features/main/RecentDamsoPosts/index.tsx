@@ -3,15 +3,11 @@ import { Box, Text, Spinner } from "@chakra-ui/react";
 import Container from "../../../components/Container";
 import TalkItem from "./TalkItem";
 
-type Props = {
-  noMargin?: boolean;
-};
-
-export default function RecentDamsoPosts({ noMargin = false }: Props) {
+export default function RecentDamsoPosts() {
   const { data, isLoading } = useTalks({ offset: 0, limit: 5 });
 
   return (
-    <Container noMargin={noMargin}>
+    <Container>
       <Text fontSize="xl" fontWeight="bold" marginBottom="16px">
         최근 담소
       </Text>

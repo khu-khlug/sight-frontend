@@ -9,11 +9,7 @@ import { useCreateIdeaCloud } from "../../../hooks/ideaCloud/useCreateIdeaCloud"
 import { useDeleteIdeaCloud } from "../../../hooks/ideaCloud/useDeleteIdeaCloud";
 import { useIsManager } from "../../../hooks/user/useIsManager";
 
-type Props = {
-  noMargin?: boolean;
-};
-
-export default function IdeaCloud({ noMargin = false }: Props) {
+export default function IdeaCloud() {
   const { data, isLoading } = useIdeaClouds();
   const { isManager } = useIsManager();
   const createMutation = useCreateIdeaCloud();
@@ -44,7 +40,7 @@ export default function IdeaCloud({ noMargin = false }: Props) {
   };
 
   return (
-    <Container noMargin={noMargin}>
+    <Container>
       <Text fontSize="xl" fontWeight="bold" marginBottom="8px">
         아이디어 클라우드
       </Text>

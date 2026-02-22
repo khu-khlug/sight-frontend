@@ -1,13 +1,13 @@
 .container {
-  margin: 24px 0px;
   padding: 24px;
   background-color: white;
   border-radius: 8px;
   border: #f4f4f4 1px solid;
+  overflow: hidden;
 }
 
-.container.no-margin {
-  margin: 0;
+* + .container {
+  margin-top: 24px;
 }
 
 .container.error {
