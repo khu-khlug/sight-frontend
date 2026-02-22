@@ -18,7 +18,7 @@ export default function Header() {
 
   return (
     <header className="global-header">
-      <a href="https://khlug.org">
+      <a href="https://app.khlug.org">
         <img
           src="https://cdn.khlug.org/images/khlug-long-logo.png"
           alt="KHLUG Logo"
@@ -47,7 +47,7 @@ export default function Header() {
                     <a href={subItem.href} key={subItem.label}>
                       {subItem.label}
                     </a>
-                  )
+                  ),
                 )}
               </div>
             </div>

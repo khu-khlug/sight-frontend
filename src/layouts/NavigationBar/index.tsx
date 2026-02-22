@@ -27,7 +27,7 @@ export default function NavigationBar() {
   return (
     <nav className={styles.navigationBar}>
       <div className={styles.navContainer}>
-        <a href="https://khlug.org">
+        <a href="https://app.khlug.org">
           <img
             src="https://cdn.khlug.org/images/khlug-long-logo.png"
             alt="KHLUG Logo"
@@ -47,9 +47,7 @@ export default function NavigationBar() {
               className={styles.notificationButton}
             >
               <Bell size={20} />
-              {unreadCount > 0 && (
-                <span className={styles.notificationBadge} />
-              )}
+              {unreadCount > 0 && <span className={styles.notificationBadge} />}
             </IconButton>
             {notificationVisible && <NotificationDropdown />}
           </div>
@@ -65,9 +63,7 @@ export default function NavigationBar() {
               className={styles.notificationButton}
             >
               <Bell size={20} />
-              {unreadCount > 0 && (
-                <span className={styles.notificationBadge} />
-              )}
+              {unreadCount > 0 && <span className={styles.notificationBadge} />}
             </IconButton>
             {notificationVisible && <NotificationDropdown />}
           </div>
