@@ -1,8 +1,7 @@
 import { Box, Input, Text, VStack } from "@chakra-ui/react";
-import { FormEvent, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "react-toastify";
-import legacyClient from "../../api/client/legacy";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import legacyClient, { LEGACY_SITE_URL } from "../../api/client/legacy";
 import Button from "../../components/Button";
 import Container from "../../components/Container";
 import SimpleLogoLayout from "../../layouts/SimpleLogoLayout";
@@ -10,77 +9,52 @@ import styles from "./style.module.css";
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
 
   const redirectPath = searchParams.get("redirect") || "/";
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // 1. CSRF 토큰 조회
-      const csrfResponse = await legacyClient.get<{ csrfToken: string }>(
-        "/csrf-token"
-      );
-      const csrfToken = csrfResponse.data.csrfToken;
-
-      // 2. FormData로 로그인 요청
-      const formData = new FormData();
-      formData.append("_token", csrfToken);
-      formData.append("name", username);
-      formData.append("password", password);
-
-      const loginResponse = await legacyClient.post("/login", formData);
-
-      // 3. 200대 응답이면 redirect
-      if (loginResponse.status >= 200 && loginResponse.status < 300) {
-        navigate(redirectPath);
-      }
-    } catch (error) {
-      // 4. 에러 시 toast 표시
-      toast.error("로그인 실패: 아이디 또는 비밀번호를 확인해주세요.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    legacyClient
+      .get<{ csrfToken: string }>("/csrf-token")
+      .then((res) => setCsrfToken(res.data.csrfToken));
+  }, []);
 
   return (
     <SimpleLogoLayout>
       <main className={styles["content"]}>
         <Container>
-          <VStack as="form" onSubmit={handleSubmit} gap={4} align="stretch">
-            <Box>
-              <Text fontWeight="medium" mb={2}>
-                아이디
-              </Text>
-              <Input
-                type="text"
-                placeholder="아이디를 입력하세요"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </Box>
+          <form method="POST" action={`${LEGACY_SITE_URL}/login`}>
+            <VStack gap={4} align="stretch">
+              <input type="hidden" name="_token" value={csrfToken} />
+              <input type="hidden" name="redirectTo" value={redirectPath} />
 
-            <Box>
-              <Text fontWeight="medium" mb={2}>
-                비밀번호
-              </Text>
-              <Input
-                type="password"
-                placeholder="비밀번호를 입력하세요"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Box>
+              <Box>
+                <Text fontWeight="medium" mb={2}>
+                  아이디
+                </Text>
+                <Input
+                  type="text"
+                  name="name"
+                  placeholder="아이디를 입력하세요"
+                />
+              </Box>
 
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "로그인 중..." : "로그인"}
-            </Button>
-          </VStack>
+              <Box>
+                <Text fontWeight="medium" mb={2}>
+                  비밀번호
+                </Text>
+                <Input
+                  type="password"
+                  name="password"
+                  placeholder="비밀번호를 입력하세요"
+                />
+              </Box>
+
+              <Button type="submit" disabled={!csrfToken}>
+                {!csrfToken ? "로딩 중..." : "로그인"}
+              </Button>
+            </VStack>
+          </form>
         </Container>
       </main>
     </SimpleLogoLayout>
