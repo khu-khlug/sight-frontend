@@ -1,17 +1,15 @@
 import { VStack } from "@chakra-ui/react";
 
-import Location from "../../components/Location";
 import AddTransactionFormContainer from "../../features/manage/AddTransactionFormContainer";
 import FinanceListContainer from "../../features/member/FinanceListContainer";
-import SightLayout from "../../layouts/SightLayout";
+import MainLayout from "../../layouts/MainLayout";
 import { useIsManager } from "../../hooks/user/useIsManager";
 
 export default function FinancePage() {
   const { isManager } = useIsManager();
 
   return (
-    <SightLayout>
-      <Location label="동아리비 장부" />
+    <MainLayout>
       <VStack
         as="main"
         gap={0}
@@ -20,10 +18,11 @@ export default function FinancePage() {
         mx="auto"
         w="full"
         px={{ base: 2, md: 4 }}
+        mt={4}
       >
         {isManager && <AddTransactionFormContainer />}
         <FinanceListContainer />
       </VStack>
-    </SightLayout>
+    </MainLayout>
   );
 }
