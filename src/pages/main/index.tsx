@@ -27,9 +27,9 @@ export default function MainPage() {
     }
   }, [status, error, navigate]);
 
-  // useEffect(() => {
-  //   checkFirstTodayLogin.mutate();
-  // }, [checkFirstTodayLogin.mutate]);
+  useEffect(() => {
+    checkFirstTodayLogin.mutate();
+  }, [checkFirstTodayLogin.mutate]);
 
   if (status === "pending" || status === "error") {
     return (
