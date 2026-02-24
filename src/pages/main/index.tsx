@@ -18,14 +18,18 @@ export default function MainPage() {
   const checkFirstTodayLogin = useCheckFirstTodayLogin();
 
   useEffect(() => {
-    if (status === "error" && isAxiosError(error) && error.response?.status === 401) {
+    if (
+      status === "error" &&
+      isAxiosError(error) &&
+      error.response?.status === 401
+    ) {
       navigate("/login?redirect=/");
     }
   }, [status, error, navigate]);
 
-  useEffect(() => {
-    checkFirstTodayLogin.mutate();
-  }, [checkFirstTodayLogin.mutate]);
+  // useEffect(() => {
+  //   checkFirstTodayLogin.mutate();
+  // }, [checkFirstTodayLogin.mutate]);
 
   if (status === "pending" || status === "error") {
     return (
