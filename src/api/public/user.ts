@@ -23,9 +23,8 @@ type IssueDiscordIntegrationUrlResponseDto = {
 };
 
 const getCurrentUser = async (): Promise<GetCurrentUserResponseDto> => {
-  const response = await apiV2Client.get<GetCurrentUserResponseDto>(
-    "/users/@me"
-  );
+  const response =
+    await apiV2Client.get<GetCurrentUserResponseDto>("/users/@me");
   return response.data;
 };
 
@@ -33,7 +32,7 @@ const getDiscordIntegration =
   async (): Promise<GetDiscordIntegrationResponseDto | null> => {
     try {
       const response = await apiClient.get<GetDiscordIntegrationResponseDto>(
-        "/users/@me/discord-integration"
+        "/users/@me/discord-integration",
       );
       return response.data;
     } catch (e) {
@@ -47,13 +46,17 @@ const getDiscordIntegration =
 
 const issueAndRedirectToDiscordOAuth2Url = async (): Promise<void> => {
   const response = await apiClient.post<IssueDiscordIntegrationUrlResponseDto>(
-    "/users/@me/discord-integration/issue-url"
+    "/users/@me/discord-integration/issue-url",
   );
   window.location.href = response.data.url;
 };
 
 const disconnectDiscordIntegration = async (): Promise<void> => {
   await apiClient.delete("/users/@me/discord-integration");
+};
+
+const checkFirstTodayLogin = async (): Promise<void> => {
+  await apiV2Client.post("/users/@me/check-first-today-login");
 };
 
 export type UserPublicApiDto = {
@@ -65,4 +68,5 @@ export const UserPublicApi = {
   getDiscordIntegration,
   issueAndRedirectToDiscordOAuth2Url,
   disconnectDiscordIntegration,
+  checkFirstTodayLogin,
 };
