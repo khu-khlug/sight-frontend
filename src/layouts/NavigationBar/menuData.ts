@@ -88,7 +88,6 @@ export const menuItems: MenuItem[] = [
         href: "https://app.khlug.org/manage/group-matching",
       },
       { label: "", href: "", isDivider: true },
-      { label: "사이트봇", href: "https://khlug.org/manage/sightbot" },
       { label: "infraBlue", href: "https://app.khlug.org/manage/infra-blue" },
       { label: "", href: "", isDivider: true },
       { label: "Hello 블로그", href: "https://khlug.org/manage/blog" },
