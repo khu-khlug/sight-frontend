@@ -134,7 +134,7 @@ const MemberListContainer = () => {
                   setStudentStatus(
                     e.target.value === ""
                       ? null
-                      : (Number(e.target.value) as StudentStatus)
+                      : (e.target.value as StudentStatus)
                   )
                 }
               >
