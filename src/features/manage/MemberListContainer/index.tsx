@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Heading } from "@chakra-ui/react";
 
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
@@ -96,7 +97,7 @@ const MemberListContainer = () => {
   return (
     <>
       <Container>
-        <h2>회원 목록</h2>
+        <Heading as="h2" size="xl">회원 목록</Heading>
         <form className={styles["member-search-form"]} onSubmit={handleSearch}>
           <div className={styles["member-search-query"]}>
             <div>
@@ -162,9 +163,9 @@ const MemberListContainer = () => {
             case "success":
               return (
                 <>
-                  <h2 className={styles["member-counter"]}>
+                  <Heading as="h2" size="xl" className={styles["member-counter"]}>
                     검색 결과 <span>{data.count}명</span>
-                  </h2>
+                  </Heading>
                   <div className={styles["member-list"]}>
                     {data.users.map((user) => (
                       <MemberItem key={user.id} user={user} />

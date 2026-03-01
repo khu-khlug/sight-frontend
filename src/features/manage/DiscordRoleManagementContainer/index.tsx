@@ -6,6 +6,7 @@ import {
   DiscordRoleApi,
   DiscordRoleType,
 } from "../../../api/manage/discordRole";
+import { Heading } from "@chakra-ui/react";
 import Container from "../../../components/Container";
 import Callout from "../../../components/Callout";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
@@ -108,7 +109,7 @@ export default function DiscordRoleManagementContainer() {
     return (
       <Container>
         <div className={styles["discord-role-management"]}>
-          <h2>디스코드 역할 관리</h2>
+          <Heading as="h2" size="xl">디스코드 역할 관리</Heading>
           <Callout type="error">
             디스코드 역할이 아직 설정되지 않았습니다. 개발 운영진에게
             문의해주세요.

@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Heading } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 
 import {
@@ -60,7 +61,7 @@ export default function DoorLockManagementContainer() {
 
   return (
     <Container className="door-lock-management-container">
-      <h2>도어락 비밀번호 관리</h2>
+      <Heading as="h2" size="xl">도어락 비밀번호 관리</Heading>
       {(() => {
         switch (status) {
           case "pending":

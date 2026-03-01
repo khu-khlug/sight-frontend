@@ -1,3 +1,4 @@
+import { Heading } from "@chakra-ui/react";
 import BaseModal from "../../../../components/BaseModal";
 import Button from "../../../../components/Button";
 
@@ -27,7 +28,7 @@ export default function TargetUserConfirmationModal({
   return (
     <BaseModal isOpen={isOpen}>
       <div className={styles["modal-content"]}>
-        <h2>{title}</h2>
+        <Heading as="h2" size="xl">{title}</Heading>
         {children}
         <div className={styles["target-user-info"]}>
           <ul>
