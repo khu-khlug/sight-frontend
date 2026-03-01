@@ -15,6 +15,7 @@ import {
   IconButton,
   Button,
   Flex,
+  Link,
 } from "@chakra-ui/react";
 import { X } from "lucide-react";
 
@@ -93,7 +94,7 @@ export default function GroupMatchingSurveyContainer() {
       setIsPreferOnline(myAnswer.isPreferOnline);
       setSelectedFieldIds(myAnswer.fields.map((f) => f.id));
       const answerSubjects = myAnswer.groupMatchingSubjects.map(
-        (s) => s.subject
+        (s) => s.subject,
       );
       setSubjects(answerSubjects.length > 0 ? answerSubjects : [""]);
     }
@@ -130,7 +131,7 @@ export default function GroupMatchingSurveyContainer() {
     }
 
     const filteredSubjects = subjects.filter((s) => s.trim() !== "");
-    if (filteredSubjects.length === 0) {
+    if (groupType === GroupType.PROJECT && filteredSubjects.length === 0) {
       alert("하고 싶은 주제를 최소 1개 이상 입력해주세요.");
       return;
     }
@@ -286,7 +287,40 @@ export default function GroupMatchingSurveyContainer() {
           설문
         </Heading>
 
-        <Box bg="gray.50" p={4} borderRadius="md" mb={6}>
+        <Text>
+          안녕하세요, 쿠러그 운영진입니다!
+          <br />
+          이번 학기 여러분의 원활한 활동을 위해 관심 분야를 조사합니다.
+          <br />
+          <br />
+          쿠러그는 1인 이상으로 구성된 그룹 단위로 활동합니다. 하지만 막연히
+          그룹을 자유롭게 만들려고 하면 누구랑 해야 할지도 모르겠고 무엇을 해야
+          할지도 모르실 수 있습니다.
+          <br />
+          <br />
+          따라서 여러분께서 더 수월하게 그룹 활동을 진행하실 수 있도록{" "}
+          <strong>관심 분야가 겹치는 회원끼리 매칭</strong>을 해드리고 있습니다.
+          <br />
+          물론 그룹 매칭이 아니더라도, 홈페이지에서 그룹을 만들어 인원을 모아
+          자유롭게 활동하실 수 있으니 그룹 매칭이 필요하지 않다면 신청하지
+          않으셔도 됩니다!
+          <br />
+          <br />
+          반드시 매칭된 그룹에서 활동하실 필요는 없지만,{" "}
+          <strong>응답 내용을 바탕으로 매칭을 진행하기 때문에</strong> 신중하게
+          답변 부탁드립니다. 또한 수요가 적은 분야에만 관심을 두고 계신 경우
+          매칭이 되지 못할 수 있으니 참고 부탁드립니다.
+          <br />
+          <br />
+          많은 관심과 참여 부탁드립니다. 감사합니다!
+          <br />
+          <br />
+          궁금하신 부분이 있다면{" "}
+          <Link href="mailto:we_are@khlug.org">we_are@khlug.org</Link> 혹은
+          운영진에게 디스코드 DM으로 문의해주세요.
+        </Text>
+
+        <Box bg="gray.50" p={4} borderRadius="md" mt={4} mb={6}>
           <Text fontSize="sm" color="gray.600">
             마감일:{" "}
             {formatDate(new Date(survey.closedAt), DateFormats.DATE_KOR)}
@@ -301,7 +335,7 @@ export default function GroupMatchingSurveyContainer() {
                   (수정:{" "}
                   {formatDate(
                     new Date(myAnswer.updatedAt),
-                    DateFormats.DATE_KOR
+                    DateFormats.DATE_KOR,
                   )}
                   )
                 </>
@@ -409,7 +443,7 @@ export default function GroupMatchingSurveyContainer() {
           </Box>
 
           {/* Subjects (Dynamic List) */}
-          <Box>
+          {groupType === GroupType.PROJECT && <Box>
             <Text fontWeight="semibold" fontSize="15px" mb={3}>
               하고 싶은 주제 (최소 1개, 최대 3개)
             </Text>
@@ -446,7 +480,7 @@ export default function GroupMatchingSurveyContainer() {
                 주제 추가
               </Button>
             )}
-          </Box>
+          </Box>}
 
           {!isReadOnly && (
             <Box>

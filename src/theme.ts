@@ -61,6 +61,16 @@ const buttonRecipe = defineRecipe({
   },
 });
 
+const linkRecipe = defineRecipe({
+  base: {
+    color: "brand.500",
+    textDecoration: "underline",
+    _hover: {
+      color: "brand.600",
+    },
+  },
+});
+
 const customConfig = defineConfig({
   globalCss: {
     body: {
@@ -88,6 +98,7 @@ const customConfig = defineConfig({
     },
     recipes: {
       button: buttonRecipe,
+      link: linkRecipe,
     },
   },
 });
