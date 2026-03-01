@@ -1,5 +1,5 @@
 import { StudentStatus, UserStatus } from "../../constant";
-import apiClient from "../client";
+import apiV2Client from "../client/v2";
 
 type UserProfileResponse = {
   name: string;
@@ -60,7 +60,7 @@ export type ManageUserApiDto = {
 };
 
 const listUserForManager = async (request: ListUserRequestDto) => {
-  const response = await apiClient.get<ListUserResponseDto>("/manager/users", {
+  const response = await apiV2Client.get<ListUserResponseDto>("/manager/users", {
     params: request,
   });
   return response.data;

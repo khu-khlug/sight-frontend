@@ -1,4 +1,4 @@
-import apiClient from "../client";
+import apiV2Client from "../client/v2";
 
 export type GetDoorLockPasswordResponseDto = {
   master: string;
@@ -13,7 +13,7 @@ export type UpdateDoorLockPasswordRequestDto = {
 };
 
 export const getDoorLockPassword = async () => {
-  const response = await apiClient.get<GetDoorLockPasswordResponseDto>(
+  const response = await apiV2Client.get<GetDoorLockPasswordResponseDto>(
     "/manager/door-lock-password"
   );
   return response.data;
@@ -22,7 +22,7 @@ export const getDoorLockPassword = async () => {
 export const updateDoorLockPassword = async (
   request: UpdateDoorLockPasswordRequestDto
 ) => {
-  const response = await apiClient.put<GetDoorLockPasswordResponseDto>(
+  const response = await apiV2Client.put<GetDoorLockPasswordResponseDto>(
     "/manager/door-lock-password",
     request
   );
