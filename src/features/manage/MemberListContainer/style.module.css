@@ -53,7 +53,3 @@
 .member-counter span {
   color: var(--main-color);
 }
-
-.member-list {
-  margin-top: 24px;
-}

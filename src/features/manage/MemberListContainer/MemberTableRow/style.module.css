@@ -1,0 +1,92 @@
+.row {
+  transition: background-color 0.15s;
+}
+
+.row:hover {
+  background-color: #f5f5f5;
+}
+
+.row.stopped {
+  background-color: #fff7e6;
+}
+
+.row.stopped:hover {
+  background-color: #ffe7ba;
+}
+
+.name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 15px;
+  color: #111;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 3px;
+}
+
+.manager-badge {
+  background-color: var(--main-color);
+  color: white;
+}
+
+.stopped-badge {
+  background-color: #fa8c16;
+  color: white;
+}
+
+.sub-line {
+  font-size: 13px;
+  color: #999;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background-color: #e8e8e8;
+  border-radius: 3px;
+  color: var(--main-color);
+}
+
+.tag.red {
+  color: #e00000;
+}
+
+.detail-button {
+  padding: 4px 12px;
+  font-size: 13px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.detail-button:hover {
+  border-color: var(--main-color);
+  color: var(--main-color);
+}

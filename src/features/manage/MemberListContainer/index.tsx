@@ -8,7 +8,8 @@ import Button from "../../../components/Button";
 import { ManageUserApiDto, UserManageApi } from "../../../api/manage/user";
 import { StudentStatus } from "../../../constant";
 
-import MemberItem from "./MemberItem";
+import MemberTable from "./MemberTable";
+import MemberDetailDrawer from "./MemberDetailDrawer";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 import Callout from "../../../components/Callout";
 import PageNavigator from "../../../components/PageNavigator";
@@ -31,6 +32,18 @@ const MemberListContainer = () => {
     null,
   );
   const [page, setPage] = useState(1);
+
+  const [selectedUser, setSelectedUser] = useState<ManageUserApiDto["UserResponse"] | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleSelectUser = (user: ManageUserApiDto["UserResponse"]) => {
+    setSelectedUser(user);
+    setIsDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+  };
 
   const limit = 20;
   const offset = (page - 1) * limit;
@@ -172,11 +185,11 @@ const MemberListContainer = () => {
                   >
                     검색 결과 <span>{data.count}명</span>
                   </Heading>
-                  <div className={styles["member-list"]}>
-                    {data.users.map((user) => (
-                      <MemberItem key={user.id} user={user} />
-                    ))}
-                  </div>
+                  <MemberTable
+                    users={data.users}
+                    searchType={searchType}
+                    onSelectUser={handleSelectUser}
+                  />
                   <PageNavigator
                     currentPage={page}
                     countPerPage={limit}
@@ -188,6 +201,11 @@ const MemberListContainer = () => {
           }
         })()}
       </Container>
+      <MemberDetailDrawer
+        user={selectedUser}
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+      />
     </>
   );
 };
