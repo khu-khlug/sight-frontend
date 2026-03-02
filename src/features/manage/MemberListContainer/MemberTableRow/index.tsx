@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { ChevronRight, Pause } from "lucide-react";
 
 import { ManageUserApiDto } from "../../../../api/manage/user";
 import { StudentStatus } from "../../../../constant";
@@ -67,12 +68,20 @@ export default function MemberTableRow({ user, searchType, onDetailClick }: Prop
               </span>
             )}
           </div>
-          {subLine && <span className={styles["sub-line"]}>{subLine}</span>}
+          {isStopped && subLine && (
+            <span className={styles["sub-line-stopped"]}>
+              <Pause size={11} />
+              {subLine}
+            </span>
+          )}
+          {!isStopped && subLine && (
+            <span className={styles["sub-line"]}>{subLine}</span>
+          )}
         </div>
       </td>
-      <td>{user.profile.number}</td>
-      <td>{gradeStatusText}</td>
-      <td>
+      <td data-label="학번">{user.profile.number}</td>
+      <td data-label="학년/학적">{gradeStatusText}</td>
+      <td data-label="태그">
         <div className={styles["tag-list"]}>
           {user.redTags.map((tag) => (
             <span key={`${user.id}-red-${tag}`} className={`${styles["tag"]} ${styles["red"]}`}>
@@ -88,7 +97,8 @@ export default function MemberTableRow({ user, searchType, onDetailClick }: Prop
       </td>
       <td>
         <button className={styles["detail-button"]} onClick={onDetailClick}>
-          상세보기
+          <span className={styles["detail-text"]}>상세보기</span>
+          <ChevronRight size={18} className={styles["detail-icon"]} />
         </button>
       </td>
     </tr>

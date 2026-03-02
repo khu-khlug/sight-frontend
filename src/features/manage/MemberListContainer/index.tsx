@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Heading } from "@chakra-ui/react";
+import { Box, Heading } from "@chakra-ui/react";
 
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
@@ -190,12 +190,14 @@ const MemberListContainer = () => {
                     searchType={searchType}
                     onSelectUser={handleSelectUser}
                   />
-                  <PageNavigator
-                    currentPage={page}
-                    countPerPage={limit}
-                    totalCount={data.count}
-                    onPageChange={(page) => setPage(page)}
-                  />
+                  <Box mt="24px">
+                    <PageNavigator
+                      currentPage={page}
+                      countPerPage={limit}
+                      totalCount={data.count}
+                      onPageChange={(page) => setPage(page)}
+                    />
+                  </Box>
                 </>
               );
           }

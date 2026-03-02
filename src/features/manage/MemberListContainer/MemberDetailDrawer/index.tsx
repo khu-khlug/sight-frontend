@@ -205,7 +205,7 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
                         </span>
                       </div>
                       <div className={styles["info-row"]}>
-                        <span className={styles["info-label"]}>KHUIS 인증</span>
+                        <span className={styles["info-label"]}>INFO21 인증</span>
                         <span className={styles["info-value"]}>
                           {formatDate(user.khuisAuthAt, DateFormats.DATE)}
                         </span>

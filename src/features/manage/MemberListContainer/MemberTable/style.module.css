@@ -17,3 +17,14 @@
   padding: 12px;
   border-bottom: 1px solid #eee;
 }
+
+@media (max-width: 768px) {
+  .table thead {
+    display: none;
+  }
+
+  .table td {
+    border-bottom: none;
+    padding: 2px 0;
+  }
+}
