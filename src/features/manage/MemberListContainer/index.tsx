@@ -28,7 +28,7 @@ const MemberListContainer = () => {
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
   const [grade, setGrade] = useState<string | null>(null);
   const [studentStatus, setStudentStatus] = useState<StudentStatus | null>(
-    null
+    null,
   );
   const [page, setPage] = useState(1);
 
@@ -97,7 +97,9 @@ const MemberListContainer = () => {
   return (
     <>
       <Container>
-        <Heading as="h2" size="xl">회원 목록</Heading>
+        <Heading as="h2" size="xl">
+          회원 목록
+        </Heading>
         <form className={styles["member-search-form"]} onSubmit={handleSearch}>
           <div className={styles["member-search-query"]}>
             <div>
@@ -135,7 +137,7 @@ const MemberListContainer = () => {
                   setStudentStatus(
                     e.target.value === ""
                       ? null
-                      : (e.target.value as StudentStatus)
+                      : (e.target.value as StudentStatus),
                   )
                 }
               >
@@ -163,7 +165,11 @@ const MemberListContainer = () => {
             case "success":
               return (
                 <>
-                  <Heading as="h2" size="xl" className={styles["member-counter"]}>
+                  <Heading
+                    as="h2"
+                    size="xl"
+                    className={styles["member-counter"]}
+                  >
                     검색 결과 <span>{data.count}명</span>
                   </Heading>
                   <div className={styles["member-list"]}>

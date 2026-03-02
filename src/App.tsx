@@ -7,7 +7,7 @@ import {
 
 import MainPage from "./pages/main";
 import InfraBluePage from "./pages/manage/infraBlue";
-import MemberV2Page from "./pages/manage/member-v2";
+import ManageMemberPage from "./pages/manage/member";
 import DiscordRolePage from "./pages/manage/discord-role";
 import IntegrateDiscordPage from "./pages/member/integrate-discord";
 import FinancePage from "./pages/finance";
@@ -27,14 +27,11 @@ function App() {
           path="/member/integrate-discord"
           element={<IntegrateDiscordPage />}
         />
-        <Route
-          path="/member/group-matching"
-          element={<GroupMatchingPage />}
-        />
+        <Route path="/member/group-matching" element={<GroupMatchingPage />} />
         <Route path="/login" element={<LoginPage />} />
 
         <Route path="/manage/infra-blue" element={<InfraBluePage />} />
-        <Route path="/manage/member-v2" element={<MemberV2Page />} />
+        <Route path="/manage/member" element={<ManageMemberPage />} />
         <Route path="/manage/discord-role" element={<DiscordRolePage />} />
         <Route
           path="/manage/group-matching"
@@ -53,7 +50,7 @@ function App() {
           element={<GroupMatchingFieldRequestsPage />}
         />
         <Route path="/finance" element={<FinancePage />} />
-      </Route>
+      </Route>,
     ),
     {
       future: {
@@ -63,7 +60,7 @@ function App() {
         v7_relativeSplatPath: true,
         v7_skipActionErrorRevalidation: true,
       },
-    }
+    },
   );
 
   return (

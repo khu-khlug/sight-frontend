@@ -6,7 +6,7 @@
 .main-layout__content {
   max-width: 1024px;
   margin: 0 auto;
-  padding-top: 88px;
+  padding-top: 80px;
   padding-left: 16px;
   padding-right: 16px;
   padding-bottom: 40px;
@@ -18,7 +18,7 @@
 
 @media screen and (max-width: 767px) {
   .main-layout__content {
-    padding-top: 72px;
+    padding-top: 68px;
     padding-bottom: 32px;
   }
 }
