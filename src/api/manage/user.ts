@@ -60,20 +60,23 @@ export type ManageUserApiDto = {
 };
 
 const listUserForManager = async (request: ListUserRequestDto) => {
-  const response = await apiV2Client.get<ListUserResponseDto>("/manager/users", {
-    params: request,
-  });
+  const response = await apiV2Client.get<ListUserResponseDto>(
+    "/manager/users",
+    {
+      params: request,
+    },
+  );
   return response.data;
 };
 
 /** 운영진 임명 */
 const appointManager = async (userId: number) => {
-  await apiV2Client.post(`/manager/users/${userId}/appoint-manager`);
+  await apiV2Client.put(`/manager/users/${userId}/manager`);
 };
 
 /** 운영진 해제 */
 const stepdownManager = async (userId: number) => {
-  await apiV2Client.post(`/manager/users/${userId}/stepdown-manager`);
+  await apiV2Client.delete(`/manager/users/${userId}/manager`);
 };
 
 export const UserManageApi = {
