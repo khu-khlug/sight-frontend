@@ -22,8 +22,6 @@ export default function BaseModal({ isOpen, onRequestClose, children }: Props) {
           <Dialog.Content
             p="28px"
             maxW="400px"
-            borderTop="4px solid"
-            borderColor="brand.500"
             boxShadow="0px 0px 8px #00000018"
             borderRadius="8px"
           >

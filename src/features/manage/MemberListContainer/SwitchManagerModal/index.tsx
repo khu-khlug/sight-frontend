@@ -10,6 +10,7 @@ type Props = {
     number: number;
     college: string;
   };
+  isLoading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -18,6 +19,7 @@ export default function SwitchManagerModal({
   isOpen,
   toBeManager,
   targetUserProfile,
+  isLoading,
   onConfirm,
   onCancel,
 }: Props) {
@@ -26,6 +28,7 @@ export default function SwitchManagerModal({
       isOpen={isOpen}
       title={toBeManager ? "운영진 임명" : "운영진 업무 종료"}
       targetUserProfile={targetUserProfile}
+      isLoading={isLoading}
       onConfirm={onConfirm}
       onCancel={onCancel}
     >

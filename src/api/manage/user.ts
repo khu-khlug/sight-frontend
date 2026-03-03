@@ -66,6 +66,18 @@ const listUserForManager = async (request: ListUserRequestDto) => {
   return response.data;
 };
 
+/** 운영진 임명 */
+const appointManager = async (userId: number) => {
+  await apiV2Client.post(`/manager/users/${userId}/appoint-manager`);
+};
+
+/** 운영진 해제 */
+const stepdownManager = async (userId: number) => {
+  await apiV2Client.post(`/manager/users/${userId}/stepdown-manager`);
+};
+
 export const UserManageApi = {
   listUserForManager,
+  appointManager,
+  stepdownManager,
 };

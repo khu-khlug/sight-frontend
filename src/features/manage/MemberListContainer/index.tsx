@@ -207,6 +207,7 @@ const MemberListContainer = () => {
         user={selectedUser}
         isOpen={isDrawerOpen}
         onClose={handleCloseDrawer}
+        refetch={refetch}
       />
     </>
   );

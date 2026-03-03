@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Drawer, Portal } from "@chakra-ui/react";
 import { X } from "lucide-react";
 
-import { ManageUserApiDto } from "../../../../api/manage/user";
+import { ManageUserApiDto, UserManageApi } from "../../../../api/manage/user";
 import { StudentStatus, UserStatus } from "../../../../constant";
 import { DateFormats, formatDate } from "../../../../util/date";
 
@@ -21,9 +22,10 @@ type Props = {
   user: ManageUserApiDto["UserResponse"] | null;
   isOpen: boolean;
   onClose: () => void;
+  refetch: () => void;
 };
 
-export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
+export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: Props) {
   const [isSwitchManagerModalOpen, setIsSwitchManagerModalOpen] =
     useState(false);
   const [isSwitchGraduatedModalOpen, setIsSwitchGraduatedModalOpen] =
@@ -33,6 +35,18 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
   const [isSwitchBlockedModalOpen, setIsSwitchBlockedModalOpen] =
     useState(false);
   const [isRemoveMemberModalOpen, setIsRemoveMemberModalOpen] = useState(false);
+
+  const switchManagerMutation = useMutation({
+    mutationFn: (params: { userId: number; toBeManager: boolean }) =>
+      params.toBeManager
+        ? UserManageApi.appointManager(params.userId)
+        : UserManageApi.stepdownManager(params.userId),
+    onSuccess: () => {
+      setIsSwitchManagerModalOpen(false);
+      refetch();
+      onClose();
+    },
+  });
 
   const isManager = user?.manager ?? false;
   const isGraduated = user?.studentStatus === StudentStatus.GRADUATE;
@@ -287,7 +301,13 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
               isOpen={isSwitchManagerModalOpen}
               toBeManager={!isManager}
               targetUserProfile={userProfileForConfirm}
-              onConfirm={() => console.log("Confirmed!")}
+              isLoading={switchManagerMutation.isPending}
+              onConfirm={() =>
+                switchManagerMutation.mutate({
+                  userId: user!.id,
+                  toBeManager: !isManager,
+                })
+              }
               onCancel={() => setIsSwitchManagerModalOpen(false)}
             />
           )}

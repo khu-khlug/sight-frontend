@@ -1,8 +1,6 @@
-import { Heading } from "@chakra-ui/react";
+import { Box, Heading, HStack, List } from "@chakra-ui/react";
 import BaseModal from "../../../../components/BaseModal";
 import Button from "../../../../components/Button";
-
-import styles from "./style.module.css";
 
 type Props = {
   isOpen: boolean;
@@ -13,6 +11,7 @@ type Props = {
   };
   title: string;
   children: React.ReactNode;
+  isLoading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -22,30 +21,36 @@ export default function TargetUserConfirmationModal({
   targetUserProfile,
   title,
   children,
+  isLoading,
   onConfirm,
   onCancel,
 }: Props) {
   return (
     <BaseModal isOpen={isOpen}>
-      <div className={styles["modal-content"]}>
-        <Heading as="h2" size="xl">{title}</Heading>
-        {children}
-        <div className={styles["target-user-info"]}>
-          <ul>
-            <li>이름: {targetUserProfile.name}</li>
-            <li>학번: {targetUserProfile.number}</li>
-            <li>학과: {targetUserProfile.college}</li>
-          </ul>
-        </div>
-        <div className={styles["button-group"]}>
-          <Button variant="neutral" onClick={onCancel}>
-            취소
-          </Button>
-          <Button variant="primary" onClick={onConfirm}>
-            확인
-          </Button>
-        </div>
-      </div>
+      <Heading as="h2" size="xl" textAlign="center">{title}</Heading>
+      <Box mt="8px">{children}</Box>
+      <Box
+        mt="8px"
+        bg="#00000009"
+        border="1px solid #00000010"
+        backgroundClip="padding-box"
+        borderRadius="8px"
+        p="16px"
+      >
+        <List.Root pl="16px" m="0">
+          <List.Item>이름: {targetUserProfile.name}</List.Item>
+          <List.Item mt="4px">학번: {targetUserProfile.number}</List.Item>
+          <List.Item mt="4px">학과: {targetUserProfile.college}</List.Item>
+        </List.Root>
+      </Box>
+      <HStack justify="center" gap="16px" mt="20px">
+        <Button variant="neutral" onClick={onCancel}>
+          취소
+        </Button>
+        <Button variant="primary" loading={isLoading} onClick={onConfirm}>
+          확인
+        </Button>
+      </HStack>
     </BaseModal>
   );
 }
