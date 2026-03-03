@@ -16,9 +16,9 @@ import PageNavigator from "../../../components/PageNavigator";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { Validator } from "../../../util/validator";
 
-import styles from "./style.module.css";
+import { SearchType } from "./types";
 
-type SearchType = "name" | "number" | "department" | "email" | "phone";
+import styles from "./style.module.css";
 
 function toNullIfEmpty<T>(value: T): T | null {
   return value === "" ? null : value;

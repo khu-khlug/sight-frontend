@@ -1,0 +1,24 @@
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background-color: #e8e8e8;
+  border-radius: 3px;
+  color: var(--main-color);
+}
+
+.tag.red {
+  color: #e00000;
+}
+
+.empty {
+  color: #999;
+  font-size: 14px;
+}

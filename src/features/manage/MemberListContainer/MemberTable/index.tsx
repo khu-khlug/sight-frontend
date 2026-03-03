@@ -1,9 +1,8 @@
 import { ManageUserApiDto } from "../../../../api/manage/user";
+import { SearchType } from "../types";
 import MemberTableRow from "../MemberTableRow";
 
 import styles from "./style.module.css";
-
-type SearchType = "name" | "number" | "department" | "email" | "phone";
 
 type Props = {
   users: ManageUserApiDto["UserResponse"][];

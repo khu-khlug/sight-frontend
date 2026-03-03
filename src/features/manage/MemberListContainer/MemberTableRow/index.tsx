@@ -4,21 +4,16 @@ import { ChevronRight, Pause } from "lucide-react";
 import { ManageUserApiDto } from "../../../../api/manage/user";
 import { StudentStatus } from "../../../../constant";
 
-import styles from "./style.module.css";
+import { SearchType, StudentStatusLabel } from "../types";
+import badgeStyles from "../badge.module.css";
+import TagList from "../TagList";
 
-type SearchType = "name" | "number" | "department" | "email" | "phone";
+import styles from "./style.module.css";
 
 type Props = {
   user: ManageUserApiDto["UserResponse"];
   searchType: SearchType;
   onDetailClick: () => void;
-};
-
-const StudentStatusLabel: Record<StudentStatus, string> = {
-  [StudentStatus.UNITED]: "교류",
-  [StudentStatus.ABSENCE]: "휴학",
-  [StudentStatus.UNDERGRADUATE]: "재학",
-  [StudentStatus.GRADUATE]: "졸업",
 };
 
 export default function MemberTableRow({ user, searchType, onDetailClick }: Props) {
@@ -58,12 +53,12 @@ export default function MemberTableRow({ user, searchType, onDetailClick }: Prop
           <div className={styles["name-line"]}>
             <span className={styles["name"]}>{user.profile.name}</span>
             {user.manager && (
-              <span className={`${styles["badge"]} ${styles["manager-badge"]}`}>
+              <span className={`${badgeStyles["badge"]} ${badgeStyles["manager-badge"]}`}>
                 운영진
               </span>
             )}
             {isStopped && (
-              <span className={`${styles["badge"]} ${styles["stopped-badge"]}`}>
+              <span className={`${badgeStyles["badge"]} ${badgeStyles["stopped-badge"]}`}>
                 정지
               </span>
             )}
@@ -82,18 +77,7 @@ export default function MemberTableRow({ user, searchType, onDetailClick }: Prop
       <td data-label="학번">{user.profile.number}</td>
       <td data-label="학년/학적">{gradeStatusText}</td>
       <td data-label="태그">
-        <div className={styles["tag-list"]}>
-          {user.redTags.map((tag) => (
-            <span key={`${user.id}-red-${tag}`} className={`${styles["tag"]} ${styles["red"]}`}>
-              {tag}
-            </span>
-          ))}
-          {user.normalTags.map((tag) => (
-            <span key={`${user.id}-${tag}`} className={styles["tag"]}>
-              {tag}
-            </span>
-          ))}
-        </div>
+        <TagList redTags={user.redTags} normalTags={user.normalTags} />
       </td>
       <td>
         <button className={styles["detail-button"]} onClick={onDetailClick}>

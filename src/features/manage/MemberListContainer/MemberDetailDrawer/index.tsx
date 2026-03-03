@@ -6,6 +6,9 @@ import { ManageUserApiDto } from "../../../../api/manage/user";
 import { StudentStatus, UserStatus } from "../../../../constant";
 import { DateFormats, formatDate } from "../../../../util/date";
 
+import { StudentStatusLabel } from "../types";
+import badgeStyles from "../badge.module.css";
+import TagList from "../TagList";
 import SwitchManagerModal from "../SwitchManagerModal";
 import SwitchGraduatedModal from "../SwitchGraduatedModal";
 import SwitchStoppedModal from "../SwitchStoppedModal";
@@ -20,18 +23,15 @@ type Props = {
   onClose: () => void;
 };
 
-const StudentStatusLabel: Record<StudentStatus, string> = {
-  [StudentStatus.UNITED]: "교류",
-  [StudentStatus.ABSENCE]: "휴학",
-  [StudentStatus.UNDERGRADUATE]: "재학",
-  [StudentStatus.GRADUATE]: "졸업",
-};
-
 export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
-  const [isSwitchManagerModalOpen, setIsSwitchManagerModalOpen] = useState(false);
-  const [isSwitchGraduatedModalOpen, setIsSwitchGraduatedModalOpen] = useState(false);
-  const [isSwitchStoppedModalOpen, setIsSwitchStoppedModalOpen] = useState(false);
-  const [isSwitchBlockedModalOpen, setIsSwitchBlockedModalOpen] = useState(false);
+  const [isSwitchManagerModalOpen, setIsSwitchManagerModalOpen] =
+    useState(false);
+  const [isSwitchGraduatedModalOpen, setIsSwitchGraduatedModalOpen] =
+    useState(false);
+  const [isSwitchStoppedModalOpen, setIsSwitchStoppedModalOpen] =
+    useState(false);
+  const [isSwitchBlockedModalOpen, setIsSwitchBlockedModalOpen] =
+    useState(false);
   const [isRemoveMemberModalOpen, setIsRemoveMemberModalOpen] = useState(false);
 
   const isManager = user?.manager ?? false;
@@ -62,16 +62,20 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
               <Drawer.Header className={styles["drawer-header"]}>
                 {user && (
                   <div className={styles["header-name"]}>
-                    <span style={{ fontSize: "18px", fontWeight: 700 }}>
+                    <span className={styles["drawer-name"]}>
                       {user.profile.name}
                     </span>
                     {user.manager && (
-                      <span className={`${styles["badge"]} ${styles["manager-badge"]}`}>
+                      <span
+                        className={`${badgeStyles["badge"]} ${badgeStyles["manager-badge"]}`}
+                      >
                         운영진
                       </span>
                     )}
                     {isStopped && (
-                      <span className={`${styles["badge"]} ${styles["stopped-badge"]}`}>
+                      <span
+                        className={`${badgeStyles["badge"]} ${badgeStyles["stopped-badge"]}`}
+                      >
                         정지
                       </span>
                     )}
@@ -91,11 +95,15 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
                       <h3 className={styles["section-title"]}>기본 정보</h3>
                       <div className={styles["info-row"]}>
                         <span className={styles["info-label"]}>학번</span>
-                        <span className={styles["info-value"]}>{user.profile.number}</span>
+                        <span className={styles["info-value"]}>
+                          {user.profile.number}
+                        </span>
                       </div>
                       <div className={styles["info-row"]}>
                         <span className={styles["info-label"]}>학년</span>
-                        <span className={styles["info-value"]}>{user.profile.grade}학년</span>
+                        <span className={styles["info-value"]}>
+                          {user.profile.grade}학년
+                        </span>
                       </div>
                       <div className={styles["info-row"]}>
                         <span className={styles["info-label"]}>학적상태</span>
@@ -105,36 +113,52 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
                       </div>
                       <div className={styles["info-row"]}>
                         <span className={styles["info-label"]}>학과</span>
-                        <span className={styles["info-value"]}>{user.profile.college}</span>
+                        <span className={styles["info-value"]}>
+                          {user.profile.college}
+                        </span>
                       </div>
                       <div className={styles["info-row"]}>
                         <span className={styles["info-label"]}>입학년도</span>
-                        <span className={styles["info-value"]}>{user.admission}</span>
+                        <span className={styles["info-value"]}>
+                          {user.admission}
+                        </span>
                       </div>
                     </div>
 
                     <hr className={styles["separator"]} />
 
-                    {(user.profile.email || user.profile.phone || user.slack) && (
+                    {(user.profile.email ||
+                      user.profile.phone ||
+                      user.slack) && (
                       <>
                         <div className={styles["section"]}>
                           <h3 className={styles["section-title"]}>연락처</h3>
                           {user.profile.email && (
                             <div className={styles["info-row"]}>
-                              <span className={styles["info-label"]}>이메일</span>
-                              <span className={styles["info-value"]}>{user.profile.email}</span>
+                              <span className={styles["info-label"]}>
+                                이메일
+                              </span>
+                              <span className={styles["info-value"]}>
+                                {user.profile.email}
+                              </span>
                             </div>
                           )}
                           {user.profile.phone && (
                             <div className={styles["info-row"]}>
-                              <span className={styles["info-label"]}>전화번호</span>
-                              <span className={styles["info-value"]}>{user.profile.phone}</span>
+                              <span className={styles["info-label"]}>
+                                전화번호
+                              </span>
+                              <span className={styles["info-value"]}>
+                                {user.profile.phone}
+                              </span>
                             </div>
                           )}
                           {user.slack && (
                             <div className={styles["info-row"]}>
                               <span className={styles["info-label"]}>슬랙</span>
-                              <span className={styles["info-value"]}>{user.slack}</span>
+                              <span className={styles["info-value"]}>
+                                {user.slack}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -145,26 +169,10 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
 
                     <div className={styles["section"]}>
                       <h3 className={styles["section-title"]}>태그</h3>
-                      <div className={styles["tag-list"]}>
-                        {user.redTags.map((tag) => (
-                          <span
-                            key={`drawer-red-${tag}`}
-                            className={`${styles["tag"]} ${styles["red"]}`}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {user.normalTags.map((tag) => (
-                          <span key={`drawer-${tag}`} className={styles["tag"]}>
-                            {tag}
-                          </span>
-                        ))}
-                        {user.redTags.length === 0 && user.normalTags.length === 0 && (
-                          <span style={{ color: "#999", fontSize: "14px" }}>
-                            태그가 없습니다
-                          </span>
-                        )}
-                      </div>
+                      <TagList
+                        redTags={user.redTags}
+                        normalTags={user.normalTags}
+                      />
                     </div>
 
                     {isStopped && (
@@ -181,7 +189,9 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
                           {user.returnReason && (
                             <div className={styles["info-row"]}>
                               <span className={styles["info-label"]}>사유</span>
-                              <span className={styles["info-value"]}>{user.returnReason}</span>
+                              <span className={styles["info-value"]}>
+                                {user.returnReason}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -199,20 +209,26 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
                         </span>
                       </div>
                       <div className={styles["info-row"]}>
-                        <span className={styles["info-label"]}>마지막 로그인</span>
+                        <span className={styles["info-label"]}>
+                          마지막 로그인
+                        </span>
                         <span className={styles["info-value"]}>
                           {formatDate(user.lastLoginAt, DateFormats.DATETIME)}
                         </span>
                       </div>
                       <div className={styles["info-row"]}>
-                        <span className={styles["info-label"]}>INFO21 인증</span>
+                        <span className={styles["info-label"]}>
+                          INFO21 인증
+                        </span>
                         <span className={styles["info-value"]}>
                           {formatDate(user.khuisAuthAt, DateFormats.DATE)}
                         </span>
                       </div>
                       <div className={styles["info-row"]}>
-                        <span className={styles["info-label"]}>포인트</span>
-                        <span className={styles["info-value"]}>{user.point}</span>
+                        <span className={styles["info-label"]}>경험치</span>
+                        <span className={styles["info-value"]}>
+                          {user.point}
+                        </span>
                       </div>
                     </div>
                   </>
@@ -289,7 +305,7 @@ export default function MemberDetailDrawer({ user, isOpen, onClose }: Props) {
               isOpen={isSwitchStoppedModalOpen}
               toBeStopped={!isStopped}
               targetUserProfile={userProfileForConfirm}
-              onConfirm={(reason: string, returnAt: Date) => console.log("Confirmed!")}
+              onConfirm={() => console.log("Confirmed!")}
               onCancel={() => setIsSwitchStoppedModalOpen(false)}
             />
           )}
