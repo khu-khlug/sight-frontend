@@ -89,6 +89,7 @@ export const menuItems: MenuItem[] = [
       },
       { label: "", href: "", isDivider: true },
       { label: "infraBlue", href: "https://app.khlug.org/manage/infra-blue" },
+      { label: "공식 이메일", href: "https://webmail.khlug.org/" },
       { label: "", href: "", isDivider: true },
       { label: "Hello 블로그", href: "https://khlug.org/manage/blog" },
       { label: "", href: "", isDivider: true },
