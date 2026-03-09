@@ -1,0 +1,23 @@
+.card {
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #00a0e9;
+}
+
+.card[data-selected="true"] {
+  border-color: #00a0e9;
+  background-color: #e6f7ff;
+}
+
+.card[data-selected="true"]:hover {
+  transform: none;
+  box-shadow: none;
+}

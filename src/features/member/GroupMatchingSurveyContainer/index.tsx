@@ -9,35 +9,38 @@ import {
   Heading,
   Text,
   Input,
+  Textarea,
   RadioGroup,
   Checkbox,
   SimpleGrid,
-  IconButton,
-  Button,
   Flex,
   Link,
+  Field,
 } from "@chakra-ui/react";
-import { X } from "lucide-react";
+
+import { toast } from "react-toastify";
 
 import Container from "../../../components/Container";
+import Button from "../../../components/Button";
 import Callout from "../../../components/Callout";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 
 import {
   GroupMatchingPublicApi,
   SubmitAnswerRequestDto,
-  UpdateAnswerRequestDto,
 } from "../../../api/public/groupMatching";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { DateFormats, formatDate } from "../../../util/date";
 import {
   GroupType,
-  GroupTypeLabel,
+  ActivityFrequency,
+  ActivityFrequencyLabel,
+  PracticalProjectRole,
   Semester,
   SemesterLabel,
 } from "../../../constant";
 
-import RequestFieldModal from "./RequestFieldModal";
+import GroupTypeSelector from "./GroupTypeSelector";
 
 export default function GroupMatchingSurveyContainer() {
   const navigate = useNavigate();
@@ -66,41 +69,63 @@ export default function GroupMatchingSurveyContainer() {
     retry: 0,
   });
 
-  // Query: Get available fields
-  const {
-    status: fieldsStatus,
-    data: fields,
-    error: fieldsError,
-  } = useQuery({
-    queryKey: ["group-matching-fields"],
-    queryFn: GroupMatchingPublicApi.listAvailableFields,
-    enabled: !!survey,
+  // Form state
+  const [groupType, setGroupType] = useState<GroupType | null>(null);
+  const [isPreferOnline, setIsPreferOnline] = useState<boolean>(false);
+  const [activityFrequency, setActivityFrequency] = useState<ActivityFrequency>(
+    ActivityFrequency.ONCE_OR_TWICE,
+  );
+  const [activityFormat, setActivityFormat] = useState("");
+  const [otherSuggestions, setOtherSuggestions] = useState("");
+
+  // Study-specific state
+  const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
+  const [isCustomOptionChecked, setIsCustomOptionChecked] = useState(false);
+  const [customOption, setCustomOption] = useState("");
+
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
+  // Practical project state
+  const [role, setRole] = useState<string>("");
+  const [hasIdea, setHasIdea] = useState<boolean>(true);
+  const [idea, setIdea] = useState("");
+
+  // Query: options for study types
+  const isStudyType =
+    groupType === GroupType.BASIC_LANGUAGE_STUDY ||
+    groupType === GroupType.PROJECT_STYLE_STUDY;
+
+  const { data: options, status: optionsStatus } = useQuery({
+    queryKey: ["group-matching-options", survey?.id, groupType],
+    queryFn: () =>
+      GroupMatchingPublicApi.listOptions(
+        survey!.id,
+        groupType as "BASIC_LANGUAGE_STUDY" | "PROJECT_STYLE_STUDY",
+      ),
+    enabled: !!survey && isStudyType,
     retry: 0,
   });
-
-  // Form state
-  const [groupType, setGroupType] = useState<GroupType>(GroupType.STUDY);
-  const [isPreferOnline, setIsPreferOnline] = useState<boolean>(false);
-  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
-  const [subjects, setSubjects] = useState<string[]>([""]);
-
-  // Modal state
-  const [isRequestFieldModalOpen, setIsRequestFieldModalOpen] = useState(false);
 
   // Initialize form with existing answer
   useEffect(() => {
     if (myAnswer) {
       setGroupType(myAnswer.groupType);
       setIsPreferOnline(myAnswer.isPreferOnline);
-      setSelectedFieldIds(myAnswer.fields.map((f) => f.id));
-      const answerSubjects = myAnswer.groupMatchingSubjects.map(
-        (s) => s.subject,
-      );
-      setSubjects(answerSubjects.length > 0 ? answerSubjects : [""]);
+      setActivityFrequency(myAnswer.activityFrequency);
+      setActivityFormat(myAnswer.activityFormat);
+      setOtherSuggestions(myAnswer.otherSuggestions || "");
+      setSelectedOptionIds(myAnswer.selectedOptions.map((o) => o.id));
+      if (myAnswer.customOption) {
+        setIsCustomOptionChecked(true);
+        setCustomOption(myAnswer.customOption);
+      }
+      setRole(myAnswer.role || "");
+      setHasIdea(myAnswer.hasIdea || false);
+      setIdea(myAnswer.idea || "");
     }
   }, [myAnswer]);
 
-  // Mutation: Submit answer
+  // Mutations
   const { mutateAsync: submitAnswer, isPending: isSubmitting } = useMutation({
     mutationFn: (dto: {
       groupMatchingId: string;
@@ -111,11 +136,10 @@ export default function GroupMatchingSurveyContainer() {
     },
   });
 
-  // Mutation: Update answer
   const { mutateAsync: updateAnswer, isPending: isUpdating } = useMutation({
     mutationFn: (dto: {
       groupMatchingId: string;
-      data: UpdateAnswerRequestDto;
+      data: SubmitAnswerRequestDto;
     }) => GroupMatchingPublicApi.updateAnswer(dto.groupMatchingId, dto.data),
     onSuccess: () => {
       refetchAnswer();
@@ -124,75 +148,87 @@ export default function GroupMatchingSurveyContainer() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setHasAttemptedSubmit(true);
 
-    if (selectedFieldIds.length === 0) {
-      alert("관심 분야를 최소 1개 이상 선택해주세요.");
-      return;
+    if (!groupType) return;
+    if (isStudyType && selectedOptionIds.length === 0 && !isCustomOptionChecked) return;
+    if (isCustomOptionChecked && customOption.trim() === "") return;
+    if (groupType === GroupType.PRACTICAL_PROJECT && !role) return;
+    if (groupType === GroupType.PRACTICAL_PROJECT && hasIdea && !idea.trim()) return;
+    if (!activityFormat.trim()) return;
+
+    const requestData: SubmitAnswerRequestDto = {
+      groupType,
+      isPreferOnline,
+      activityFrequency,
+      activityFormat: activityFormat.trim(),
+      otherSuggestions: otherSuggestions.trim() || undefined,
+    };
+
+    if (isStudyType) {
+      requestData.selectedOptionIds = selectedOptionIds;
+      requestData.customOption = isCustomOptionChecked
+        ? customOption.trim()
+        : undefined;
     }
 
-    const filteredSubjects = subjects.filter((s) => s.trim() !== "");
-    if (groupType === GroupType.PROJECT && filteredSubjects.length === 0) {
-      alert("하고 싶은 주제를 최소 1개 이상 입력해주세요.");
-      return;
+    if (groupType === GroupType.PRACTICAL_PROJECT) {
+      requestData.role = role;
+      requestData.hasIdea = hasIdea;
+      requestData.idea = hasIdea ? idea.trim() : undefined;
     }
 
     try {
       if (myAnswer) {
         await updateAnswer({
           groupMatchingId: survey!.id,
-          data: {
-            groupType,
-            isPreferOnline,
-            fieldIds: selectedFieldIds,
-            subjects: filteredSubjects,
-          },
+          data: requestData,
         });
-        alert("설문 응답이 수정되었습니다.");
+        toast.success("설문 응답이 수정되었습니다.");
       } else {
         await submitAnswer({
           groupMatchingId: survey!.id,
-          data: {
-            groupType,
-            isPreferOnline,
-            groupMatchingFieldIds: selectedFieldIds,
-            groupMatchingSubjects: filteredSubjects,
-          },
+          data: requestData,
         });
-        alert("설문 응답이 제출되었습니다.");
+        toast.success("설문 응답이 제출되었습니다.");
       }
     } catch (error) {
       alert(extractErrorMessage(error as Error));
     }
   };
 
-  const handleSubjectChange = (index: number, value: string) => {
-    const newSubjects = [...subjects];
-    newSubjects[index] = value;
-    setSubjects(newSubjects);
+  const handleGroupTypeSelect = (type: GroupType) => {
+    setGroupType(type);
+    // Reset type-specific fields
+    setSelectedOptionIds([]);
+    setIsCustomOptionChecked(false);
+    setCustomOption("");
+    setRole("");
+    setHasIdea(false);
+    setIdea("");
   };
 
-  const handleAddSubject = () => {
-    if (subjects.length < 3) {
-      setSubjects([...subjects, ""]);
-    }
+  const handleGroupTypeReset = () => {
+    setGroupType(null);
+    setSelectedOptionIds([]);
+    setIsCustomOptionChecked(false);
+    setCustomOption("");
+    setRole("");
+    setHasIdea(false);
+    setIdea("");
   };
 
-  const handleRemoveSubject = (index: number) => {
-    if (subjects.length > 1) {
-      setSubjects(subjects.filter((_, i) => i !== index));
-    }
-  };
-
-  const toggleField = (fieldId: string) => {
-    if (selectedFieldIds.includes(fieldId)) {
-      setSelectedFieldIds(selectedFieldIds.filter((id) => id !== fieldId));
+  const toggleOption = (optionId: string) => {
+    if (selectedOptionIds.includes(optionId)) {
+      setSelectedOptionIds([]);
     } else {
-      setSelectedFieldIds([...selectedFieldIds, fieldId]);
+      setSelectedOptionIds([optionId]);
+      setIsCustomOptionChecked(false);
     }
   };
 
   const handleGoToLogin = () => {
-    navigate("/login?redirect=/member/group-matching");
+    navigate("/login?redirect=/group-matching");
   };
 
   // Loading state
@@ -215,11 +251,7 @@ export default function GroupMatchingSurveyContainer() {
           <Flex gap={3} align="center" justify="space-between">
             <Text flex={1}>{extractErrorMessage(surveyError)}</Text>
             {is401Error && (
-              <Button
-                onClick={handleGoToLogin}
-                colorPalette="red"
-                variant="subtle"
-              >
+              <Button onClick={handleGoToLogin} variant="danger">
                 로그인
               </Button>
             )}
@@ -258,7 +290,7 @@ export default function GroupMatchingSurveyContainer() {
   }
 
   // Answer loading
-  if (answerStatus === "pending" || fieldsStatus === "pending") {
+  if (answerStatus === "pending") {
     return (
       <Container>
         <CenterRingLoadingIndicator />
@@ -267,11 +299,11 @@ export default function GroupMatchingSurveyContainer() {
   }
 
   // Answer error
-  if (answerStatus === "error" || fieldsStatus === "error") {
+  if (answerStatus === "error") {
     return (
       <Container>
         <Callout type="error">
-          {extractErrorMessage((answerError || fieldsError) as Error)}
+          {extractErrorMessage(answerError as Error)}
         </Callout>
       </Container>
     );
@@ -280,229 +312,328 @@ export default function GroupMatchingSurveyContainer() {
   const isReadOnly = isClosed && !!myAnswer;
 
   return (
-    <>
-      <Container>
-        <Heading as="h2" size="lg" mb={5}>
-          {survey.year}년 {SemesterLabel[survey.semester as Semester]} 그룹 매칭
-          설문
-        </Heading>
+    <Container>
+      <Heading as="h2" size="lg" mb={5}>
+        {survey.year}년 {SemesterLabel[survey.semester as Semester]} 그룹 매칭
+        설문
+      </Heading>
 
-        <Text>
-          안녕하세요, 쿠러그 운영진입니다!
-          <br />
-          이번 학기 여러분의 원활한 활동을 위해 관심 분야를 조사합니다.
-          <br />
-          <br />
-          쿠러그는 1인 이상으로 구성된 그룹 단위로 활동합니다. 하지만 막연히
-          그룹을 자유롭게 만들려고 하면 누구랑 해야 할지도 모르겠고 무엇을 해야
-          할지도 모르실 수 있습니다.
-          <br />
-          <br />
-          따라서 여러분께서 더 수월하게 그룹 활동을 진행하실 수 있도록{" "}
-          <strong>관심 분야가 겹치는 회원끼리 매칭</strong>을 해드리고 있습니다.
-          <br />
-          물론 그룹 매칭이 아니더라도, 홈페이지에서 그룹을 만들어 인원을 모아
-          자유롭게 활동하실 수 있으니 그룹 매칭이 필요하지 않다면 신청하지
-          않으셔도 됩니다!
-          <br />
-          <br />
-          반드시 매칭된 그룹에서 활동하실 필요는 없지만,{" "}
-          <strong>응답 내용을 바탕으로 매칭을 진행하기 때문에</strong> 신중하게
-          답변 부탁드립니다. 또한 수요가 적은 분야에만 관심을 두고 계신 경우
-          매칭이 되지 못할 수 있으니 참고 부탁드립니다.
-          <br />
-          <br />
-          많은 관심과 참여 부탁드립니다. 감사합니다!
-          <br />
-          <br />
-          궁금하신 부분이 있다면{" "}
-          <Link href="mailto:we_are@khlug.org">we_are@khlug.org</Link> 혹은
-          운영진에게 디스코드 DM으로 문의해주세요.
+      <Text>
+        안녕하세요, 쿠러그 운영진입니다!
+        <br />
+        <br />
+        이번 학기 여러분의 원활한 활동을 위해 관심 분야를 조사합니다. 쿠러그는
+        1인 이상으로 구성된 그룹 단위로 활동합니다.{" "}
+        <strong>관심 분야가 겹치는 회원끼리 매칭</strong>을 해드리고 있으니,
+        신중하게 답변 부탁드립니다.
+        <br />
+        <br />
+        궁금하신 부분이 있다면{" "}
+        <Link href="mailto:we_are@khlug.org">we_are@khlug.org</Link> 혹은
+        운영진에게 디스코드 DM으로 문의해주세요.
+      </Text>
+
+      <Box bg="gray.50" p={4} borderRadius="md" mt={4} mb={6}>
+        <Text fontSize="sm" color="gray.600">
+          마감일: {formatDate(new Date(survey.closedAt), DateFormats.DATE_KOR)}
         </Text>
-
-        <Box bg="gray.50" p={4} borderRadius="md" mt={4} mb={6}>
-          <Text fontSize="sm" color="gray.600">
-            마감일:{" "}
-            {formatDate(new Date(survey.closedAt), DateFormats.DATE_KOR)}
+        {myAnswer && (
+          <Text fontSize="sm" color="brand.500" fontWeight="medium" mt={1}>
+            제출일:{" "}
+            {formatDate(new Date(myAnswer.createdAt), DateFormats.DATE_KOR)}
+            {myAnswer.updatedAt !== myAnswer.createdAt && (
+              <>
+                {" "}
+                (수정:{" "}
+                {formatDate(new Date(myAnswer.updatedAt), DateFormats.DATE_KOR)}
+                )
+              </>
+            )}
           </Text>
-          {myAnswer && (
-            <Text fontSize="sm" color="brand.500" fontWeight="medium" mt={1}>
-              제출일:{" "}
-              {formatDate(new Date(myAnswer.createdAt), DateFormats.DATE_KOR)}
-              {myAnswer.updatedAt !== myAnswer.createdAt && (
-                <>
-                  {" "}
-                  (수정:{" "}
-                  {formatDate(
-                    new Date(myAnswer.updatedAt),
-                    DateFormats.DATE_KOR,
-                  )}
-                  )
-                </>
-              )}
-            </Text>
-          )}
+        )}
+      </Box>
+
+      {isReadOnly && (
+        <Box mb={6}>
+          <Callout>
+            설문이 마감되었습니다. 제출된 응답은 수정할 수 없습니다.
+          </Callout>
         </Box>
-        {isReadOnly && (
-          <Box mb={6}>
-            <Callout>
-              설문이 마감되었습니다. 제출된 응답은 수정할 수 없습니다.
-            </Callout>
+      )}
+
+      <VStack as="form" onSubmit={handleSubmit} gap={7} align="stretch">
+        {/* Step 1: Group Type Selection */}
+        <Box>
+          <Text fontWeight="semibold" fontSize="15px" mb={3}>
+            Step 1. 그룹 유형 선택
+          </Text>
+          <GroupTypeSelector
+            selectedType={groupType}
+            onSelect={handleGroupTypeSelect}
+            onReset={handleGroupTypeReset}
+            disabled={isReadOnly}
+          />
+        </Box>
+
+        {/* Step 2: Type-specific Questions */}
+        {groupType && (
+          <Box>
+            <Text fontWeight="semibold" fontSize="15px" mb={3}>
+              Step 2. 세부 질문
+            </Text>
+
+            {/* Study types: option selection */}
+            {isStudyType && (
+              <VStack gap={4} align="stretch">
+                <Box>
+                  <Text fontSize="sm" color="gray.600" mb={2}>
+                    관심 있는 분야를 선택해주세요. (1개만 선택 가능)
+                  </Text>
+                  {optionsStatus === "pending" ? (
+                    <CenterRingLoadingIndicator />
+                  ) : (
+                    <SimpleGrid
+                      columns={{ base: 1, md: 2, lg: 3 }}
+                      gap={3}
+                      p={4}
+                      bg="gray.50"
+                      borderRadius="md"
+                      border={
+                        hasAttemptedSubmit &&
+                        selectedOptionIds.length === 0 &&
+                        !isCustomOptionChecked
+                          ? "1px solid"
+                          : undefined
+                      }
+                      borderColor="red.400"
+                    >
+                      {options?.map((option) => (
+                        <Checkbox.Root
+                          key={option.id}
+                          checked={selectedOptionIds.includes(option.id)}
+                          onCheckedChange={() => toggleOption(option.id)}
+                          disabled={isReadOnly}
+                        >
+                          <Checkbox.HiddenInput />
+                          <Checkbox.Control>
+                            <Checkbox.Indicator />
+                          </Checkbox.Control>
+                          <Checkbox.Label>{option.name}</Checkbox.Label>
+                        </Checkbox.Root>
+                      ))}
+                      <Checkbox.Root
+                        checked={isCustomOptionChecked}
+                        onCheckedChange={(details) => {
+                          const checked = details.checked === true;
+                          setIsCustomOptionChecked(checked);
+                          if (checked) setSelectedOptionIds([]);
+                        }}
+                        disabled={isReadOnly}
+                      >
+                        <Checkbox.HiddenInput />
+                        <Checkbox.Control>
+                          <Checkbox.Indicator />
+                        </Checkbox.Control>
+                        <Checkbox.Label>기타</Checkbox.Label>
+                      </Checkbox.Root>
+                    </SimpleGrid>
+                  )}
+                  {hasAttemptedSubmit &&
+                    selectedOptionIds.length === 0 &&
+                    !isCustomOptionChecked && (
+                      <Text fontSize="sm" color="red.500" mt={1}>
+                        관심 분야를 선택해주세요.
+                      </Text>
+                    )}
+                </Box>
+                {isCustomOptionChecked && (
+                  <Field.Root
+                    invalid={
+                      hasAttemptedSubmit && customOption.trim() === ""
+                    }
+                  >
+                    <Input
+                      value={customOption}
+                      onChange={(e) => setCustomOption(e.target.value)}
+                      placeholder="직접 입력해주세요"
+                      disabled={isReadOnly}
+                    />
+                    <Text fontSize="xs" color="orange.500" mt={1}>
+                      기타 항목은 매칭 확률이 낮을 수 있어요
+                    </Text>
+                    <Field.ErrorText>내용을 입력해주세요.</Field.ErrorText>
+                  </Field.Root>
+                )}
+              </VStack>
+            )}
+
+            {/* Practical project: role and idea */}
+            {groupType === GroupType.PRACTICAL_PROJECT && (
+              <VStack gap={5} align="stretch">
+                <Field.Root invalid={hasAttemptedSubmit && !role}>
+                  <Text fontSize="sm" color="gray.600" mb={2}>
+                    역할을 선택해주세요.
+                  </Text>
+                  <RadioGroup.Root
+                    value={role}
+                    onValueChange={(details) => setRole(details.value ?? "")}
+                    disabled={isReadOnly}
+                  >
+                    <VStack gap={2} align="stretch">
+                      {Object.values(PracticalProjectRole).map((r) => (
+                        <RadioGroup.Item key={r} value={r}>
+                          <RadioGroup.ItemHiddenInput />
+                          <RadioGroup.ItemControl />
+                          <RadioGroup.ItemText>{r}</RadioGroup.ItemText>
+                        </RadioGroup.Item>
+                      ))}
+                    </VStack>
+                  </RadioGroup.Root>
+                  <Field.ErrorText>역할을 선택해주세요.</Field.ErrorText>
+                </Field.Root>
+
+                <Box>
+                  <Text fontSize="sm" color="gray.600" mb={2}>
+                    진행하고 싶은 아이디어가 있나요?
+                  </Text>
+                  <RadioGroup.Root
+                    value={hasIdea ? "yes" : "no"}
+                    onValueChange={(details) =>
+                      setHasIdea(details.value === "yes")
+                    }
+                    disabled={isReadOnly}
+                  >
+                    <HStack gap={6}>
+                      <RadioGroup.Item value="yes">
+                        <RadioGroup.ItemHiddenInput />
+                        <RadioGroup.ItemControl />
+                        <RadioGroup.ItemText>예</RadioGroup.ItemText>
+                      </RadioGroup.Item>
+                      <RadioGroup.Item value="no">
+                        <RadioGroup.ItemHiddenInput />
+                        <RadioGroup.ItemControl />
+                        <RadioGroup.ItemText>아니오</RadioGroup.ItemText>
+                      </RadioGroup.Item>
+                    </HStack>
+                  </RadioGroup.Root>
+                  {hasIdea && (
+                    <Field.Root invalid={hasAttemptedSubmit && !idea.trim()} mt={3}>
+                      <Textarea
+                        value={idea}
+                        onChange={(e) => setIdea(e.target.value)}
+                        placeholder="아이디어를 간단히 설명해주세요"
+                        rows={3}
+                        disabled={isReadOnly}
+                      />
+                      <Field.ErrorText>아이디어를 입력해주세요.</Field.ErrorText>
+                    </Field.Root>
+                  )}
+                </Box>
+              </VStack>
+            )}
           </Box>
         )}
 
-        <VStack as="form" onSubmit={handleSubmit} gap={7} align="stretch">
-          {/* Group Type Selection */}
+        {/* Step 3: Common Questions */}
+        {groupType && (
           <Box>
             <Text fontWeight="semibold" fontSize="15px" mb={3}>
-              그룹 유형
+              Step 3. 공통 질문
             </Text>
-            <RadioGroup.Root
-              value={groupType}
-              onValueChange={(details) =>
-                setGroupType(details.value as GroupType)
-              }
-              disabled={isReadOnly}
-            >
-              <HStack gap={6}>
-                <RadioGroup.Item value={GroupType.STUDY}>
-                  <RadioGroup.ItemHiddenInput />
-                  <RadioGroup.ItemControl />
-                  <RadioGroup.ItemText>
-                    {GroupTypeLabel[GroupType.STUDY]}
-                  </RadioGroup.ItemText>
-                </RadioGroup.Item>
-                <RadioGroup.Item value={GroupType.PROJECT}>
-                  <RadioGroup.ItemHiddenInput />
-                  <RadioGroup.ItemControl />
-                  <RadioGroup.ItemText>
-                    {GroupTypeLabel[GroupType.PROJECT]}
-                  </RadioGroup.ItemText>
-                </RadioGroup.Item>
-              </HStack>
-            </RadioGroup.Root>
-          </Box>
-
-          {/* Online Preference */}
-          <Box>
-            <Text fontWeight="semibold" fontSize="15px" mb={3}>
-              활동 방식
-            </Text>
-            <Checkbox.Root
-              checked={isPreferOnline}
-              onCheckedChange={(details) =>
-                setIsPreferOnline(details.checked === true)
-              }
-              disabled={isReadOnly}
-            >
-              <Checkbox.HiddenInput />
-              <Checkbox.Control>
-                <Checkbox.Indicator />
-              </Checkbox.Control>
-              <Checkbox.Label>온라인 활동 선호</Checkbox.Label>
-            </Checkbox.Root>
-          </Box>
-
-          {/* Field Selection (Inline Checkboxes) */}
-          <Box>
-            <Text fontWeight="semibold" fontSize="15px" mb={3}>
-              관심 분야 (최소 1개)
-            </Text>
-            <SimpleGrid
-              columns={{ base: 1, md: 2, lg: 3 }}
-              gap={3}
-              p={4}
-              bg="gray.50"
-              borderRadius="md"
-              mb={3}
-            >
-              {fields?.map((field) => (
-                <Checkbox.Root
-                  key={field.id}
-                  checked={selectedFieldIds.includes(field.id)}
-                  onCheckedChange={() => toggleField(field.id)}
+            <VStack gap={5} align="stretch">
+              {/* Online preference */}
+              <Box>
+                <Text fontSize="sm" color="gray.600" mb={2}>
+                  활동 방식 선호
+                </Text>
+                <RadioGroup.Root
+                  value={isPreferOnline ? "online" : "offline"}
+                  onValueChange={(details) =>
+                    setIsPreferOnline(details.value === "online")
+                  }
                   disabled={isReadOnly}
                 >
-                  <Checkbox.HiddenInput />
-                  <Checkbox.Control>
-                    <Checkbox.Indicator />
-                  </Checkbox.Control>
-                  <Checkbox.Label>{field.name}</Checkbox.Label>
-                </Checkbox.Root>
-              ))}
-            </SimpleGrid>
-            {!isReadOnly && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsRequestFieldModalOpen(true)}
-              >
-                새 분야 요청
-              </Button>
-            )}
-          </Box>
+                  <HStack gap={6}>
+                    <RadioGroup.Item value="offline">
+                      <RadioGroup.ItemHiddenInput />
+                      <RadioGroup.ItemControl />
+                      <RadioGroup.ItemText>오프라인</RadioGroup.ItemText>
+                    </RadioGroup.Item>
+                    <RadioGroup.Item value="online">
+                      <RadioGroup.ItemHiddenInput />
+                      <RadioGroup.ItemControl />
+                      <RadioGroup.ItemText>온라인</RadioGroup.ItemText>
+                    </RadioGroup.Item>
+                  </HStack>
+                </RadioGroup.Root>
+              </Box>
 
-          {/* Subjects (Dynamic List) */}
-          {groupType === GroupType.PROJECT && <Box>
-            <Text fontWeight="semibold" fontSize="15px" mb={3}>
-              하고 싶은 주제 (최소 1개, 최대 3개)
-            </Text>
-            <VStack gap={3} align="stretch">
-              {subjects.map((subject, index) => (
-                <HStack key={index}>
-                  <Input
-                    value={subject}
-                    onChange={(e) => handleSubjectChange(index, e.target.value)}
-                    placeholder={`주제 ${index + 1}`}
-                    disabled={isReadOnly}
-                  />
-                  {!isReadOnly && subjects.length > 1 && (
-                    <IconButton
-                      type="button"
-                      onClick={() => handleRemoveSubject(index)}
-                      aria-label="Remove subject"
-                      variant="ghost"
-                      colorPalette="red"
-                    >
-                      <X />
-                    </IconButton>
-                  )}
-                </HStack>
-              ))}
+              {/* Activity frequency */}
+              <Box>
+                <Text fontSize="sm" color="gray.600" mb={2}>
+                  활동 빈도
+                </Text>
+                <RadioGroup.Root
+                  value={activityFrequency}
+                  onValueChange={(details) =>
+                    setActivityFrequency(details.value as ActivityFrequency)
+                  }
+                  disabled={isReadOnly}
+                >
+                  <VStack gap={2} align="stretch">
+                    {Object.entries(ActivityFrequencyLabel).map(
+                      ([value, label]) => (
+                        <RadioGroup.Item key={value} value={value}>
+                          <RadioGroup.ItemHiddenInput />
+                          <RadioGroup.ItemControl />
+                          <RadioGroup.ItemText>{label}</RadioGroup.ItemText>
+                        </RadioGroup.Item>
+                      ),
+                    )}
+                  </VStack>
+                </RadioGroup.Root>
+              </Box>
+
+              {/* Activity format */}
+              <Field.Root invalid={hasAttemptedSubmit && !activityFormat.trim()}>
+                <Text fontSize="sm" color="gray.600" mb={2}>
+                  기대하는 활동 형태
+                </Text>
+                <Textarea
+                  value={activityFormat}
+                  onChange={(e) => setActivityFormat(e.target.value)}
+                  placeholder="예: 책 보고 따라가는 형태, 바이브 코딩, 해커톤 스타일 등"
+                  rows={3}
+                  disabled={isReadOnly}
+                />
+                <Field.ErrorText>기대하는 활동 형태를 입력해주세요.</Field.ErrorText>
+              </Field.Root>
+
+              {/* Other suggestions */}
+              <Box>
+                <Text fontSize="sm" color="gray.600" mb={2}>
+                  기타 건의사항 (선택)
+                </Text>
+                <Textarea
+                  value={otherSuggestions}
+                  onChange={(e) => setOtherSuggestions(e.target.value)}
+                  placeholder="운영진에게 전달하고 싶은 내용이 있다면 자유롭게 작성해주세요"
+                  rows={3}
+                  disabled={isReadOnly}
+                />
+              </Box>
             </VStack>
-            {!isReadOnly && subjects.length < 3 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddSubject}
-                mt={3}
-              >
-                주제 추가
-              </Button>
-            )}
-          </Box>}
+          </Box>
+        )}
 
-          {!isReadOnly && (
-            <Box>
-              <Button
-                type="submit"
-                variant="solid"
-                disabled={isSubmitting || isUpdating}
-              >
-                {myAnswer ? "수정하기" : "제출하기"}
-              </Button>
-            </Box>
-          )}
-        </VStack>
-      </Container>
-
-      {/* Modals */}
-      {isRequestFieldModalOpen && (
-        <RequestFieldModal
-          isOpen={isRequestFieldModalOpen}
-          onClose={() => setIsRequestFieldModalOpen(false)}
-        />
-      )}
-    </>
+        {!isReadOnly && groupType && (
+          <Box>
+            <Button type="submit" disabled={isSubmitting || isUpdating}>
+              {myAnswer ? "수정하기" : "제출하기"}
+            </Button>
+          </Box>
+        )}
+      </VStack>
+    </Container>
   );
 }

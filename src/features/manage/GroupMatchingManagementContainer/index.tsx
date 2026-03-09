@@ -16,12 +16,10 @@ import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { DateFormats, formatDate } from "../../../util/date";
 import { Semester, SemesterLabel } from "../../../constant";
 
-import CreateSurveyModal from "./CreateSurveyModal";
 import UpdateDeadlineModal from "./UpdateDeadlineModal";
 
 export default function GroupMatchingManagementContainer() {
   const navigate = useNavigate();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedSurvey, setSelectedSurvey] =
     useState<GroupMatchingResponse | null>(null);
 
@@ -62,7 +60,7 @@ export default function GroupMatchingManagementContainer() {
           <Heading as="h2" size="lg">
             그룹 매칭 목록
           </Heading>
-          <Button onClick={() => setIsCreateModalOpen(true)}>
+          <Button onClick={() => navigate("/manage/group-matching/new")}>
             그룹 매칭 생성
           </Button>
         </Flex>
@@ -132,17 +130,6 @@ export default function GroupMatchingManagementContainer() {
           <Callout>현재 진행 중인 그룹 매칭 설문이 없습니다.</Callout>
         )}
       </Container>
-
-      {isCreateModalOpen && (
-        <CreateSurveyModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSuccess={() => {
-            setIsCreateModalOpen(false);
-            refetch();
-          }}
-        />
-      )}
 
       {selectedSurvey && (
         <UpdateDeadlineModal

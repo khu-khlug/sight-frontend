@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -25,8 +25,10 @@ import AnswerItem from "./AnswerItem";
 export default function GroupMatchingAnswerListContainer() {
   const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [filterGroupType, setFilterGroupType] = useState<GroupType | null>(null);
-  const [filterFieldId, setFilterFieldId] = useState<string | null>(null);
+  const [filterGroupType, setFilterGroupType] = useState<GroupType | null>(
+    null
+  );
+  const [filterOptionId, setFilterOptionId] = useState<string | null>(null);
 
   const limit = 20;
   const offset = (page - 1) * limit;
@@ -34,7 +36,7 @@ export default function GroupMatchingAnswerListContainer() {
   // URL 파라미터에서 surveyId 가져오기
   const surveyIdFromUrl = searchParams.get("surveyId");
 
-  // Get current survey or specific survey by ID
+  // Get group matchings
   const { data: groupMatchingsData } = useQuery({
     queryKey: ["group-matchings-admin"],
     queryFn: GroupMatchingManageApi.listGroupMatchings,
@@ -43,24 +45,43 @@ export default function GroupMatchingAnswerListContainer() {
 
   // URL에 surveyId가 있으면 해당 설문을, 없으면 최신 설문을 사용
   const survey = surveyIdFromUrl
-    ? groupMatchingsData?.groupMatchings.find((s) => s.id === surveyIdFromUrl) || null
+    ? groupMatchingsData?.groupMatchings.find(
+        (s) => s.id === surveyIdFromUrl
+      ) || null
     : groupMatchingsData?.groupMatchings[0] || null;
 
-  // Get fields for filter
-  const { data: fields } = useQuery({
-    queryKey: ["group-matching-fields-admin"],
-    queryFn: GroupMatchingManageApi.listFields,
+  // Get options for filter (study types only)
+  const optionFilterType =
+    filterGroupType === GroupType.BASIC_LANGUAGE_STUDY ||
+    filterGroupType === GroupType.PROJECT_STYLE_STUDY
+      ? filterGroupType
+      : null;
+
+  const { data: optionsForFilter } = useQuery({
+    queryKey: ["group-matching-options-filter", survey?.id, optionFilterType],
+    queryFn: () =>
+      GroupMatchingManageApi.listOptions(
+        survey!.id,
+        optionFilterType as "BASIC_LANGUAGE_STUDY" | "PROJECT_STYLE_STUDY"
+      ),
+    enabled: !!survey && !!optionFilterType,
     retry: 0,
   });
 
   // Get answers
   const { status, data, error, refetch } = useQuery({
-    queryKey: ["group-matching-answers", page, filterGroupType, filterFieldId],
+    queryKey: [
+      "group-matching-answers",
+      survey?.id,
+      page,
+      filterGroupType,
+      filterOptionId,
+    ],
     queryFn: () =>
       GroupMatchingManageApi.listAnswers({
         groupMatchingId: survey!.id,
         groupType: filterGroupType,
-        fieldId: filterFieldId,
+        optionId: filterOptionId,
         limit,
         offset,
       }),
@@ -73,6 +94,11 @@ export default function GroupMatchingAnswerListContainer() {
     refetch();
   };
 
+  const handleGroupTypeChange = (value: string) => {
+    setFilterGroupType(value === "" ? null : (value as GroupType));
+    setFilterOptionId(null); // Reset option filter when group type changes
+  };
+
   if (!survey) {
     return (
       <Container>
@@ -80,17 +106,6 @@ export default function GroupMatchingAnswerListContainer() {
       </Container>
     );
   }
-
-  const activeFields = fields?.filter((f) => !f.obsoletedAt) || [];
-
-  // fields를 id → name 매핑 객체로 변환
-  const fieldNameMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    fields?.forEach(field => {
-      map[field.id] = field.name;
-    });
-    return map;
-  }, [fields]);
 
   return (
     <>
@@ -108,45 +123,46 @@ export default function GroupMatchingAnswerListContainer() {
             <NativeSelectRoot>
               <NativeSelectField
                 value={filterGroupType || ""}
-                onChange={(e) =>
-                  setFilterGroupType(
-                    e.target.value === "" ? null : (e.target.value as GroupType)
-                  )
-                }
+                onChange={(e) => handleGroupTypeChange(e.target.value)}
               >
                 <option value="">전체</option>
-                <option value={GroupType.STUDY}>
-                  {GroupTypeLabel[GroupType.STUDY]}
+                <option value={GroupType.BASIC_LANGUAGE_STUDY}>
+                  {GroupTypeLabel[GroupType.BASIC_LANGUAGE_STUDY]}
                 </option>
-                <option value={GroupType.PROJECT}>
-                  {GroupTypeLabel[GroupType.PROJECT]}
+                <option value={GroupType.PROJECT_STYLE_STUDY}>
+                  {GroupTypeLabel[GroupType.PROJECT_STYLE_STUDY]}
+                </option>
+                <option value={GroupType.PRACTICAL_PROJECT}>
+                  {GroupTypeLabel[GroupType.PRACTICAL_PROJECT]}
                 </option>
               </NativeSelectField>
             </NativeSelectRoot>
           </VStack>
 
-          <VStack align="stretch" gap={2} flex={1}>
-            <Text fontWeight="medium" fontSize="sm">
-              관심 분야
-            </Text>
-            <NativeSelectRoot>
-              <NativeSelectField
-                value={filterFieldId || ""}
-                onChange={(e) =>
-                  setFilterFieldId(
-                    e.target.value === "" ? null : e.target.value
-                  )
-                }
-              >
-                <option value="">전체</option>
-                {activeFields.map((field) => (
-                  <option key={field.id} value={field.id}>
-                    {field.name}
-                  </option>
-                ))}
-              </NativeSelectField>
-            </NativeSelectRoot>
-          </VStack>
+          {optionFilterType && (
+            <VStack align="stretch" gap={2} flex={1}>
+              <Text fontWeight="medium" fontSize="sm">
+                옵션
+              </Text>
+              <NativeSelectRoot>
+                <NativeSelectField
+                  value={filterOptionId || ""}
+                  onChange={(e) =>
+                    setFilterOptionId(
+                      e.target.value === "" ? null : e.target.value
+                    )
+                  }
+                >
+                  <option value="">전체</option>
+                  {optionsForFilter?.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+                </NativeSelectField>
+              </NativeSelectRoot>
+            </VStack>
+          )}
 
           <Button onClick={handleSearch} alignSelf="flex-end">
             검색
@@ -167,11 +183,15 @@ export default function GroupMatchingAnswerListContainer() {
               return (
                 <>
                   <Heading as="h3" size="md" mb={4}>
-                    총 <Text as="span" color="brand.500">{data.count}개</Text> 응답
+                    총{" "}
+                    <Text as="span" color="brand.500">
+                      {data.count}개
+                    </Text>{" "}
+                    응답
                   </Heading>
                   <VStack gap={4} align="stretch" mb={5}>
                     {data.answers.map((answer) => (
-                      <AnswerItem key={answer.id} answer={answer} fieldNameMap={fieldNameMap} />
+                      <AnswerItem key={answer.id} answer={answer} />
                     ))}
                   </VStack>
                   <PageNavigator

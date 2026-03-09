@@ -14,8 +14,7 @@ import FinancePage from "./pages/finance";
 import GroupMatchingPage from "./pages/member/group-matching";
 import GroupMatchingManagementPage from "./pages/manage/group-matching";
 import GroupMatchingAnswersPage from "./pages/manage/group-matching-answers";
-import GroupMatchingFieldsPage from "./pages/manage/group-matching-fields";
-import GroupMatchingFieldRequestsPage from "./pages/manage/group-matching-field-requests";
+import GroupMatchingNewPage from "./pages/manage/group-matching-new";
 import LoginPage from "./pages/login";
 
 function App() {
@@ -27,7 +26,7 @@ function App() {
           path="/member/integrate-discord"
           element={<IntegrateDiscordPage />}
         />
-        <Route path="/member/group-matching" element={<GroupMatchingPage />} />
+        <Route path="/group-matching" element={<GroupMatchingPage />} />
         <Route path="/login" element={<LoginPage />} />
 
         <Route path="/manage/infra-blue" element={<InfraBluePage />} />
@@ -42,12 +41,8 @@ function App() {
           element={<GroupMatchingAnswersPage />}
         />
         <Route
-          path="/manage/group-matching-fields"
-          element={<GroupMatchingFieldsPage />}
-        />
-        <Route
-          path="/manage/group-matching-field-requests"
-          element={<GroupMatchingFieldRequestsPage />}
+          path="/manage/group-matching/new"
+          element={<GroupMatchingNewPage />}
         />
         <Route path="/finance" element={<FinancePage />} />
       </Route>,

@@ -1,6 +1,6 @@
 import { isAxiosError } from "axios";
 import apiV2Client from "../client/v2";
-import { GroupType } from "../../constant";
+import { ActivityFrequency, GroupType } from "../../constant";
 
 // DTOs
 export type GroupMatchingDto = {
@@ -11,7 +11,7 @@ export type GroupMatchingDto = {
   createdAt: string;
 };
 
-export type GroupMatchingFieldDto = {
+export type GroupMatchingOptionDto = {
   id: string;
   name: string;
 };
@@ -22,20 +22,21 @@ export type MatchedGroupDto = {
   createdAt: string;
 };
 
-export type GroupMatchingSubjectDto = {
-  id: string;
-  subject: string;
-};
-
 export type MyGroupMatchingAnswerDto = {
   id: string;
   userId: number;
+  groupMatchingId: string;
   groupType: GroupType;
   isPreferOnline: boolean;
-  groupMatchingId: string;
-  fields: GroupMatchingFieldDto[];
+  activityFrequency: ActivityFrequency;
+  activityFormat: string;
+  otherSuggestions: string | null;
+  selectedOptions: GroupMatchingOptionDto[];
+  customOption: string | null;
+  role: string | null;
+  hasIdea: boolean | null;
+  idea: string | null;
   matchedGroups: MatchedGroupDto[];
-  groupMatchingSubjects: GroupMatchingSubjectDto[];
   createdAt: string;
   updatedAt: string;
 };
@@ -43,43 +44,34 @@ export type MyGroupMatchingAnswerDto = {
 export type SubmitAnswerRequestDto = {
   groupType: GroupType;
   isPreferOnline: boolean;
-  groupMatchingFieldIds: string[];
-  groupMatchingSubjects: string[];
+  activityFrequency: ActivityFrequency;
+  activityFormat: string;
+  otherSuggestions?: string;
+  selectedOptionIds?: string[];
+  customOption?: string;
+  role?: string;
+  hasIdea?: boolean;
+  idea?: string;
 };
 
-export type UpdateAnswerRequestDto = {
-  groupType: GroupType;
-  isPreferOnline: boolean;
-  fieldIds: string[];
-  subjects: string[];
-};
-
-export type CreateFieldRequestDto = {
-  fieldName: string;
-  requestReason: string;
-};
-
-export type CreateFieldRequestResponseDto = {
-  id: string;
-  fieldName: string;
-  requestReason: string;
-  createdAt: string;
-};
+export type UpdateAnswerRequestDto = SubmitAnswerRequestDto;
 
 export type GroupMatchingPublicApiDto = {
   GroupMatchingDto: GroupMatchingDto;
-  GroupMatchingFieldDto: GroupMatchingFieldDto;
+  GroupMatchingOptionDto: GroupMatchingOptionDto;
   MyGroupMatchingAnswerDto: MyGroupMatchingAnswerDto;
   SubmitAnswerRequestDto: SubmitAnswerRequestDto;
   UpdateAnswerRequestDto: UpdateAnswerRequestDto;
-  CreateFieldRequestDto: CreateFieldRequestDto;
-  CreateFieldRequestResponseDto: CreateFieldRequestResponseDto;
 };
 
 // API functions
+
+/** 현재 진행 중인 그룹 매칭 조회 */
 const getCurrentGroupMatching = async (): Promise<GroupMatchingDto | null> => {
   try {
-    const response = await apiV2Client.get<GroupMatchingDto>("/group-matchings/ongoing");
+    const response = await apiV2Client.get<GroupMatchingDto>(
+      "/group-matchings/ongoing"
+    );
     return response.data;
   } catch (e) {
     if (isAxiosError(e) && e.response?.status === 404) {
@@ -89,6 +81,19 @@ const getCurrentGroupMatching = async (): Promise<GroupMatchingDto | null> => {
   }
 };
 
+/** 특정 그룹 매칭의 옵션 목록 조회 (기초 언어 스터디 / 프로젝트형 스터디) */
+const listOptions = async (
+  groupMatchingId: string,
+  type: "BASIC_LANGUAGE_STUDY" | "PROJECT_STYLE_STUDY"
+): Promise<GroupMatchingOptionDto[]> => {
+  const response = await apiV2Client.get<GroupMatchingOptionDto[]>(
+    `/group-matchings/${groupMatchingId}/options`,
+    { params: { type } }
+  );
+  return response.data;
+};
+
+/** 내 설문 응답 조회 */
 const getMyAnswer = async (
   groupMatchingId: string
 ): Promise<MyGroupMatchingAnswerDto | null> => {
@@ -105,11 +110,7 @@ const getMyAnswer = async (
   }
 };
 
-const listAvailableFields = async (): Promise<GroupMatchingFieldDto[]> => {
-  const response = await apiV2Client.get<GroupMatchingFieldDto[]>("/fields");
-  return response.data;
-};
-
+/** 설문 응답 제출 */
 const submitAnswer = async (
   groupMatchingId: string,
   dto: SubmitAnswerRequestDto
@@ -121,6 +122,7 @@ const submitAnswer = async (
   return response.data;
 };
 
+/** 설문 응답 수정 */
 const updateAnswer = async (
   groupMatchingId: string,
   dto: UpdateAnswerRequestDto
@@ -132,21 +134,10 @@ const updateAnswer = async (
   return response.data;
 };
 
-const createFieldRequest = async (
-  dto: CreateFieldRequestDto
-): Promise<CreateFieldRequestResponseDto> => {
-  const response = await apiV2Client.post<CreateFieldRequestResponseDto>(
-    "/field-requests",
-    dto
-  );
-  return response.data;
-};
-
 export const GroupMatchingPublicApi = {
   getCurrentGroupMatching,
+  listOptions,
   getMyAnswer,
-  listAvailableFields,
   submitAnswer,
   updateAnswer,
-  createFieldRequest,
 };

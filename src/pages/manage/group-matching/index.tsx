@@ -1,18 +1,16 @@
-import Location from "../../../components/Location";
-import GroupMatchingManagementContainer from "../../../features/manage/GroupMatchingManagementContainer";
-import GroupMatchingFieldManagementContainer from "../../../features/manage/GroupMatchingFieldManagementContainer";
-import SightLayout from "../../../layouts/SightLayout";
+import { Box } from "@chakra-ui/react";
 
-import "./style.css";
+import GroupMatchingManagementContainer from "../../../features/manage/GroupMatchingManagementContainer";
+import GroupMatchingOptionManagementContainer from "../../../features/manage/GroupMatchingOptionManagementContainer";
+import MainLayout from "../../../layouts/MainLayout";
 
 export default function GroupMatchingManagementPage() {
   return (
-    <SightLayout>
-      <Location label="그룹 매칭 관리" />
-      <main className="content">
+    <MainLayout>
+      <Box mt={4}>
         <GroupMatchingManagementContainer />
-        <GroupMatchingFieldManagementContainer />
-      </main>
-    </SightLayout>
+        <GroupMatchingOptionManagementContainer />
+      </Box>
+    </MainLayout>
   );
 }
