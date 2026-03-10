@@ -151,32 +151,30 @@ export default function GroupMatchingSurveyContainer() {
     setHasAttemptedSubmit(true);
 
     if (!groupType) return;
-    if (isStudyType && selectedOptionIds.length === 0 && !isCustomOptionChecked) return;
+    if (isStudyType && selectedOptionIds.length === 0 && !isCustomOptionChecked)
+      return;
     if (isCustomOptionChecked && customOption.trim() === "") return;
     if (groupType === GroupType.PRACTICAL_PROJECT && !role) return;
-    if (groupType === GroupType.PRACTICAL_PROJECT && hasIdea && !idea.trim()) return;
+    if (groupType === GroupType.PRACTICAL_PROJECT && hasIdea && !idea.trim())
+      return;
     if (!activityFormat.trim()) return;
 
     const requestData = {
+      groupType: groupType,
+      isPreferOnline: isPreferOnline,
+      activityFrequency: activityFrequency,
       activityFormat: activityFormat.trim(),
       otherSuggestions: otherSuggestions.trim() || undefined,
-    } as SubmitAnswerRequestDto;
-    requestData.groupType = groupType!;
-    requestData.isPreferOnline = isPreferOnline;
-    requestData.activityFrequency = activityFrequency;
 
-    if (isStudyType) {
-      requestData.selectedOptionIds = selectedOptionIds;
-      requestData.customOption = isCustomOptionChecked
-        ? customOption.trim()
-        : undefined;
-    }
+      // 언어 스터디 및 프로젝트형 스터디 시 설문 항목
+      selectedOptionIds: isStudyType ? selectedOptionIds : undefined,
+      customOption: isStudyType ? customOption.trim() : undefined,
 
-    if (groupType === GroupType.PRACTICAL_PROJECT) {
-      requestData.role = role;
-      requestData.hasIdea = hasIdea;
-      requestData.idea = hasIdea ? idea.trim() : undefined;
-    }
+      // 실무형 프로젝트 시 설문 항목
+      role: !isStudyType ? role : undefined,
+      hasIdea: !isStudyType ? hasIdea : undefined,
+      idea: !isStudyType && hasIdea ? idea.trim() : undefined,
+    } as const;
 
     try {
       if (myAnswer) {
@@ -448,9 +446,7 @@ export default function GroupMatchingSurveyContainer() {
                 </Box>
                 {isCustomOptionChecked && (
                   <Field.Root
-                    invalid={
-                      hasAttemptedSubmit && customOption.trim() === ""
-                    }
+                    invalid={hasAttemptedSubmit && customOption.trim() === ""}
                   >
                     <Input
                       value={customOption}
@@ -517,7 +513,10 @@ export default function GroupMatchingSurveyContainer() {
                     </HStack>
                   </RadioGroup.Root>
                   {hasIdea && (
-                    <Field.Root invalid={hasAttemptedSubmit && !idea.trim()} mt={3}>
+                    <Field.Root
+                      invalid={hasAttemptedSubmit && !idea.trim()}
+                      mt={3}
+                    >
                       <Textarea
                         value={idea}
                         onChange={(e) => setIdea(e.target.value)}
@@ -525,7 +524,9 @@ export default function GroupMatchingSurveyContainer() {
                         rows={3}
                         disabled={isReadOnly}
                       />
-                      <Field.ErrorText>아이디어를 입력해주세요.</Field.ErrorText>
+                      <Field.ErrorText>
+                        아이디어를 입력해주세요.
+                      </Field.ErrorText>
                     </Field.Root>
                   )}
                 </Box>
@@ -595,7 +596,9 @@ export default function GroupMatchingSurveyContainer() {
               </Box>
 
               {/* Activity format */}
-              <Field.Root invalid={hasAttemptedSubmit && !activityFormat.trim()}>
+              <Field.Root
+                invalid={hasAttemptedSubmit && !activityFormat.trim()}
+              >
                 <Text fontSize="sm" color="gray.600" mb={2}>
                   기대하는 활동 형태
                 </Text>
@@ -606,7 +609,9 @@ export default function GroupMatchingSurveyContainer() {
                   rows={3}
                   disabled={isReadOnly}
                 />
-                <Field.ErrorText>기대하는 활동 형태를 입력해주세요.</Field.ErrorText>
+                <Field.ErrorText>
+                  기대하는 활동 형태를 입력해주세요.
+                </Field.ErrorText>
               </Field.Root>
 
               {/* Other suggestions */}
