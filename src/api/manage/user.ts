@@ -79,8 +79,20 @@ const stepdownManager = async (userId: number) => {
   await apiV2Client.delete(`/manager/users/${userId}/manager`);
 };
 
+/** 졸업 처리 */
+const graduateMember = async (userId: number) => {
+  await apiV2Client.post(`/manager/users/${userId}/graduation`);
+};
+
+/** 졸업 취소 처리 */
+const ungraduateMember = async (userId: number) => {
+  await apiV2Client.delete(`/manager/users/${userId}/graduation`);
+};
+
 export const UserManageApi = {
   listUserForManager,
   appointManager,
   stepdownManager,
+  graduateMember,
+  ungraduateMember,
 };

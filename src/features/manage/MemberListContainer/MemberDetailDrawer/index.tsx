@@ -48,6 +48,18 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
     },
   });
 
+  const switchGraduatedMutation = useMutation({
+    mutationFn: (params: { userId: number; toBeGraduated: boolean }) =>
+      params.toBeGraduated
+        ? UserManageApi.graduateMember(params.userId)
+        : UserManageApi.ungraduateMember(params.userId),
+    onSuccess: () => {
+      setIsSwitchGraduatedModalOpen(false);
+      refetch();
+      onClose();
+    },
+  });
+
   const isManager = user?.manager ?? false;
   const isGraduated = user?.studentStatus === StudentStatus.GRADUATE;
   const isStopped = user?.returnAt !== null && user?.returnAt !== undefined;
@@ -316,7 +328,13 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
               isOpen={isSwitchGraduatedModalOpen}
               toBeGraduated={!isGraduated}
               targetUserProfile={userProfileForConfirm}
-              onConfirm={() => console.log("Confirmed!")}
+              isLoading={switchGraduatedMutation.isPending}
+              onConfirm={() =>
+                switchGraduatedMutation.mutate({
+                  userId: user!.id,
+                  toBeGraduated: !isGraduated,
+                })
+              }
               onCancel={() => setIsSwitchGraduatedModalOpen(false)}
             />
           )}

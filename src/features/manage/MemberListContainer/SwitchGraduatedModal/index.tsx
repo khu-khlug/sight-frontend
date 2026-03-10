@@ -10,6 +10,7 @@ type Props = {
     number: number;
     college: string;
   };
+  isLoading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -18,6 +19,7 @@ export default function SwitchGraduatedModal({
   isOpen,
   toBeGraduated,
   targetUserProfile,
+  isLoading,
   onConfirm,
   onCancel,
 }: Props) {
@@ -26,6 +28,7 @@ export default function SwitchGraduatedModal({
       isOpen={isOpen}
       title={toBeGraduated ? "졸업 처리" : "졸업 취소 처리"}
       targetUserProfile={targetUserProfile}
+      isLoading={isLoading}
       onConfirm={onConfirm}
       onCancel={onCancel}
     >
