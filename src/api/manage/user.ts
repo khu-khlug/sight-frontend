@@ -89,10 +89,22 @@ const ungraduateMember = async (userId: number) => {
   await apiV2Client.delete(`/manager/users/${userId}/graduation`);
 };
 
+/** 회원 활동 정지 */
+const pauseMember = async (userId: number, body: { returnAt: string; reason: string }) => {
+  await apiV2Client.post(`/manager/users/${userId}/pause`, body);
+};
+
+/** 회원 활동 정지 해제 */
+const resumeMember = async (userId: number) => {
+  await apiV2Client.delete(`/manager/users/${userId}/pause`);
+};
+
 export const UserManageApi = {
   listUserForManager,
   appointManager,
   stepdownManager,
   graduateMember,
   ungraduateMember,
+  pauseMember,
+  resumeMember,
 };

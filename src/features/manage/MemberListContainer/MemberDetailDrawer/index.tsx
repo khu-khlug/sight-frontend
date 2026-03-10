@@ -12,7 +12,8 @@ import badgeStyles from "../badge.module.css";
 import TagList from "../TagList";
 import SwitchManagerModal from "../SwitchManagerModal";
 import SwitchGraduatedModal from "../SwitchGraduatedModal";
-import SwitchStoppedModal from "../SwitchStoppedModal";
+import PauseMemberModal from "../PauseMemberModal";
+import ResumeMemberModal from "../ResumeMemberModal";
 import SwitchBlockedModal from "../SwitchBlockedModal";
 import RemoveMemberModal from "../RemoveMemberModal";
 
@@ -30,8 +31,8 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
     useState(false);
   const [isSwitchGraduatedModalOpen, setIsSwitchGraduatedModalOpen] =
     useState(false);
-  const [isSwitchStoppedModalOpen, setIsSwitchStoppedModalOpen] =
-    useState(false);
+  const [isPauseMemberModalOpen, setIsPauseMemberModalOpen] = useState(false);
+  const [isResumeMemberModalOpen, setIsResumeMemberModalOpen] = useState(false);
   const [isSwitchBlockedModalOpen, setIsSwitchBlockedModalOpen] =
     useState(false);
   const [isRemoveMemberModalOpen, setIsRemoveMemberModalOpen] = useState(false);
@@ -55,6 +56,28 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
         : UserManageApi.ungraduateMember(params.userId),
     onSuccess: () => {
       setIsSwitchGraduatedModalOpen(false);
+      refetch();
+      onClose();
+    },
+  });
+
+  const pauseMemberMutation = useMutation({
+    mutationFn: (params: { userId: number; reason: string; returnAt: Date }) =>
+      UserManageApi.pauseMember(params.userId, {
+        returnAt: formatDate(params.returnAt, DateFormats.DATE),
+        reason: params.reason,
+      }),
+    onSuccess: () => {
+      setIsPauseMemberModalOpen(false);
+      refetch();
+      onClose();
+    },
+  });
+
+  const resumeMemberMutation = useMutation({
+    mutationFn: (userId: number) => UserManageApi.resumeMember(userId),
+    onSuccess: () => {
+      setIsResumeMemberModalOpen(false);
       refetch();
       onClose();
     },
@@ -114,7 +137,7 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
                 </Drawer.CloseTrigger>
               </Drawer.Header>
 
-              <Drawer.Body>
+              <Drawer.Body className={styles["drawer-body"]}>
                 {user && (
                   <>
                     <div className={styles["section"]}>
@@ -261,7 +284,7 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
                 )}
               </Drawer.Body>
 
-              <Drawer.Footer>
+              <Drawer.Footer className={styles["drawer-footer"]}>
                 {user && (
                   <div className={styles["footer-buttons"]}>
                     <div className={styles["neutral-buttons"]}>
@@ -279,7 +302,11 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
                       </button>
                       <button
                         className={styles["neutral-button"]}
-                        onClick={() => setIsSwitchStoppedModalOpen(true)}
+                        onClick={() =>
+                          isStopped
+                            ? setIsResumeMemberModalOpen(true)
+                            : setIsPauseMemberModalOpen(true)
+                        }
                       >
                         {isStopped ? "정지 해제" : "정지"}
                       </button>
@@ -338,13 +365,24 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
               onCancel={() => setIsSwitchGraduatedModalOpen(false)}
             />
           )}
-          {isSwitchStoppedModalOpen && (
-            <SwitchStoppedModal
-              isOpen={isSwitchStoppedModalOpen}
-              toBeStopped={!isStopped}
+          {isPauseMemberModalOpen && (
+            <PauseMemberModal
+              isOpen={isPauseMemberModalOpen}
               targetUserProfile={userProfileForConfirm}
-              onConfirm={() => console.log("Confirmed!")}
-              onCancel={() => setIsSwitchStoppedModalOpen(false)}
+              isLoading={pauseMemberMutation.isPending}
+              onConfirm={(reason, returnAt) =>
+                pauseMemberMutation.mutate({ userId: user!.id, reason, returnAt })
+              }
+              onCancel={() => setIsPauseMemberModalOpen(false)}
+            />
+          )}
+          {isResumeMemberModalOpen && (
+            <ResumeMemberModal
+              isOpen={isResumeMemberModalOpen}
+              targetUserProfile={userProfileForConfirm}
+              isLoading={resumeMemberMutation.isPending}
+              onConfirm={() => resumeMemberMutation.mutate(user!.id)}
+              onCancel={() => setIsResumeMemberModalOpen(false)}
             />
           )}
           {isSwitchBlockedModalOpen && (

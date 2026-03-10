@@ -3,6 +3,7 @@ import TargetUserConfirmationModal from "../TargetUserConfirmationModal";
 
 import styles from "./style.module.css";
 import dayjs from "dayjs";
+import { Text } from "@chakra-ui/react";
 
 type Props = {
   isOpen: boolean;
@@ -12,6 +13,7 @@ type Props = {
     number: number;
     college: string;
   };
+  isLoading?: boolean;
   onConfirm: (reason: string, returnAt: Date) => void;
   onCancel: () => void;
 };
@@ -20,6 +22,7 @@ export default function SwitchStoppedModal({
   isOpen,
   toBeStopped,
   targetUserProfile,
+  isLoading,
   onConfirm,
   onCancel,
 }: Props) {
@@ -40,6 +43,7 @@ export default function SwitchStoppedModal({
       isOpen={isOpen}
       title={toBeStopped ? "정지 처리" : "복귀 처리"}
       targetUserProfile={targetUserProfile}
+      isLoading={isLoading}
       onConfirm={handleConfirm}
       onCancel={onCancel}
     >
@@ -65,20 +69,20 @@ export default function SwitchStoppedModal({
               />
               <span>까지 정지 처리합니다.</span>
             </p>
-            <p>
+            <Text mt={2}>
               활동 정지 시 의무 납부 대상 및 info21 미인증 대상 산출에서
               제외되며, 해당 날짜 자정에 자동으로 해제됩니다.
-            </p>
+            </Text>
           </>
         ) : (
           <>
-            <p>
+            <Text mt={2}>
               {targetUserProfile.name} 님이 복귀하신 것으로 확인되었습니까? 복귀
               시 의무 납부 대상 및 info21 미인증 대상 산출에 포함됩니다.
-            </p>
+            </Text>
           </>
         )}
-        <p>대상이 맞는지 다시 한 번 확인해주세요.</p>
+        <Text mt={2}>대상이 맞는지 다시 한 번 확인해주세요.</Text>
       </form>
     </TargetUserConfirmationModal>
   );
