@@ -157,13 +157,13 @@ export default function GroupMatchingSurveyContainer() {
     if (groupType === GroupType.PRACTICAL_PROJECT && hasIdea && !idea.trim()) return;
     if (!activityFormat.trim()) return;
 
-    const requestData: SubmitAnswerRequestDto = {
-      groupType,
-      isPreferOnline,
-      activityFrequency,
+    const requestData = {
       activityFormat: activityFormat.trim(),
       otherSuggestions: otherSuggestions.trim() || undefined,
-    };
+    } as SubmitAnswerRequestDto;
+    requestData.groupType = groupType!;
+    requestData.isPreferOnline = isPreferOnline;
+    requestData.activityFrequency = activityFrequency;
 
     if (isStudyType) {
       requestData.selectedOptionIds = selectedOptionIds;
