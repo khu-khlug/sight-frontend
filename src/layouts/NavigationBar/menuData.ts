@@ -76,7 +76,8 @@ export const menuItems: MenuItem[] = [
     requiresManager: true,
     subItems: [
       { label: "가입 신청", href: "https://khlug.org/apply" },
-      { label: "회원 관리", href: "https://khlug.org/manage/member" },
+      { label: "등록 관리", href: "https://khlug.org/manage/member" },
+      { label: "회원 관리", href: "https://app.khlug.org/manage/member" },
       { label: "회비 납부", href: "https://khlug.org/manage/fee" },
       { label: "세미나 대상", href: "https://khlug.org/manage/seminar" },
       { label: "경험치 지급", href: "https://khlug.org/manage/exp" },
