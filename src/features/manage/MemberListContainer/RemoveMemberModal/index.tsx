@@ -9,6 +9,7 @@ type Props = {
     number: number;
     college: string;
   };
+  isLoading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -16,6 +17,7 @@ type Props = {
 export default function RemoveMemberModal({
   isOpen,
   targetUserProfile,
+  isLoading,
   onConfirm,
   onCancel,
 }: Props) {
@@ -24,6 +26,7 @@ export default function RemoveMemberModal({
       isOpen={isOpen}
       title="회원 제명"
       targetUserProfile={targetUserProfile}
+      isLoading={isLoading}
       onConfirm={onConfirm}
       onCancel={onCancel}
     >

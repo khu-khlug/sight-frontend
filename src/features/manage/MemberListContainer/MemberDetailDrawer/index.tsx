@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Drawer, Portal } from "@chakra-ui/react";
+import { toast } from "react-toastify";
 import { X } from "lucide-react";
 
 import { ManageUserApiDto, UserManageApi } from "../../../../api/manage/user";
+import { extractErrorMessage } from "../../../../util/extractErrorMessage";
 import { StudentStatus, UserStatus } from "../../../../constant";
 import { DateFormats, formatDate } from "../../../../util/date";
 
@@ -92,6 +94,18 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
       setIsSwitchBlockedModalOpen(false);
       refetch();
       onClose();
+    },
+  });
+
+  const expelMemberMutation = useMutation({
+    mutationFn: (userId: number) => UserManageApi.expelMember(userId),
+    onSuccess: () => {
+      setIsRemoveMemberModalOpen(false);
+      refetch();
+      onClose();
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error));
     },
   });
 
@@ -416,7 +430,8 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
             <RemoveMemberModal
               isOpen={isRemoveMemberModalOpen}
               targetUserProfile={userProfileForConfirm}
-              onConfirm={() => console.log("Confirmed!")}
+              isLoading={expelMemberMutation.isPending}
+              onConfirm={() => expelMemberMutation.mutate(user!.id)}
               onCancel={() => setIsRemoveMemberModalOpen(false)}
             />
           )}

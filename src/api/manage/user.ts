@@ -109,6 +109,11 @@ const unblockMember = async (userId: number) => {
   await apiV2Client.delete(`/manager/users/${userId}/block`);
 };
 
+/** 회원 제명 */
+const expelMember = async (userId: number) => {
+  await apiV2Client.delete(`/manager/users/${userId}`);
+};
+
 export const UserManageApi = {
   listUserForManager,
   appointManager,
@@ -119,4 +124,5 @@ export const UserManageApi = {
   resumeMember,
   blockMember,
   unblockMember,
+  expelMember,
 };
