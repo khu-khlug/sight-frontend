@@ -83,6 +83,18 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
     },
   });
 
+  const switchBlockedMutation = useMutation({
+    mutationFn: (params: { userId: number; toBeBlocked: boolean }) =>
+      params.toBeBlocked
+        ? UserManageApi.blockMember(params.userId)
+        : UserManageApi.unblockMember(params.userId),
+    onSuccess: () => {
+      setIsSwitchBlockedModalOpen(false);
+      refetch();
+      onClose();
+    },
+  });
+
   const isManager = user?.manager ?? false;
   const isGraduated = user?.studentStatus === StudentStatus.GRADUATE;
   const isStopped = user?.returnAt !== null && user?.returnAt !== undefined;
@@ -390,7 +402,13 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
               isOpen={isSwitchBlockedModalOpen}
               toBeBlocked={!isBlocked}
               targetUserProfile={userProfileForConfirm}
-              onConfirm={() => console.log("Confirmed!")}
+              isLoading={switchBlockedMutation.isPending}
+              onConfirm={() =>
+                switchBlockedMutation.mutate({
+                  userId: user!.id,
+                  toBeBlocked: !isBlocked,
+                })
+              }
               onCancel={() => setIsSwitchBlockedModalOpen(false)}
             />
           )}

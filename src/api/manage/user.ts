@@ -99,6 +99,16 @@ const resumeMember = async (userId: number) => {
   await apiV2Client.delete(`/manager/users/${userId}/pause`);
 };
 
+/** 회원 접속 차단 */
+const blockMember = async (userId: number) => {
+  await apiV2Client.post(`/manager/users/${userId}/block`);
+};
+
+/** 회원 접속 차단 해제 */
+const unblockMember = async (userId: number) => {
+  await apiV2Client.delete(`/manager/users/${userId}/block`);
+};
+
 export const UserManageApi = {
   listUserForManager,
   appointManager,
@@ -107,4 +117,6 @@ export const UserManageApi = {
   ungraduateMember,
   pauseMember,
   resumeMember,
+  blockMember,
+  unblockMember,
 };

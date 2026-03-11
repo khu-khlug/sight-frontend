@@ -10,6 +10,7 @@ type Props = {
     number: number;
     college: string;
   };
+  isLoading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -18,6 +19,7 @@ export default function SwitchBlockedModal({
   isOpen,
   toBeBlocked,
   targetUserProfile,
+  isLoading,
   onConfirm,
   onCancel,
 }: Props) {
@@ -26,6 +28,7 @@ export default function SwitchBlockedModal({
       isOpen={isOpen}
       title={toBeBlocked ? "접속 차단" : "차단 해제"}
       targetUserProfile={targetUserProfile}
+      isLoading={isLoading}
       onConfirm={onConfirm}
       onCancel={onCancel}
     >
