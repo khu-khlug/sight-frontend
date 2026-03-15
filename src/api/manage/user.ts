@@ -35,6 +35,13 @@ type UserResponse = {
   updatedAt: Date;
 };
 
+export type MemberTagFilter =
+  | "UNAUTHORIZED"
+  | "BLOCKED"
+  | "MINUS_EXP"
+  | "FEE_TARGET"
+  | "HALF_FEE_TARGET";
+
 type ListUserRequestDto = {
   name: string | null;
   number: string | null;
@@ -43,6 +50,7 @@ type ListUserRequestDto = {
   phone: string | null;
   grade: number | null;
   studentStatus: StudentStatus | null;
+  tag: MemberTagFilter | null;
   limit: number;
   offset: number;
 };

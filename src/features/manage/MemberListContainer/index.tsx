@@ -5,7 +5,7 @@ import { Box, Heading } from "@chakra-ui/react";
 import Container from "../../../components/Container";
 import Button from "../../../components/Button";
 
-import { ManageUserApiDto, UserManageApi } from "../../../api/manage/user";
+import { ManageUserApiDto, MemberTagFilter, UserManageApi } from "../../../api/manage/user";
 import { StudentStatus } from "../../../constant";
 
 import MemberTable from "./MemberTable";
@@ -16,7 +16,7 @@ import PageNavigator from "../../../components/PageNavigator";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { Validator } from "../../../util/validator";
 
-import { SearchType } from "./types";
+import { MemberTagFilterLabel, SearchType } from "./types";
 
 import styles from "./style.module.css";
 
@@ -31,6 +31,7 @@ const MemberListContainer = () => {
   const [studentStatus, setStudentStatus] = useState<StudentStatus | null>(
     null,
   );
+  const [tag, setTag] = useState<MemberTagFilter | null>(null);
   const [page, setPage] = useState(1);
 
   const [selectedUser, setSelectedUser] = useState<ManageUserApiDto["UserResponse"] | null>(null);
@@ -57,6 +58,7 @@ const MemberListContainer = () => {
       phone: null,
       grade: grade ? Number(grade) : null,
       studentStatus,
+      tag,
       offset,
       limit,
     };
@@ -158,6 +160,28 @@ const MemberListContainer = () => {
                 <option value={StudentStatus.ABSENCE}>휴학</option>
                 <option value={StudentStatus.UNDERGRADUATE}>재학</option>
                 <option value={StudentStatus.GRADUATE}>졸업</option>
+              </select>
+            </div>
+            <div>
+              <label>태그</label>
+              <select
+                value={tag ?? ""}
+                onChange={(e) =>
+                  setTag(
+                    e.target.value === ""
+                      ? null
+                      : (e.target.value as MemberTagFilter),
+                  )
+                }
+              >
+                <option></option>
+                {(Object.keys(MemberTagFilterLabel) as MemberTagFilter[]).map(
+                  (key) => (
+                    <option key={key} value={key}>
+                      {MemberTagFilterLabel[key]}
+                    </option>
+                  ),
+                )}
               </select>
             </div>
           </div>
