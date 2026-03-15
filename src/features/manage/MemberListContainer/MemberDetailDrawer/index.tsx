@@ -28,7 +28,12 @@ type Props = {
   refetch: () => void;
 };
 
-export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: Props) {
+export default function MemberDetailDrawer({
+  user,
+  isOpen,
+  onClose,
+  refetch,
+}: Props) {
   const [isSwitchManagerModalOpen, setIsSwitchManagerModalOpen] =
     useState(false);
   const [isSwitchGraduatedModalOpen, setIsSwitchGraduatedModalOpen] =
@@ -202,9 +207,7 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
 
                     <hr className={styles["separator"]} />
 
-                    {(user.profile.email ||
-                      user.profile.phone ||
-                      user.slack) && (
+                    {(user.profile.email || user.profile.phone) && (
                       <>
                         <div className={styles["section"]}>
                           <h3 className={styles["section-title"]}>연락처</h3>
@@ -225,14 +228,6 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
                               </span>
                               <span className={styles["info-value"]}>
                                 {user.profile.phone}
-                              </span>
-                            </div>
-                          )}
-                          {user.slack && (
-                            <div className={styles["info-row"]}>
-                              <span className={styles["info-label"]}>슬랙</span>
-                              <span className={styles["info-value"]}>
-                                {user.slack}
                               </span>
                             </div>
                           )}
@@ -397,7 +392,11 @@ export default function MemberDetailDrawer({ user, isOpen, onClose, refetch }: P
               targetUserProfile={userProfileForConfirm}
               isLoading={pauseMemberMutation.isPending}
               onConfirm={(reason, returnAt) =>
-                pauseMemberMutation.mutate({ userId: user!.id, reason, returnAt })
+                pauseMemberMutation.mutate({
+                  userId: user!.id,
+                  reason,
+                  returnAt,
+                })
               }
               onCancel={() => setIsPauseMemberModalOpen(false)}
             />

@@ -83,7 +83,6 @@ export const menuItems: MenuItem[] = [
       { label: "경험치 지급", href: "https://khlug.org/manage/exp" },
       { label: "출석 체크", href: "https://khlug.org/manage/attendance" },
       { label: "문자 발송", href: "https://khlug.org/manage/sms" },
-      { label: "Slack 참여자", href: "https://khlug.org/manage/slack" },
       {
         label: "그룹 매칭 관리",
         href: "https://app.khlug.org/manage/group-matching",

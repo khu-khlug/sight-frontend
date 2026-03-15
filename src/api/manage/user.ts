@@ -22,7 +22,6 @@ type UserResponse = {
   point: number;
   status: UserStatus;
   manager: boolean;
-  slack: string | null;
   rememberToken: string | null;
   khuisAuthAt: Date;
   returnAt: Date | null;
@@ -98,7 +97,10 @@ const ungraduateMember = async (userId: number) => {
 };
 
 /** 회원 활동 정지 */
-const pauseMember = async (userId: number, body: { returnAt: string; reason: string }) => {
+const pauseMember = async (
+  userId: number,
+  body: { returnAt: string; reason: string },
+) => {
   await apiV2Client.post(`/manager/users/${userId}/pause`, body);
 };
 
