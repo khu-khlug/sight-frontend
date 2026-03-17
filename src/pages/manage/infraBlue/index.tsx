@@ -2,13 +2,13 @@ import DoorLockManagementContainer from "../../../features/manage/DoorLockManage
 import SightLayout from "../../../layouts/SightLayout";
 import Location from "../../../components/Location";
 
-import "./style.css";
+import styles from "./style.module.css";
 
 export default function InfraBluePage() {
   return (
     <SightLayout>
       <Location label="infraBlue" />
-      <main className="content">
+      <main className={styles.content}>
         <DoorLockManagementContainer />
       </main>
     </SightLayout>

@@ -28,7 +28,7 @@ export default function AnswerItem({ answer }: Props) {
     >
       <HStack justify="space-between" mb={3}>
         <Text fontWeight="semibold" fontSize="md">
-          사용자 ID: {answer.userId}
+          {answer.answerUserName} ({answer.answerUserNumber ?? "-"})
         </Text>
         <Badge
           colorPalette="blue"

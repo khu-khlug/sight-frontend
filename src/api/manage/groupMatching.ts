@@ -77,6 +77,8 @@ export type GroupResponse = {
 export type GroupMatchingAnswerDto = {
   id: string;
   userId: number;
+  answerUserName: string;
+  answerUserNumber: number | null;
   groupMatchingId: string;
   groupType: GroupType;
   isPreferOnline: boolean;

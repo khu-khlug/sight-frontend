@@ -1,16 +1,13 @@
-import Location from "../../../components/Location";
+import { Box } from "@chakra-ui/react";
 import GroupMatchingAnswerListContainer from "../../../features/manage/GroupMatchingAnswerListContainer";
-import SightLayout from "../../../layouts/SightLayout";
-
-import "./style.css";
+import MainLayout from "../../../layouts/MainLayout";
 
 export default function GroupMatchingAnswersPage() {
   return (
-    <SightLayout>
-      <Location label="그룹 매칭 응답 목록" />
-      <main className="content">
+    <MainLayout>
+      <Box mt={4}>
         <GroupMatchingAnswerListContainer />
-      </main>
-    </SightLayout>
+      </Box>
+    </MainLayout>
   );
 }
