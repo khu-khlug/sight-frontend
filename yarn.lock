@@ -3424,6 +3424,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@undecaf/zbar-wasm@npm:^0.11.0":
+  version: 0.11.0
+  resolution: "@undecaf/zbar-wasm@npm:0.11.0"
+  checksum: 10c0/a0a376552fb2aaa7706f8418a534d3b7d606f78deaf2a3457598660507e3770a1d82e36e317717dd0ec2f35905ccc04bdaa5b5e224ee3f7532175babd38a20a2
+  languageName: node
+  linkType: hard
+
 "@vitejs/plugin-react-swc@npm:^4.2.3":
   version: 4.3.0
   resolution: "@vitejs/plugin-react-swc@npm:4.3.0"
@@ -8881,6 +8888,7 @@ __metadata:
     "@types/react": "npm:^18.3.10"
     "@types/react-dom": "npm:^18.3.0"
     "@types/react-modal": "npm:^3"
+    "@undecaf/zbar-wasm": "npm:^0.11.0"
     "@vitejs/plugin-react-swc": "npm:^4.2.3"
     axios: "npm:^1.7.7"
     classnames: "npm:^2.5.1"
