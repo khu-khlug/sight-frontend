@@ -52,7 +52,7 @@ const deleteBook = async (bookId: string): Promise<void> => {
 
 /** 도서 등록 (isbn으로 정보 자동입력) */
 const registerBook = async (isbn: string): Promise<{ bookId: string }> => {
-  const response = await apiV2Client.post<{ bookId: string }>("/book", null, {
+  const response = await apiV2Client.post<{ bookId: string }>("/book/register", null, {
     params: { isbn },
   });
   return response.data;
