@@ -30,7 +30,7 @@ export const GroupTypeDescription: Record<GroupType, string> = {
   [GroupType.BASIC_LANGUAGE_STUDY]:
     "Python, Java 등 프로그래밍 언어를 함께 공부해요. 개발이 처음이라면 추천드려요.",
   [GroupType.PROJECT_STYLE_STUDY]:
-    "특정 주제나 기술을 함께 공부하고 활용해서 무언가 만들어봐요. 할 줄 아는 언어가 있는데 이걸로 뭘 해야할지 모르는 분들께 추천드려요.",
+    "같은 언어나 기술 스택을 사용하는 사람들끼리 모여 함께 공부하고 무언가 만들어봐요. 할 줄 아는 언어가 있는데 이걸로 뭘 해야할지 모르는 분들께 추천드려요.",
   [GroupType.PRACTICAL_PROJECT]:
     "여러 역할을 가진 회원들과 함께 실제 서비스를 기획하고 개발해요. 개발자와 협업해보고 싶었거나, 취업에 활용할 포트폴리오를 만들고 싶으신 분들께 추천드려요.",
 };
@@ -53,6 +53,11 @@ export const PracticalProjectRole = {
   FRONTEND: "프론트엔드 개발자",
   BACKEND: "백엔드 개발자",
   FULLSTACK: "풀스택 개발자",
+  MOBILE: "앱 개발자",
+  GAME_UNITY: "게임 개발자 (유니티)",
+  GAME_UNREAL: "게임 개발자 (언리얼)",
+  AI_ML: "AI / ML 개발자",
+  DEVOPS: "DevOps / 인프라",
   DESIGNER: "디자이너 (UI/UX)",
   PM: "기획자 / PM",
   OTHER: "기타",
