@@ -63,21 +63,23 @@ function BorrowedCard({
   return (
     <Box borderWidth={1} borderRadius="md" px={4} py={3}>
       <Flex align="center" justify="space-between" gap={3}>
-        <Flex align="baseline" gap={2} flexWrap="wrap">
-          <Text
-            fontWeight="semibold"
-            fontSize="lg"
-            cursor="pointer"
-            onClick={() =>
-              navigate(`/member/${item.borrowerInfo!.borrowerID}`)
-            }
-          >
-            {item.borrowerInfo!.borrowerName}
-          </Text>
-          <Text fontSize="md" color="gray.500">
-            {dayjs(item.borrowerInfo!.borrowedAt).format(DateFormats.DATE)}
-          </Text>
-        </Flex>
+        <Box>
+          <Text fontWeight="semibold" fontSize="md">대출 중</Text>
+          <Flex align="baseline" gap={2} flexWrap="wrap" mt={0.5}>
+            <Text
+              fontSize="lg"
+              cursor="pointer"
+              onClick={() =>
+                navigate(`/member/${item.borrowerInfo!.borrowerID}`)
+              }
+            >
+              {item.borrowerInfo!.borrowerName}
+            </Text>
+            <Text fontSize="md" color="gray.500">
+              {dayjs(item.borrowerInfo!.borrowedAt).format(DateFormats.DATE)}
+            </Text>
+          </Flex>
+        </Box>
         {isMine && (
           <Button
             size="sm"
