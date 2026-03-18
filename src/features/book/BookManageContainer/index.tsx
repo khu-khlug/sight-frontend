@@ -176,7 +176,7 @@ export default function BookManageContainer() {
                           {r.title}
                         </span>
                       </td>
-                      <td style={{ padding: "8px" }}>{r.borrowerName}</td>
+                      <td style={{ padding: "8px" }}>{r.borrowerUserName}</td>
                       <td style={{ padding: "8px" }}>
                         {r.borrowedAt.slice(0, 10)}
                       </td>
@@ -332,7 +332,7 @@ export default function BookManageContainer() {
                           {r.title}
                         </span>
                       </td>
-                      <td style={{ padding: "8px" }}>{r.borrowerName}</td>
+                      <td style={{ padding: "8px" }}>{r.borrowerUserName}</td>
                       <td style={{ padding: "8px" }}>
                         {r.borrowedAt.slice(0, 10)}
                       </td>
