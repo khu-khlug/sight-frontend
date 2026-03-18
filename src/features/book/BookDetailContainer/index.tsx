@@ -61,7 +61,7 @@ function BorrowedCard({
       <Flex align="center" justify="space-between" gap={3}>
         <Text fontWeight="semibold" fontSize="md" flexShrink={0}>대출 중</Text>
         <Flex align="center" gap={2}>
-          <Text fontSize="md">{item.borrowerInfo!.borrowerName}</Text>
+          <Text fontSize="md">{item.borrowerInfo!.borrowerUserName}</Text>
           <Text fontSize="sm" color="gray.500">
             {dayjs(item.borrowerInfo!.borrowedAt).format(DateFormats.DATE)}
           </Text>
@@ -82,7 +82,7 @@ function BorrowedCard({
               variant="outline"
               flexShrink={0}
               onClick={() =>
-                navigate(`/member/${item.borrowerInfo!.borrowerID}`)
+                navigate(`/member/${item.borrowerInfo!.borrowerUserId}`)
               }
             >
               연락하기
@@ -229,7 +229,7 @@ function BookDetail({
               item={item}
               isMine={
                 currentUserId !== null &&
-                item.borrowerInfo!.borrowerID === currentUserId
+                item.borrowerInfo!.borrowerUserId === currentUserId
               }
               bookId={book.bookID}
             />
