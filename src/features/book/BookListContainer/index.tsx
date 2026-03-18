@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -9,9 +9,11 @@ import {
   Button,
   Grid,
   Heading,
+  IconButton,
   chakra,
   Card,
 } from "@chakra-ui/react";
+import { Search } from "lucide-react";
 import AvailabilityBadge from "../AvailabilityBadge";
 
 import Container from "../../../components/Container";
@@ -24,6 +26,7 @@ const PAGE_SIZE = 20;
 
 type AvailableFilter = "all" | "available" | "unavailable";
 type SortKey = "title-asc" | "title-desc" | "year-desc" | "year-asc";
+type SearchCategory = "title" | "author" | "publisher";
 
 function sortBooks(books: BookListItemDto[], sort: SortKey): BookListItemDto[] {
   return [...books].sort((a, b) => {
@@ -108,6 +111,14 @@ export default function BookListContainer() {
     useState<AvailableFilter>("all");
   const [sort, setSort] = useState<SortKey>("title-asc");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [searchCategory, setSearchCategory] =
+    useState<SearchCategory>("title");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState<{
+    category: SearchCategory;
+    query: string;
+  } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { status, data, error } = useQuery({
     queryKey: ["books"],
@@ -117,12 +128,25 @@ export default function BookListContainer() {
   const processed = useMemo(() => {
     if (!data) return [];
     let books = data.bookList;
+    if (activeSearch && activeSearch.query.trim()) {
+      const q = activeSearch.query.trim().toLowerCase();
+      books = books.filter((b) => {
+        switch (activeSearch.category) {
+          case "title":
+            return b.title.toLowerCase().includes(q);
+          case "author":
+            return (b.author ?? "").toLowerCase().includes(q);
+          case "publisher":
+            return (b.publisher ?? "").toLowerCase().includes(q);
+        }
+      });
+    }
     if (availableFilter === "available")
       books = books.filter((b) => b.availableCount > 0);
     else if (availableFilter === "unavailable")
       books = books.filter((b) => b.availableCount === 0);
     return sortBooks(books, sort);
-  }, [data, availableFilter, sort]);
+  }, [data, availableFilter, sort, activeSearch]);
 
   const handleFilterChange = (value: AvailableFilter) => {
     setAvailableFilter(value);
@@ -134,11 +158,54 @@ export default function BookListContainer() {
     setVisibleCount(PAGE_SIZE);
   };
 
+  const handleSearch = () => {
+    setActiveSearch({ category: searchCategory, query: searchInput });
+    setVisibleCount(PAGE_SIZE);
+  };
+
   return (
     <Container>
       <Heading size="xl" mb={4}>
         도서 목록
       </Heading>
+
+      <Flex mb={3} borderWidth={1} borderRadius="md" overflow="hidden">
+        <chakra.select
+          fontSize="sm"
+          px={2}
+          flexShrink={0}
+          borderRightWidth={1}
+          borderColor="inherit"
+          bg="white"
+          value={searchCategory}
+          onChange={(e) => setSearchCategory(e.target.value as SearchCategory)}
+        >
+          <option value="title">제목</option>
+          <option value="author">저자</option>
+          <option value="publisher">출판사</option>
+        </chakra.select>
+        <chakra.input
+          ref={inputRef}
+          flex={1}
+          fontSize="sm"
+          px={3}
+          py={2}
+          outline="none"
+          placeholder="검색어를 입력하세요"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+        />
+        <IconButton
+          aria-label="검색"
+          size="sm"
+          variant="ghost"
+          borderRadius={0}
+          onClick={handleSearch}
+        >
+          <Search size={16} />
+        </IconButton>
+      </Flex>
 
       <Flex gap={2} mb={5} wrap="wrap" align="center" justify="space-between">
         <Flex gap={2} wrap="wrap">
