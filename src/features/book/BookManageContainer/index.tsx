@@ -127,7 +127,14 @@ export default function BookManageContainer() {
                 <tbody>
                   {borrows.records.map((r) => (
                     <tr key={r.recordId} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                      <td style={{ padding: "8px" }}>{r.title}</td>
+                      <td style={{ padding: "8px" }}>
+                        <span
+                          style={{ cursor: "pointer", textDecoration: "underline" }}
+                          onClick={() => navigate(`/book/${r.bookId}`)}
+                        >
+                          {r.title}
+                        </span>
+                      </td>
                       <td style={{ padding: "8px" }}>{r.borrowerName}</td>
                       <td style={{ padding: "8px" }}>{r.borrowedAt.slice(0, 10)}</td>
                       <td style={{ padding: "8px", fontFamily: "monospace", color: "#718096" }}>{r.bookId}</td>
@@ -165,7 +172,14 @@ export default function BookManageContainer() {
                     const canDelete = book.availableCount > 0;
                     return (
                       <tr key={book.bookId} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                        <td style={{ padding: "8px" }}>{book.title}</td>
+                        <td style={{ padding: "8px" }}>
+                          <span
+                            style={{ cursor: "pointer", textDecoration: "underline" }}
+                            onClick={() => navigate(`/book/${book.bookId}`)}
+                          >
+                            {book.title}
+                          </span>
+                        </td>
                         <td style={{ padding: "8px", textAlign: "center" }}>{book.totalCount}</td>
                         <td style={{ padding: "8px", textAlign: "center", color: borrowedCount > 0 ? "#e53e3e" : "#718096" }}>
                           {borrowedCount}
@@ -212,7 +226,14 @@ export default function BookManageContainer() {
                 <tbody>
                   {allRecords.records.map((r) => (
                     <tr key={r.recordId} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                      <td style={{ padding: "8px" }}>{r.title}</td>
+                      <td style={{ padding: "8px" }}>
+                        <span
+                          style={{ cursor: "pointer", textDecoration: "underline" }}
+                          onClick={() => navigate(`/book/${r.bookId}`)}
+                        >
+                          {r.title}
+                        </span>
+                      </td>
                       <td style={{ padding: "8px" }}>{r.borrowerName}</td>
                       <td style={{ padding: "8px" }}>{r.borrowedAt.slice(0, 10)}</td>
                       <td style={{ padding: "8px", color: r.returnedAt ? "#718096" : "inherit" }}>
