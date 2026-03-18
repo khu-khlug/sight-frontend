@@ -33,14 +33,10 @@ function AvailabilityCard({
   return (
     <Box borderWidth={1} borderRadius="md" px={4} py={3}>
       <Flex align="center" justify="space-between" gap={3}>
-        <Box>
-          <Text fontWeight="semibold" fontSize="md">
-            대출 가능
-          </Text>
-          <Text fontSize="sm" color="gray.500" mt={0.5}>
-            {book.availableCount}/{book.totalCount}권
-          </Text>
-        </Box>
+        <Flex align="center" gap={2}>
+          <Text fontWeight="semibold" fontSize="md" flexShrink={0}>대출 가능</Text>
+          <Text fontSize="sm" color="gray.500">{book.availableCount}/{book.totalCount}권</Text>
+        </Flex>
         <Button size="sm" colorScheme="blue" flexShrink={0} onClick={onBorrow}>
           대출하기
         </Button>
@@ -63,35 +59,36 @@ function BorrowedCard({
   return (
     <Box borderWidth={1} borderRadius="md" px={4} py={3}>
       <Flex align="center" justify="space-between" gap={3}>
-        <Box>
-          <Text fontWeight="semibold" fontSize="md">대출 중</Text>
-          <Flex align="baseline" gap={2} flexWrap="wrap" mt={0.5}>
-            <Text
-              fontSize="lg"
-              cursor="pointer"
+        <Text fontWeight="semibold" fontSize="md" flexShrink={0}>대출 중</Text>
+        <Flex align="center" gap={2}>
+          <Text fontSize="md">{item.borrowerInfo!.borrowerName}</Text>
+          <Text fontSize="sm" color="gray.500">
+            {dayjs(item.borrowerInfo!.borrowedAt).format(DateFormats.DATE)}
+          </Text>
+          {isMine ? (
+            <Button
+              size="sm"
+              variant="outline"
+              flexShrink={0}
+              onClick={() =>
+                navigate(`/book/scan?action=return&preset=${bookId}`)
+              }
+            >
+              반납하기
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              flexShrink={0}
               onClick={() =>
                 navigate(`/member/${item.borrowerInfo!.borrowerID}`)
               }
             >
-              {item.borrowerInfo!.borrowerName}
-            </Text>
-            <Text fontSize="md" color="gray.500">
-              {dayjs(item.borrowerInfo!.borrowedAt).format(DateFormats.DATE)}
-            </Text>
-          </Flex>
-        </Box>
-        {isMine && (
-          <Button
-            size="sm"
-            variant="outline"
-            flexShrink={0}
-            onClick={() =>
-              navigate(`/book/scan?action=return&preset=${bookId}`)
-            }
-          >
-            반납하기
-          </Button>
-        )}
+              연락하기
+            </Button>
+          )}
+        </Flex>
       </Flex>
     </Box>
   );
