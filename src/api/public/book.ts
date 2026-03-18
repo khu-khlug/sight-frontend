@@ -52,7 +52,7 @@ export type MyBorrowingItemDto = {
 };
 
 export type MyBorrowingResponseDto = {
-  currentBorrowing: MyBorrowingItemDto[];
+  currentBorrowings: MyBorrowingItemDto[];
 };
 
 // API functions
