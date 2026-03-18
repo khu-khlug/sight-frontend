@@ -45,7 +45,7 @@ const getStats = async (): Promise<BookStatsDto> => {
   return response.data;
 };
 
-/** 도서 삭제 (book + items + borrow records) */
+/** 도서 권 삭제 (item 개수가 0이면 book도 삭제) */
 const deleteBook = async (bookId: string): Promise<void> => {
   await apiV2Client.delete(`/book/${bookId}`);
 };
@@ -56,11 +56,6 @@ const registerBook = async (isbn: string): Promise<{ bookId: string }> => {
     params: { isbn },
   });
   return response.data;
-};
-
-/** 도서 항목 삭제 (item 개수가 0이면 book도 삭제) */
-const deleteBookItem = async (itemId: string): Promise<void> => {
-  await apiV2Client.delete(`/book/${itemId}`);
 };
 
 /** 현재 대여 목록 조회 */
@@ -84,7 +79,6 @@ export const BookManageApi = {
   getStats,
   registerBook,
   deleteBook,
-  deleteBookItem,
   listCurrentBorrows,
   listBorrowRecords,
 };
