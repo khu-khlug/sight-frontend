@@ -121,7 +121,6 @@ export default function BookManageContainer() {
                     <th style={{ padding: "8px" }}>도서명</th>
                     <th style={{ padding: "8px" }}>대출자</th>
                     <th style={{ padding: "8px" }}>대출일</th>
-                    <th style={{ padding: "8px" }}>Book ID</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -129,7 +128,7 @@ export default function BookManageContainer() {
                     <tr key={r.recordId} style={{ borderBottom: "1px solid #f0f0f0" }}>
                       <td style={{ padding: "8px" }}>
                         <span
-                          style={{ cursor: "pointer", textDecoration: "underline" }}
+                          style={{ cursor: "pointer" }}
                           onClick={() => navigate(`/book/${r.bookId}`)}
                         >
                           {r.title}
@@ -137,7 +136,6 @@ export default function BookManageContainer() {
                       </td>
                       <td style={{ padding: "8px" }}>{r.borrowerName}</td>
                       <td style={{ padding: "8px" }}>{r.borrowedAt.slice(0, 10)}</td>
-                      <td style={{ padding: "8px", fontFamily: "monospace", color: "#718096" }}>{r.bookId}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -174,7 +172,7 @@ export default function BookManageContainer() {
                       <tr key={book.bookId} style={{ borderBottom: "1px solid #f0f0f0" }}>
                         <td style={{ padding: "8px" }}>
                           <span
-                            style={{ cursor: "pointer", textDecoration: "underline" }}
+                            style={{ cursor: "pointer" }}
                             onClick={() => navigate(`/book/${book.bookId}`)}
                           >
                             {book.title}
@@ -228,7 +226,7 @@ export default function BookManageContainer() {
                     <tr key={r.recordId} style={{ borderBottom: "1px solid #f0f0f0" }}>
                       <td style={{ padding: "8px" }}>
                         <span
-                          style={{ cursor: "pointer", textDecoration: "underline" }}
+                          style={{ cursor: "pointer" }}
                           onClick={() => navigate(`/book/${r.bookId}`)}
                         >
                           {r.title}
