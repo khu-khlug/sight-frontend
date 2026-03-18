@@ -19,8 +19,8 @@ export type BookListResponseDto = {
 };
 
 export type BorrowerInfoDto = {
-  borrowerID: number;
-  borrowerName: string;
+  borrowerUserId: number;
+  borrowerUserName: string;
   borrowedAt: string;
 };
 
