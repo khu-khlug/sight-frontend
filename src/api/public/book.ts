@@ -78,12 +78,12 @@ const getBook = async (bookId: string): Promise<BookDetailDto | null> => {
 
 /** 도서 대여 (isbn으로 요청, 백엔드에서 가용 item 자동 선택) */
 const borrowBook = async (isbn: string): Promise<void> => {
-  await apiV2Client.patch(`/book/borrow/${isbn}`);
+  await apiV2Client.patch("/book/borrow", null, { params: { isbn } });
 };
 
 /** 도서 반납 (isbn으로 요청) */
 const returnBook = async (isbn: string): Promise<void> => {
-  await apiV2Client.patch(`/book/return/${isbn}`);
+  await apiV2Client.patch("/book/return", null, { params: { isbn } });
 };
 
 /** 내 대출 현황 조회 */
