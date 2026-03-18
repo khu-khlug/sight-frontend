@@ -3,9 +3,9 @@ import apiV2Client from "../client/v2";
 // DTOs
 
 export type BookStatsDto = {
-  totalBooks: number;
-  totalItems: number;
-  currentBorrows: number;
+  totalBookCount: number;
+  totalItemCount: number;
+  currentBorrowingCount: number;
 };
 
 export type CurrentBorrowRecordDto = {
@@ -41,7 +41,7 @@ export type BorrowRecordListResponseDto = {
 
 /** 도서 통계 조회 */
 const getStats = async (): Promise<BookStatsDto> => {
-  const response = await apiV2Client.get<BookStatsDto>("/manage/book/stats");
+  const response = await apiV2Client.get<BookStatsDto>("/book/stats");
   return response.data;
 };
 

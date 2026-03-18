@@ -77,9 +77,9 @@ export default function BookManageContainer() {
 
         {stats && (
           <Grid templateColumns="repeat(3, 1fr)" gap={3} mb={6}>
-            <StatCard label="총 도서 종류" value={stats.totalBooks} />
-            <StatCard label="총 권수" value={stats.totalItems} />
-            <StatCard label="현재 대출 중" value={stats.currentBorrows} />
+            <StatCard label="총 도서 종류" value={stats.totalBookCount} />
+            <StatCard label="총 권수" value={stats.totalItemCount} />
+            <StatCard label="현재 대출 중" value={stats.currentBorrowingCount} />
           </Grid>
         )}
 
