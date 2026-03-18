@@ -31,7 +31,7 @@ export type BookItemDto = {
 };
 
 export type BookDetailDto = {
-  bookID: string;
+  bookId: string;
   title: string;
   coverImageUrl: string;
   author: string;
