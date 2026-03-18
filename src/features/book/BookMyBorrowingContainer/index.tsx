@@ -58,7 +58,7 @@ export default function BookMyBorrowingContainer() {
   });
 
   const items = data
-    ? [...data.currentBorrowing].sort(
+    ? [...data.currentBorrowings].sort(
         (a, b) => dayjs(b.borrowedAt).valueOf() - dayjs(a.borrowedAt).valueOf(),
       )
     : [];
