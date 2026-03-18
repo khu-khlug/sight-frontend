@@ -219,7 +219,7 @@ function BookDetail({
             <AvailabilityCard
               book={book}
               onBorrow={() =>
-                navigate(`/book/scan?action=borrow&preset=${book.bookID}`)
+                navigate(`/book/scan?action=borrow&preset=${book.bookId}`)
               }
             />
           )}
@@ -231,7 +231,7 @@ function BookDetail({
                 currentUserId !== null &&
                 item.borrowerInfo!.borrowerUserId === currentUserId
               }
-              bookId={book.bookID}
+              bookId={book.bookId}
             />
           ))}
         </Flex>
