@@ -62,7 +62,7 @@ const registerBook = async (isbn: string): Promise<{ bookId: string }> => {
 const listCurrentBorrows =
   async (): Promise<CurrentBorrowListResponseDto> => {
     const response = await apiV2Client.get<CurrentBorrowListResponseDto>(
-      "/book/borrow"
+      "/book/borrowings"
     );
     return response.data;
   };
@@ -70,7 +70,7 @@ const listCurrentBorrows =
 /** 전체 대여 기록 조회 */
 const listBorrowRecords = async (): Promise<BorrowRecordListResponseDto> => {
   const response = await apiV2Client.get<BorrowRecordListResponseDto>(
-    "/book/borrow-record"
+    "/book/borrow-history"
   );
   return response.data;
 };
