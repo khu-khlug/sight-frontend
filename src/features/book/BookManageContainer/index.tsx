@@ -17,6 +17,8 @@ import { BookManageApi } from "../../../api/manage/book";
 import { BookPublicApi } from "../../../api/public/book";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 
+type ActiveMode = "delete" | "history" | null;
+
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <Box borderWidth={1} borderRadius="md" p={4} textAlign="center">
@@ -29,8 +31,12 @@ function StatCard({ label, value }: { label: string; value: number }) {
 export default function BookManageContainer() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [deleteMode, setDeleteMode] = useState(false);
+  const [activeMode, setActiveMode] = useState<ActiveMode>(null);
   const [confirmBook, setConfirmBook] = useState<{ id: string; title: string } | null>(null);
+
+  const toggle = (mode: "delete" | "history") => {
+    setActiveMode((v) => (v === mode ? null : mode));
+  };
 
   const { data: stats } = useQuery({
     queryKey: ["book-stats"],
@@ -40,12 +46,19 @@ export default function BookManageContainer() {
   const { data: borrows, isLoading: borrowsLoading, error: borrowsError } = useQuery({
     queryKey: ["book-current-borrows"],
     queryFn: BookManageApi.listCurrentBorrows,
+    enabled: activeMode === null,
   });
 
   const { data: bookList, isLoading: bookListLoading, error: bookListError } = useQuery({
     queryKey: ["books"],
     queryFn: BookPublicApi.listBooks,
-    enabled: deleteMode,
+    enabled: activeMode === "delete",
+  });
+
+  const { data: allRecords, isLoading: allRecordsLoading, error: allRecordsError } = useQuery({
+    queryKey: ["book-all-records"],
+    queryFn: BookManageApi.listBorrowRecords,
+    enabled: activeMode === "history",
   });
 
   const deleteMutation = useMutation({
@@ -78,15 +91,21 @@ export default function BookManageContainer() {
             ISBN 스캔으로 등록
           </Button>
           <Button
-            variant={deleteMode ? "danger" : "danger-outline"}
-            onClick={() => setDeleteMode((v) => !v)}
+            variant={activeMode === "delete" ? "danger" : "danger-outline"}
+            onClick={() => toggle("delete")}
           >
             도서 삭제
+          </Button>
+          <Button
+            variant={activeMode === "history" ? "dark" : "dark-outline"}
+            onClick={() => toggle("history")}
+          >
+            전체 대출 기록
           </Button>
         </Flex>
       </Container>
 
-      {!deleteMode ? (
+      {activeMode === null && (
         <Container>
           <Heading size="xl" mb={4}>현재 대출 현황</Heading>
           {borrowsLoading && <Text color="gray.500">불러오는 중...</Text>}
@@ -119,7 +138,9 @@ export default function BookManageContainer() {
             </Box>
           )}
         </Container>
-      ) : (
+      )}
+
+      {activeMode === "delete" && (
         <Container>
           <Heading size="xl" mb={4}>전체 도서 목록</Heading>
           {bookListLoading && <Text color="gray.500">불러오는 중...</Text>}
@@ -168,6 +189,44 @@ export default function BookManageContainer() {
           )}
         </Container>
       )}
+
+      {activeMode === "history" && (
+        <Container>
+          <Heading size="xl" mb={4}>전체 대출 기록</Heading>
+          {allRecordsLoading && <Text color="gray.500">불러오는 중...</Text>}
+          {allRecordsError && <Callout type="error">{extractErrorMessage(allRecordsError)}</Callout>}
+          {allRecords && allRecords.records.length === 0 && (
+            <Callout type="info">대출 기록이 없습니다.</Callout>
+          )}
+          {allRecords && allRecords.records.length > 0 && (
+            <Box overflowX="auto">
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
+                    <th style={{ padding: "8px" }}>도서명</th>
+                    <th style={{ padding: "8px" }}>대출자</th>
+                    <th style={{ padding: "8px" }}>대출일</th>
+                    <th style={{ padding: "8px" }}>반납일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allRecords.records.map((r) => (
+                    <tr key={r.recordId} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                      <td style={{ padding: "8px" }}>{r.title}</td>
+                      <td style={{ padding: "8px" }}>{r.borrowerName}</td>
+                      <td style={{ padding: "8px" }}>{r.borrowedAt.slice(0, 10)}</td>
+                      <td style={{ padding: "8px", color: r.returnedAt ? "#718096" : "#e53e3e" }}>
+                        {r.returnedAt ? r.returnedAt.slice(0, 10) : "대출 중"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Box>
+          )}
+        </Container>
+      )}
+
       <Dialog.Root
         open={!!confirmBook}
         onOpenChange={(e) => { if (!e.open) setConfirmBook(null); }}
