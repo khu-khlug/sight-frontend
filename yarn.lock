@@ -2884,9 +2884,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rollup/rollup-win32-x64-msvc@npm:4.59.0":
+"@rollup/rollup-win32-x64-msvc@npm:4.59.0, @rollup/rollup-win32-x64-msvc@npm:^4.59.0":
   version: 4.59.0
   resolution: "@rollup/rollup-win32-x64-msvc@npm:4.59.0"
+  checksum: 10c0/e7da947539bb2a0c6c9061f9c62ec67a928fe579563e17f302dc2035a0c38439c7b835b894143a278114298ab636241b6f1b23d61d95c7d1a6488439b68454b7
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -3146,7 +3147,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/estree@npm:1.0.8, @types/estree@npm:^1.0.0":
+"@types/estree@npm:1.0.8, @types/estree@npm:^1.0.0, @types/estree@npm:^1.0.8":
   version: 1.0.8
   resolution: "@types/estree@npm:1.0.8"
   checksum: 10c0/39d34d1afaa338ab9763f37ad6066e3f349444f9052b9676a7cc0252ef9485a41c6d81c9c4e0d26e9077993354edf25efc853f3224dd4b447175ef62bdcc86a5
@@ -8881,8 +8882,10 @@ __metadata:
     "@fortawesome/fontawesome-svg-core": "npm:^6.6.0"
     "@fortawesome/free-solid-svg-icons": "npm:^6.6.0"
     "@fortawesome/react-fontawesome": "npm:^0.2.2"
+    "@rollup/rollup-win32-x64-msvc": "npm:^4.59.0"
     "@tanstack/eslint-plugin-query": "npm:^5.60.1"
     "@tanstack/react-query": "npm:^5.59.20"
+    "@types/estree": "npm:^1.0.8"
     "@types/jest": "npm:^29.5.14"
     "@types/node": "npm:^22.9.0"
     "@types/react": "npm:^18.3.10"
@@ -8904,6 +8907,7 @@ __metadata:
     react-modal: "npm:^3.16.3"
     react-router-dom: "npm:^6.28.0"
     react-toastify: "npm:^11.0.5"
+    rollup: "npm:^4.43.0"
     typescript: "npm:^5.5.3"
     typescript-eslint: "npm:^8.7.0"
     vite: "npm:^7.3.1"
