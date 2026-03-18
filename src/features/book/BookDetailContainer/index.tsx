@@ -69,7 +69,7 @@ function BorrowedCard({
             fontSize="lg"
             cursor="pointer"
             onClick={() =>
-              window.open(`/member/${item.borrowerInfo!.borrowerID}`, "_blank")
+              navigate(`/member/${item.borrowerInfo!.borrowerID}`)
             }
           >
             {item.borrowerInfo!.borrowerName}
