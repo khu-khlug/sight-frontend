@@ -30,8 +30,6 @@ function AvailabilityCard({
   book: BookDetailDto;
   onBorrow: () => void;
 }) {
-  const isAvailable = book.availableCount > 0;
-
   return (
     <Box borderWidth={1} borderRadius="md" px={4} py={3}>
       <Flex align="center" justify="space-between" gap={3}>
@@ -39,21 +37,13 @@ function AvailabilityCard({
           <Text fontWeight="semibold" fontSize="md">
             대출 가능
           </Text>
-          {isAvailable ? (
-            <Text fontSize="sm" color="gray.500" mt={0.5}>
-              {book.availableCount}/{book.totalCount}권
-            </Text>
-          ) : (
-            <Text fontSize="sm" color="gray.400" mt={0.5}>
-              대출 가능한 권이 없습니다.
-            </Text>
-          )}
+          <Text fontSize="sm" color="gray.500" mt={0.5}>
+            {book.availableCount}/{book.totalCount}권
+          </Text>
         </Box>
-        {isAvailable && (
-          <Button size="sm" colorScheme="blue" flexShrink={0} onClick={onBorrow}>
-            대출하기
-          </Button>
-        )}
+        <Button size="sm" colorScheme="blue" flexShrink={0} onClick={onBorrow}>
+          대출하기
+        </Button>
       </Flex>
     </Box>
   );
@@ -220,12 +210,14 @@ function BookDetail({
           소장 목록
         </Heading>
         <Flex direction="column" gap={2}>
-          <AvailabilityCard
-            book={book}
-            onBorrow={() =>
-              navigate(`/book/scan?action=borrow&preset=${book.bookID}`)
-            }
-          />
+          {book.availableCount > 0 && (
+            <AvailabilityCard
+              book={book}
+              onBorrow={() =>
+                navigate(`/book/scan?action=borrow&preset=${book.bookID}`)
+              }
+            />
+          )}
           {borrowedItems.map((item) => (
             <BorrowedCard
               key={item.itemId}
