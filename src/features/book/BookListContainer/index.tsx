@@ -12,8 +12,11 @@ import {
   IconButton,
   chakra,
   Card,
+  Select,
+  createListCollection,
+  Portal,
 } from "@chakra-ui/react";
-import { Search } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import AvailabilityBadge from "../AvailabilityBadge";
 
 import Container from "../../../components/Container";
@@ -27,6 +30,14 @@ const PAGE_SIZE = 20;
 type AvailableFilter = "all" | "available" | "unavailable";
 type SortKey = "title-asc" | "title-desc" | "year-desc" | "year-asc";
 type SearchCategory = "title" | "author" | "publisher";
+
+const searchCategories = createListCollection({
+  items: [
+    { label: "제목", value: "title" },
+    { label: "저자", value: "author" },
+    { label: "출판사", value: "publisher" },
+  ],
+});
 
 function sortBooks(books: BookListItemDto[], sort: SortKey): BookListItemDto[] {
   return [...books].sort((a, b) => {
@@ -169,28 +180,48 @@ export default function BookListContainer() {
         도서 목록
       </Heading>
 
-      <Flex mb={3} borderWidth={1} borderRadius="md" overflow="hidden">
-        <chakra.select
-          fontSize="sm"
-          px={2}
+      <Flex mb={3} borderWidth={1} borderRadius="md" align="stretch" overflow="hidden" pr={1} gap={1}>
+        <Select.Root
+          collection={searchCategories}
+          value={[searchCategory]}
+          onValueChange={(e) => setSearchCategory(e.value[0] as SearchCategory)}
+          size="sm"
+          width="88px"
           flexShrink={0}
-          borderRightWidth={1}
-          borderColor="inherit"
-          bg="white"
-          value={searchCategory}
-          onChange={(e) => setSearchCategory(e.target.value as SearchCategory)}
         >
-          <option value="title">제목</option>
-          <option value="author">저자</option>
-          <option value="publisher">출판사</option>
-        </chakra.select>
+          <Select.Trigger
+            borderWidth={1}
+            borderRadius="md"
+            mt="-1px"
+            mb="-1px"
+            ml="-1px"
+            h="calc(100% + 2px)"
+          >
+            <Select.ValueText />
+            <Select.Indicator>
+              <ChevronDown size={14} />
+            </Select.Indicator>
+          </Select.Trigger>
+          <Portal>
+            <Select.Positioner>
+              <Select.Content>
+                {searchCategories.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Portal>
+        </Select.Root>
         <chakra.input
           ref={inputRef}
           flex={1}
           fontSize="sm"
-          px={3}
-          py={2}
+          px={2}
+          py={1}
           outline="none"
+          border="none"
           placeholder="검색어를 입력하세요"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
