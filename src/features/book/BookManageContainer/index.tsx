@@ -215,7 +215,7 @@ export default function BookManageContainer() {
                       <td style={{ padding: "8px" }}>{r.title}</td>
                       <td style={{ padding: "8px" }}>{r.borrowerName}</td>
                       <td style={{ padding: "8px" }}>{r.borrowedAt.slice(0, 10)}</td>
-                      <td style={{ padding: "8px", color: r.returnedAt ? "#718096" : "#e53e3e" }}>
+                      <td style={{ padding: "8px", color: r.returnedAt ? "#718096" : "inherit" }}>
                         {r.returnedAt ? r.returnedAt.slice(0, 10) : "대출 중"}
                       </td>
                     </tr>
