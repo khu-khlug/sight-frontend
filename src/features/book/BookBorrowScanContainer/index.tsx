@@ -37,6 +37,10 @@ export default function BookBorrowScanContainer({ action, presetBookId }: Props)
   );
 
   useEffect(() => {
+    setState(presetBookId ? { status: "preset-loading" } : { status: "idle" });
+  }, [action, presetBookId]);
+
+  useEffect(() => {
     if (!presetBookId) return;
     let cancelled = false;
     BookPublicApi.getBook(presetBookId)
