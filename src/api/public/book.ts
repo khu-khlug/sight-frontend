@@ -89,7 +89,7 @@ const returnBook = async (isbn: string): Promise<void> => {
 /** 내 대출 현황 조회 */
 const getMyBorrowing = async (): Promise<MyBorrowingResponseDto> => {
   const response =
-    await apiV2Client.get<MyBorrowingResponseDto>("/book/@me");
+    await apiV2Client.get<MyBorrowingResponseDto>("/book/borrowings/@me");
   return response.data;
 };
 
