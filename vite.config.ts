@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: "autoUpdate",
+        workbox: {
+          globIgnores: ["assets/zbar-*.wasm"],
+        },
         manifest: {
           name: "쿠러그",
           short_name: "쿠러그",
