@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import dayjs from "dayjs";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
@@ -281,7 +282,7 @@ export default function GroupMatchingSurveyContainer() {
         </Heading>
         <Callout type="error">
           설문이 마감되었습니다. (마감일:{" "}
-          {formatDate(new Date(survey.closedAt), DateFormats.DATE_KOR)})
+          {dayjs(survey.closedAt).subtract(1, "second").format(DateFormats.DATETIME_KOR)}까지)
         </Callout>
       </Container>
     );
@@ -333,7 +334,7 @@ export default function GroupMatchingSurveyContainer() {
 
       <Box bg="gray.50" p={4} borderRadius="md" mt={4} mb={6}>
         <Text fontSize="sm" color="gray.600">
-          마감일: {formatDate(new Date(survey.closedAt), DateFormats.DATE_KOR)}
+          마감일: {dayjs(survey.closedAt).subtract(1, "second").format(DateFormats.DATETIME_KOR)}까지
         </Text>
         {myAnswer && (
           <Text fontSize="sm" color="brand.500" fontWeight="medium" mt={1}>

@@ -18,6 +18,7 @@ import {
   type GroupMatchingManageApiDto,
 } from "../../../../api/manage/groupMatching";
 import { extractErrorMessage } from "../../../../util/extractErrorMessage";
+import dayjs from "dayjs";
 
 type Props = {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export default function UpdateDeadlineModal({
   onClose,
   onSuccess,
 }: Props) {
-  const currentDeadline = survey.closedAt.split("T")[0]; // Extract YYYY-MM-DD
+  const currentDeadline = dayjs(survey.closedAt).subtract(1, "second").format("YYYY-MM-DD");
   const [closedAt, setClosedAt] = useState(currentDeadline);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -52,7 +53,7 @@ export default function UpdateDeadlineModal({
 
     try {
       await updateSurvey({
-        closedAt: new Date(closedAt).toISOString(),
+        closedAt: closedAt,
       });
       alert("마감일이 변경되었습니다.");
       onSuccess();

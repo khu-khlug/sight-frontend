@@ -2,9 +2,10 @@ import dayjs from "dayjs";
 
 export const DateFormats = {
   DATE: "YYYY-MM-DD",
-  DATE_KOR: "YYYY년 MM월 DD일",
+  DATE_KOR: "YYYY년 M월 D일",
   TIME: "HH:mm:ss",
   DATETIME: "YYYY-MM-DD HH:mm:ss",
+  DATETIME_KOR: "YYYY년 M월 D일 H시 m분 s초",
 };
 
 export function formatDate(date: Date, format = DateFormats.DATETIME) {

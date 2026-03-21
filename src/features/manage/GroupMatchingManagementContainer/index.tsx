@@ -13,6 +13,7 @@ import {
   GroupMatchingResponse,
 } from "../../../api/manage/groupMatching";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
+import dayjs from "dayjs";
 import { DateFormats, formatDate } from "../../../util/date";
 import { Semester, SemesterLabel } from "../../../constant";
 
@@ -93,10 +94,7 @@ export default function GroupMatchingManagementContainer() {
                       마감일:
                     </Text>
                     <Text>
-                      {formatDate(
-                        new Date(survey.closedAt),
-                        DateFormats.DATE_KOR
-                      )}
+                      {dayjs(survey.closedAt).subtract(1, "second").format(DateFormats.DATE_KOR)}
                     </Text>
                   </HStack>
                   <HStack>

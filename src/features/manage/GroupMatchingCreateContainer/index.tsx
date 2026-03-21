@@ -94,7 +94,7 @@ export default function GroupMatchingCreateContainer() {
       await createSurvey({
         year,
         semester,
-        closedAt: new Date(closedAt).toISOString(),
+        closedAt: closedAt,
         options,
       });
       navigate("/manage/group-matching");
