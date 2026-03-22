@@ -50,7 +50,7 @@ export default function BookRegisterScanContainer() {
     setState({ status: "registering", isbn, book });
     try {
       const { bookId } = await BookManageApi.registerBook(isbn);
-      toast.success("도서가 등록되었습니다.");
+      toast.success("도서가 등록되었습니다.", { autoClose: 1000, hideProgressBar: true });
       navigate(`/book/${bookId}`);
     } catch (e) {
       setState({ status: "error", message: extractErrorMessage(e as Error), isbn, book });
