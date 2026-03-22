@@ -12,46 +12,46 @@ export default function BookNavBar({ current }: Props) {
 
   return (
     <Box mt={6}>
-    <Container className="book-nav-bar">
-      <Flex>
-        <Button
-          flex={1}
-          size="sm"
-          variant={current === "list" ? "solid" : "ghost"}
-          colorScheme={current === "list" ? "blue" : undefined}
-          onClick={() => navigate("/book")}
-        >
-          도서 목록
-        </Button>
-        <Button
-          flex={1}
-          size="sm"
-          variant={current === "borrow" ? "solid" : "ghost"}
-          colorScheme={current === "borrow" ? "blue" : undefined}
-          onClick={() => navigate("/book/scan?action=borrow")}
-        >
-          대출
-        </Button>
-        <Button
-          flex={1}
-          size="sm"
-          variant={current === "return" ? "solid" : "ghost"}
-          colorScheme={current === "return" ? "blue" : undefined}
-          onClick={() => navigate("/book/scan?action=return")}
-        >
-          반납
-        </Button>
-        <Button
-          flex={1}
-          size="sm"
-          variant={current === "my" ? "solid" : "ghost"}
-          colorScheme={current === "my" ? "blue" : undefined}
-          onClick={() => navigate("/book/my")}
-        >
-          내 대출
-        </Button>
-      </Flex>
-    </Container>
+      <Container className="book-nav-bar">
+        <Flex>
+          <Button
+            flex={1}
+            size="sm"
+            variant={current === "list" ? "solid" : "ghost"}
+            colorScheme={current === "list" ? "blue" : undefined}
+            onClick={() => navigate("/book")}
+          >
+            도서 목록
+          </Button>
+          <Button
+            flex={1}
+            size="sm"
+            variant={current === "borrow" ? "solid" : "ghost"}
+            colorScheme={current === "borrow" ? "blue" : undefined}
+            onClick={() => navigate("/book/scan?action=borrow")}
+          >
+            대출하기
+          </Button>
+          <Button
+            flex={1}
+            size="sm"
+            variant={current === "return" ? "solid" : "ghost"}
+            colorScheme={current === "return" ? "blue" : undefined}
+            onClick={() => navigate("/book/scan?action=return")}
+          >
+            반납하기
+          </Button>
+          <Button
+            flex={1}
+            size="sm"
+            variant={current === "my" ? "solid" : "ghost"}
+            colorScheme={current === "my" ? "blue" : undefined}
+            onClick={() => navigate("/book/my")}
+          >
+            내 대출
+          </Button>
+        </Flex>
+      </Container>
     </Box>
   );
 }

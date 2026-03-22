@@ -30,8 +30,8 @@ createRoot(document.getElementById("root")!).render(
     <ChakraProvider value={system}>
       <QueryClientProvider client={queryClient}>
         <App />
-        <ToastContainer autoClose={1000} hideProgressBar />
+        <ToastContainer />
       </QueryClientProvider>
     </ChakraProvider>
-  </StrictMode>
+  </StrictMode>,
 );
