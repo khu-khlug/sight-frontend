@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Flex, Text, Button } from "@chakra-ui/react";
+import { toast } from "react-toastify";
 
 import Callout from "../../../components/Callout";
 import BarcodeScanner, { ScanResult } from "../../../components/BarcodeScanner";
@@ -66,8 +67,10 @@ export default function BookBorrowScanContainer({ action, presetBookId }: Props)
     try {
       if (action === "borrow") {
         await BookPublicApi.borrowBook(book.isbn);
+        toast.success("대출되었습니다.", { autoClose: 1000, hideProgressBar: true });
       } else {
         await BookPublicApi.returnBook(book.isbn);
+        toast.success("반납되었습니다.", { autoClose: 1000, hideProgressBar: true });
       }
       navigate("/book/my");
     } catch (e) {
