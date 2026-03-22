@@ -31,7 +31,7 @@ export default function BookRegisterScanContainer() {
     const isbn = result.data;
     setState({ status: "loading" });
     try {
-      const book = await BookPublicApi.getBook(isbn);
+      const book = await BookPublicApi.getBookByIsbn(isbn);
       if (book) {
         setState({ status: "ready", isbn, book });
       } else {

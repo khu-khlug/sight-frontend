@@ -66,10 +66,10 @@ export default function BookBorrowScanContainer({ action, presetBookId }: Props)
     setState({ status: "acting", book });
     try {
       if (action === "borrow") {
-        await BookPublicApi.borrowBook(book.isbn);
+        await BookPublicApi.borrowBook(book.bookId);
         toast.success("대출되었습니다.", { autoClose: 1000, hideProgressBar: true });
       } else {
-        await BookPublicApi.returnBook(book.isbn);
+        await BookPublicApi.returnBook(book.bookId);
         toast.success("반납되었습니다.", { autoClose: 1000, hideProgressBar: true });
       }
       navigate("/book/my");
@@ -102,7 +102,7 @@ export default function BookBorrowScanContainer({ action, presetBookId }: Props)
     // 일반 모드: 스캔한 바코드로 책 정보 조회
     setState({ status: "loading" });
     try {
-      const book = await BookPublicApi.getBook(result.data);
+      const book = await BookPublicApi.getBookByIsbn(result.data);
       if (!book) {
         setState({ status: "error", message: "등록되지 않은 도서입니다." });
         return;
