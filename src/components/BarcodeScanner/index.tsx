@@ -10,7 +10,7 @@ type Props = {
   onScan: (result: ScanResult) => void;
 };
 
-export default function Scanner({ onScan }: Props) {
+export default function BarcodeScanner({ onScan }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState(false);
 
