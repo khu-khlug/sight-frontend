@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 
 import Callout from "../../../components/Callout";
 import BarcodeScanner, { ScanResult } from "../../../components/BarcodeScanner";
-import BookScanLayout from "../BookScanLayout";
+import BookScanLayout from "../../book/BookScanLayout";
 import { BookPublicApi, BookDetailDto } from "../../../api/public/book";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 

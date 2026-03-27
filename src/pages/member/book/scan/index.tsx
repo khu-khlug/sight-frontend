@@ -1,8 +1,8 @@
 import { useSearchParams } from "react-router-dom";
 import MainLayout from "../../../../layouts/MainLayout";
 import BookNavBar from "../../../../features/book/BookNavBar";
-import BookBorrowScanContainer from "../../../../features/book/BookBorrowScanContainer";
-import BookRegisterScanContainer from "../../../../features/book/BookRegisterScanContainer";
+import BookBorrowScanContainer from "../../../../features/member/BookBorrowScanContainer";
+import BookRegisterScanContainer from "../../../../features/manage/BookRegisterScanContainer";
 
 export default function BookScanPage() {
   const [searchParams] = useSearchParams();
