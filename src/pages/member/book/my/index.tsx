@@ -1,6 +1,6 @@
 import MainLayout from "../../../../layouts/MainLayout";
 import BookNavBar from "../../../../features/book/BookNavBar";
-import BookMyBorrowingContainer from "../../../../features/book/BookMyBorrowingContainer";
+import BookMyBorrowingContainer from "../../../../features/member/BookMyBorrowingContainer";
 
 export default function BookMyPage() {
   return (
