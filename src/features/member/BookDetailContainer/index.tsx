@@ -9,7 +9,7 @@ import {
   Heading,
   Spinner,
 } from "@chakra-ui/react";
-import AvailabilityBadge from "../AvailabilityBadge";
+import AvailabilityBadge from "../../book/AvailabilityBadge";
 import dayjs from "dayjs";
 
 import Container from "../../../components/Container";
