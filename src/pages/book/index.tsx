@@ -1,6 +1,6 @@
 import MainLayout from "../../layouts/MainLayout";
 import BookNavBar from "../../features/book/BookNavBar";
-import BookListContainer from "../../features/book/BookListContainer";
+import BookListContainer from "../../features/member/BookListContainer";
 
 export default function BookListPage() {
   return (

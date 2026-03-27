@@ -17,7 +17,7 @@ import {
   Portal,
 } from "@chakra-ui/react";
 import { Search, ChevronDown } from "lucide-react";
-import AvailabilityBadge from "../AvailabilityBadge";
+import AvailabilityBadge from "../../book/AvailabilityBadge";
 
 import Container from "../../../components/Container";
 import Callout from "../../../components/Callout";
