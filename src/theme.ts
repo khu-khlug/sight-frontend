@@ -54,6 +54,25 @@ const buttonRecipe = defineRecipe({
           },
         },
       },
+      "danger-outline": {
+        bg: "white",
+        color: "red.500",
+        border: "1px solid",
+        borderColor: "red.500",
+        _hover: {
+          bg: "red.50",
+        },
+        _disabled: {
+          bg: "white",
+          color: "gray.300",
+          borderColor: "gray.300",
+          cursor: "not-allowed",
+          opacity: 1,
+          _hover: {
+            bg: "white",
+          },
+        },
+      },
     },
   },
   defaultVariants: {
