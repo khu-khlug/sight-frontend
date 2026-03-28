@@ -104,6 +104,10 @@ export default function BookScanLayout({ title, scanSection, book }: Props) {
         {title}
       </Heading>
 
+      <Text fontSize="sm" color="gray.500" mb={3}>
+        해당 기능은 동아리방 와이파이에 연결되어 있어야 작동합니다.
+      </Text>
+
       {/* 스캔 섹션 - 상단 고정 */}
       <Box mb={4}>{scanSection}</Box>
 
