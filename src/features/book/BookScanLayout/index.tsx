@@ -1,15 +1,17 @@
 import { Box, Flex, Text, Image, Heading } from "@chakra-ui/react";
 import AvailabilityBadge from "../AvailabilityBadge";
 import Container from "../../../components/Container";
-import { BookDetailDto } from "../../../api/public/book";
+import { BookDetailDto, BookPreviewDto } from "../../../api/public/book";
+
+type BookCardDto = BookDetailDto | BookPreviewDto;
 
 type Props = {
   title: string;
   scanSection: React.ReactNode;
-  book?: BookDetailDto | null;
+  book?: BookCardDto | null;
 };
 
-function BookInfoSection({ book }: { book: BookDetailDto }) {
+function BookInfoSection({ book }: { book: BookCardDto }) {
   return (
     <Box
       css={{
@@ -77,12 +79,14 @@ function BookInfoSection({ book }: { book: BookDetailDto }) {
             {book.publishedYear ? ` · ${book.publishedYear}` : ""}
           </Text>
         )}
-        <Flex align="center" gap={2}>
-          <AvailabilityBadge availableCount={book.availableCount} />
-          <Text fontSize="xs" color="gray.400">
-            {book.availableCount}/{book.totalCount}
-          </Text>
-        </Flex>
+        {"availableCount" in book && (
+          <Flex align="center" gap={2}>
+            <AvailabilityBadge availableCount={book.availableCount} />
+            <Text fontSize="xs" color="gray.400">
+              {book.availableCount}/{book.totalCount}
+            </Text>
+          </Flex>
+        )}
         {book.description && (
           <Text fontSize="sm" color="gray.500" mt={1}>
             {book.description}

@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import Callout from "../../../components/Callout";
 import BarcodeScanner, { ScanResult } from "../../../components/BarcodeScanner";
 import BookScanLayout from "../../book/BookScanLayout";
-import { BookPublicApi, BookDetailDto } from "../../../api/public/book";
+import { BookPublicApi, BookDetailDto, BookPreviewDto } from "../../../api/public/book";
 import { BookManageApi } from "../../../api/manage/book";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 
@@ -14,8 +14,8 @@ type State =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "ready"; isbn: string; book: BookDetailDto }
-  | { status: "ready-unknown"; isbn: string }
-  | { status: "registering"; isbn: string; book?: BookDetailDto }
+  | { status: "ready-unknown"; isbn: string; preview: BookPreviewDto | null }
+  | { status: "registering"; isbn: string; book?: BookDetailDto; preview?: BookPreviewDto | null }
   | { status: "error"; message: string; isbn?: string; book?: BookDetailDto };
 
 export default function BookRegisterScanContainer() {
@@ -35,7 +35,8 @@ export default function BookRegisterScanContainer() {
       if (book) {
         setState({ status: "ready", isbn, book });
       } else {
-        setState({ status: "ready-unknown", isbn });
+        const preview = await BookPublicApi.getBookPreviewByIsbn(isbn);
+        setState({ status: "ready-unknown", isbn, preview });
       }
     } catch (e) {
       setState({ status: "error", message: extractErrorMessage(e as Error) });
@@ -45,9 +46,10 @@ export default function BookRegisterScanContainer() {
   const handleConfirm = async () => {
     const isbn = state.status === "ready" || state.status === "ready-unknown" ? state.isbn : undefined;
     const book = state.status === "ready" ? state.book : undefined;
+    const preview = state.status === "ready-unknown" ? state.preview : undefined;
     if (!isbn) return;
 
-    setState({ status: "registering", isbn, book });
+    setState({ status: "registering", isbn, book, preview });
     try {
       const { bookId } = await BookManageApi.registerBook(isbn);
       toast.success("도서가 등록되었습니다.", { autoClose: 1000, hideProgressBar: true });
@@ -59,10 +61,11 @@ export default function BookRegisterScanContainer() {
 
   const handleRescan = () => setState({ status: "idle" });
 
-  const book =
-    state.status === "ready" || state.status === "registering"
-      ? state.book
-      : undefined;
+  const bookForCard =
+    state.status === "ready" ? state.book
+    : state.status === "ready-unknown" ? (state.preview ?? undefined)
+    : state.status === "registering" ? (state.book ?? state.preview ?? undefined)
+    : undefined;
 
   const scanSection = (() => {
     if (state.status === "idle") {
@@ -110,6 +113,6 @@ export default function BookRegisterScanContainer() {
   })();
 
   return (
-    <BookScanLayout title="도서 등록" scanSection={scanSection} book={book ?? null} />
+    <BookScanLayout title="도서 등록" scanSection={scanSection} book={bookForCard ?? null} />
   );
 }
