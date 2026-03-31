@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import apiV2Client from "../client/v2";
 
 // DTOs
@@ -75,10 +76,33 @@ const listBorrowRecords = async (): Promise<BorrowRecordListResponseDto> => {
   return response.data;
 };
 
+export type BookPreviewDto = {
+  title: string;
+  author: string;
+  coverImageUrl: string;
+  publisher: string;
+  publishedYear: number;
+  description: string;
+};
+
+/** 등록 전 미리보기 (DB 저장 없이 외부 API 조회) */
+const getBookPreviewByIsbn = async (isbn: string): Promise<BookPreviewDto | null> => {
+  try {
+    const response = await apiV2Client.get<BookPreviewDto>("/book/preview", { params: { isbn } });
+    return response.data;
+  } catch (e) {
+    if (isAxiosError(e) && e.response?.status === 404) {
+      return null;
+    }
+    throw e;
+  }
+};
+
 export const BookManageApi = {
   getStats,
   registerBook,
   deleteBook,
   listCurrentBorrows,
   listBorrowRecords,
+  getBookPreviewByIsbn,
 };

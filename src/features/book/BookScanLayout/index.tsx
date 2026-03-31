@@ -1,7 +1,8 @@
 import { Box, Flex, Text, Image, Heading } from "@chakra-ui/react";
 import AvailabilityBadge from "../AvailabilityBadge";
 import Container from "../../../components/Container";
-import { BookDetailDto, BookPreviewDto } from "../../../api/public/book";
+import { BookDetailDto } from "../../../api/public/book";
+import { BookPreviewDto } from "../../../api/manage/book";
 
 type BookCardDto = BookDetailDto | BookPreviewDto;
 

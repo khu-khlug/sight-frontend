@@ -6,8 +6,8 @@ import { toast } from "react-toastify";
 import Callout from "../../../components/Callout";
 import BarcodeScanner, { ScanResult } from "../../../components/BarcodeScanner";
 import BookScanLayout from "../../book/BookScanLayout";
-import { BookPublicApi, BookDetailDto, BookPreviewDto } from "../../../api/public/book";
-import { BookManageApi } from "../../../api/manage/book";
+import { BookPublicApi, BookDetailDto } from "../../../api/public/book";
+import { BookManageApi, BookPreviewDto } from "../../../api/manage/book";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 
 type State =
