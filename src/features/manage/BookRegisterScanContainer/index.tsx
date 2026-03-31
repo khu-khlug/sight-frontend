@@ -35,7 +35,7 @@ export default function BookRegisterScanContainer() {
       if (book) {
         setState({ status: "ready", isbn, book });
       } else {
-        const preview = await BookPublicApi.getBookPreviewByIsbn(isbn);
+        const preview = await BookManageApi.getBookPreviewByIsbn(isbn);
         setState({ status: "ready-unknown", isbn, preview });
       }
     } catch (e) {
