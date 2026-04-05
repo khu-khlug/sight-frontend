@@ -14,8 +14,8 @@ export type CurrentBorrowRecordDto = {
   itemId: string;
   bookId: string;
   title: string;
-  borrowerUserId: string;
-  borrowerName: string;
+  borrowerUserId: number;
+  borrowerUserName: string;
   borrowedAt: string;
 };
 
@@ -28,8 +28,8 @@ export type BorrowRecordDto = {
   itemId: string;
   bookId: string;
   title: string;
-  borrowerUserId: string;
-  borrowerName: string;
+  borrowerUserId: number;
+  borrowerUserName: string;
   borrowedAt: string;
   returnedAt: string | null;
 };
