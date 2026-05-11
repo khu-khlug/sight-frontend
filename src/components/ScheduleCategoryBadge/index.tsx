@@ -15,31 +15,15 @@ const CATEGORY_STYLE: Record<
   ScheduleCategory,
   { bg: string; color: string; border?: string }
 > = {
-  뒷풀이: {
-    bg: "#ffffff00",
-    color: "var(--chakra-colors-pink-500)",
-    border: "2px solid var(--chakra-colors-pink-500)",
-  },
-  학사: { bg: "#ffffff00", color: "#981E32", border: "2px solid #981E32" },
-  기타: { bg: "#ffffff00", color: "#222222", border: "2px solid #222222" },
-  그룹활동: {
-    bg: "#ffffff00",
-    color: "var(--chakra-colors-brand-600)",
-    border: "2px solid var(--chakra-colors-brand-600)",
-  },
-  동아리: {
-    bg: "#ffffff00",
-    color: "var(--chakra-colors-brand-400)",
-    border: "2px solid var(--chakra-colors-brand-400)",
-  },
-  운영: {
-    bg: "#ffffff00",
-    color: "#C9A84C",
-    border: "2px solid #C9A84C",
-  }, //C9A84C
-  외부: { bg: "#ffffff00", color: "#7c3aed", border: "2px solid #7c3aed" },
-  일정없음: { bg: "#ffffff00", color: "#9ca3af", border: "2px solid #9ca3af" },
-  세미나: { bg: "#ffffff00", color: "#16a34a", border: "2px solid #16a34a" },
+  뒷풀이: { bg: "#ffffff00", color: "#ed64a688", border: "2px solid #ed64a688" },
+  학사:   { bg: "#ffffff00", color: "#981E3288", border: "2px solid #981E3288" },
+  기타:   { bg: "#ffffff00", color: "#22222288", border: "2px solid #22222288" },
+  그룹활동: { bg: "#ffffff00", color: "#0077b688", border: "2px solid #0077b688" },
+  동아리: { bg: "#ffffff00", color: "#1ab1ff88", border: "2px solid #1ab1ff88" },
+  운영:   { bg: "#ffffff00", color: "#C9A84C88", border: "2px solid #C9A84C88" },
+  외부:   { bg: "#ffffff00", color: "#7c3aed88", border: "2px solid #7c3aed88" },
+  일정없음: { bg: "#ffffff00", color: "#9ca3af88", border: "2px solid #9ca3af88" },
+  세미나: { bg: "#ffffff00", color: "#16a34a88", border: "2px solid #16a34a88" },
 };
 
 type Props = {

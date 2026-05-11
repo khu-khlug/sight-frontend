@@ -26,8 +26,10 @@ export default function DoorLockKeypad({ onKey }: Props) {
             onClick={() => onKey(key)}
             fontSize="4xl"
             fontWeight="bold"
-            bg="brand.300"
+            color="#000000"
+            bg="brand.50"
             borderRadius="10%"
+            borderColor="brand.100"
             _active={{ transition: "none", bg: "brand.500" }}
           >
             {key}

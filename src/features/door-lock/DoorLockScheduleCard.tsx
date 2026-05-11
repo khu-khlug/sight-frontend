@@ -6,9 +6,9 @@ import ScheduleCategoryBadge, {
 export type TimeLine = { label: string; value: string };
 
 export type ScheduleInfo = {
-  category: ScheduleCategory;
-  title: string;
-  timeLines: [TimeLine, TimeLine];
+  category?: ScheduleCategory;
+  title?: string;
+  timeLines?: TimeLine[];
 };
 
 type Props = {
@@ -17,6 +17,10 @@ type Props = {
 };
 
 export default function DoorLockScheduleCard({ label, schedule }: Props) {
+  const hasTitleBox =
+    schedule && (schedule.category != null || schedule.title != null);
+  const timeLines = schedule?.timeLines ?? [];
+
   return (
     <Box
       w="100%"
@@ -41,36 +45,42 @@ export default function DoorLockScheduleCard({ label, schedule }: Props) {
           <ScheduleCategoryBadge category="일정없음" />
         ) : (
           <>
-            <Flex
-              flex="2"
-              minH="0"
-              w="90%"
-              overflow="hidden"
-              bg="#ffffff00"
-              p={5}
-              py={3}
-              direction="column"
-              justify="space-around"
-              borderRadius="md"
-              border="1px solid"
-              borderColor="gray.200"
-            >
-              <ScheduleCategoryBadge category={schedule.category} />
-              <Text
-                fontWeight="bold"
-                fontSize="xl"
+            {hasTitleBox && (
+              <Flex
+                flex="2"
+                minH="0"
+                w="90%"
                 overflow="hidden"
-                style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                }}
+                bg="#00000000"
+                p={5}
+                py={3}
+                direction="column"
+                justify="space-around"
+                borderRadius="md"
+                border="1px solid"
+                borderColor="gray.200"
               >
-                {schedule.title}
-              </Text>
-            </Flex>
+                {schedule.category && (
+                  <ScheduleCategoryBadge category={schedule.category} />
+                )}
+                {schedule.title && (
+                  <Text
+                    fontWeight="bold"
+                    fontSize="xl"
+                    overflow="hidden"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                    }}
+                  >
+                    {schedule.title}
+                  </Text>
+                )}
+              </Flex>
+            )}
 
-            {schedule.timeLines.map((line, i) => (
+            {timeLines.map((line, i) => (
               <Flex
                 key={i}
                 flex="1"
