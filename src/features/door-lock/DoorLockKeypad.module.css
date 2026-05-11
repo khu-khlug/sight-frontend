@@ -1,0 +1,13 @@
+.grid {
+  container-type: size;
+}
+
+/* p=16px, gap=16px 기준
+   셀 너비 = (컨테이너 너비 - 패딩 32px - 열 간격 32px) / 3
+   셀 높이 = (컨테이너 높이 - 패딩 32px - 행 간격 48px) / 4 */
+.button {
+  width: min(calc((100cqw - 64px) / 3), calc((100cqh - 80px) / 4));
+  height: min(calc((100cqw - 64px) / 3), calc((100cqh - 80px) / 4));
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
