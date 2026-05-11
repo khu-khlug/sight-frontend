@@ -18,6 +18,13 @@
   height: auto;
 }
 
+.clock {
+  font-size: 1.5rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  color: #c0c0c0;
+}
+
 .main {
   flex: 1;
   overflow: auto;

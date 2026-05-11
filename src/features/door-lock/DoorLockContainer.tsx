@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Flex, chakra } from "@chakra-ui/react";
+import { Box, Flex, Text, chakra } from "@chakra-ui/react";
 import DoorLockKeypad from "./DoorLockKeypad";
 import DoorLockScheduleCard from "./DoorLockScheduleCard";
 
@@ -12,6 +12,9 @@ function formatDuration(ms: number): string {
 
 const CURRENT_START = new Date(Date.now() - 23 * 60 * 1000);
 const CURRENT_END = new Date(Date.now() + 97 * 60 * 1000);
+
+const TODAY_VISITOR_COUNT = 12;
+const CURRENT_IN_ROOM_COUNT = 3;
 
 export default function DoorLockContainer() {
   const [input, setInput] = useState("");
@@ -33,41 +36,53 @@ export default function DoorLockContainer() {
   return (
     <Flex h="100%">
       <Flex direction="column" flex="6" minH="0" overflow="hidden">
-        <Box
-          flex="1"
-          minH="0"
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-        >
-          <Box
-            borderRadius="lg"
-            bg="#ffffff"
-            display="inline-block"
-            alignSelf="center"
-            p={5}
-            px="20%"
-            border="1px solid"
-            borderColor="gray.200"
-          >
-            <chakra.span
-              fontSize="4xl"
-              fontWeight="bold"
-              letterSpacing="wide"
-              fontVariantNumeric="tabular-nums"
+        <Box flex="2" minH="0" display="grid" placeItems="center" px={4}>
+          <Box textAlign="center" w="100%">
+            <Box mb={6} color="gray.400">
+              <Text as="span" fontSize="lg" fontWeight="bold" mr={12}>
+                오늘 {TODAY_VISITOR_COUNT}명 방문
+              </Text>
+              <Text as="span" fontSize="lg" fontWeight="bold">
+                현재 {CURRENT_IN_ROOM_COUNT}명
+              </Text>
+            </Box>
+            <Box
+              borderRadius="lg"
+              bg="#ffffff"
               display="inline-block"
-              lineHeight="1"
-              borderBottom="2px solid"
-              borderColor="gray.400"
+              p={5}
+              px="20%"
+              border="1px solid"
+              borderColor="gray.200"
+              mb={8}
             >
-              {input}
-              <chakra.span color="transparent">
-                {"0".repeat(10 - input.length)}
-              </chakra.span>
-            </chakra.span>
+              <chakra.input
+                readOnly
+                value={input}
+                placeholder="학번을 입력하세요"
+                fontSize="4xl"
+                fontWeight="bold"
+                letterSpacing="wide"
+                fontVariantNumeric="tabular-nums"
+                lineHeight="1"
+                w="100%"
+                textAlign="center"
+                border="none"
+                outline="none"
+                bg="transparent"
+                p={0}
+                cursor="default"
+                _focus={{ outline: "none", boxShadow: "none" }}
+                _placeholder={{
+                  fontSize: "3xl",
+                  letterSpacing: "normal",
+                  color: "brand.300",
+                }}
+              />
+            </Box>
           </Box>
         </Box>
-        <Flex flex="2" minH="0">
+        <Flex flex="3" minH="0">
           <Box flex="1" minH="0" overflow="hidden">
             <DoorLockScheduleCard
               label="현재 일정"

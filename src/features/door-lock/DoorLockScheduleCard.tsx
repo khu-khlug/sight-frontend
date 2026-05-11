@@ -18,8 +18,14 @@ type Props = {
 
 export default function DoorLockScheduleCard({ label, schedule }: Props) {
   return (
-    <Box w="100%" h="100%" display="flex" flexDirection="column" overflow="hidden">
-      <Text textAlign="center" fontWeight="bold" fontSize="md">
+    <Box
+      w="100%"
+      h="100%"
+      display="flex"
+      flexDirection="column"
+      overflow="hidden"
+    >
+      <Text textAlign="center" fontWeight="bold" fontSize="xl" color="gray.500">
         {label}
       </Text>
 
@@ -40,7 +46,7 @@ export default function DoorLockScheduleCard({ label, schedule }: Props) {
               minH="0"
               w="90%"
               overflow="hidden"
-              bg="#ffffff"
+              bg="#ffffff00"
               p={5}
               py={3}
               direction="column"
@@ -70,7 +76,7 @@ export default function DoorLockScheduleCard({ label, schedule }: Props) {
                 flex="1"
                 minH="0"
                 w="90%"
-                bg="#ffffff"
+                bg="#ffffff00"
                 alignItems="center"
                 justifyContent="space-between"
                 px={5}
@@ -78,8 +84,12 @@ export default function DoorLockScheduleCard({ label, schedule }: Props) {
                 border="1px solid"
                 borderColor="gray.200"
               >
-                <Text fontWeight="bold" fontSize="lg">{line.label}</Text>
-                <Text fontWeight="bold" fontSize="lg">{line.value}</Text>
+                <Text fontWeight="bold" fontSize="lg" color="gray.500">
+                  {line.label}
+                </Text>
+                <Text fontWeight="bold" fontSize="lg">
+                  {line.value}
+                </Text>
               </Flex>
             ))}
           </>
