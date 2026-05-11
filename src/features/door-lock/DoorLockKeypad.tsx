@@ -27,6 +27,7 @@ export default function DoorLockKeypad({ onKey }: Props) {
             fontSize="4xl"
             fontWeight="bold"
             bg="brand.400"
+            borderRadius="10%"
             _active={{ transition: "none", bg: "brand.200" }}
           >
             {key}
@@ -40,6 +41,8 @@ export default function DoorLockKeypad({ onKey }: Props) {
             h="100%"
             fontSize="3xl"
             fontWeight="bold"
+            bg="white"
+            borderRadius="10%"
             _active={{
               bg: "brand.300",
               color: "white",

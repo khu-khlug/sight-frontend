@@ -51,6 +51,7 @@ export default function ScheduleCategoryBadge({ category }: Props) {
   return (
     <chakra.span
       display="inline-block"
+      alignSelf="flex-start"
       px={2}
       py="2px"
       borderRadius="full"
