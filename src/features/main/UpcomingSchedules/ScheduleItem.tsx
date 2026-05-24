@@ -1,4 +1,7 @@
-import type { ScheduleDto, ScheduleCategory } from "../../../api/public/schedule";
+import type {
+  ScheduleDto,
+  ScheduleCategory,
+} from "../../../api/public/schedule";
 import { Box, Text, Badge } from "@chakra-ui/react";
 import dayjs from "dayjs";
 import isToday from "dayjs/plugin/isToday";
@@ -38,7 +41,7 @@ const getRelativeDate = (dateTime: dayjs.Dayjs): string => {
 };
 
 export default function ScheduleItem({ schedule }: Props) {
-  const dateTime = dayjs(schedule.startTime);
+  const dateTime = dayjs.utc(schedule.startTime).tz("Asia/Seoul");
   const relativeDate = getRelativeDate(dateTime);
   const time = dateTime.format("HH:mm");
   const categoryLabel = schedule.category
