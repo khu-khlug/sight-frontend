@@ -1,0 +1,52 @@
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "calendar filter"
+    "weekly   weekly";
+  gap: 16px;
+  align-items: stretch;
+}
+
+@media screen and (max-width: 820px) {
+  .container {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "calendar"
+      "filter"
+      "weekly";
+  }
+}
+
+.calendarPanel {
+  grid-area: calendar;
+  display: flex;
+  flex-direction: column;
+}
+
+.filterPanel {
+  grid-area: filter;
+  display: flex;
+  flex-direction: column;
+}
+
+.weeklyPanel {
+  grid-area: weekly;
+}
+
+.editOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+
+.editPanel {
+  width: 100%;
+  max-width: 800px;
+}
