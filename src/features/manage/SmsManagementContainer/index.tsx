@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Box, Heading, Input, Text, Textarea } from "@chakra-ui/react";
+import { Box, Dialog, Heading, Input, Text, Textarea } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 
 import Button from "../../../components/Button";
+import BaseModal from "../../../components/BaseModal";
 import Callout from "../../../components/Callout";
 import CenterRingLoadingIndicator from "../../../components/RingLoadingIndicator/center";
 import PageNavigator from "../../../components/PageNavigator";
@@ -59,6 +60,9 @@ export default function SmsManagementContainer() {
   const [additionalPhones, setAdditionalPhones] = useState("");
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [result, setResult] = useState<SendSmsResponse | null>(null);
+  const [isSenderPhoneModalOpen, setIsSenderPhoneModalOpen] = useState(false);
+  const [senderPhoneInput, setSenderPhoneInput] = useState("");
+  const [senderPhoneError, setSenderPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isUserLoading && (isUserError || !currentUser || !currentUser.manager)) navigate("/", { replace: true });
@@ -74,6 +78,22 @@ export default function SmsManagementContainer() {
     retry: 0,
   });
 
+  const senderPhoneQuery = useQuery({
+    queryKey: ["sender-phone"],
+    queryFn: SmsManageApi.getSenderPhone,
+    enabled: !!currentUser,
+    retry: 0,
+  });
+  const senderPhoneMutation = useMutation({
+    mutationFn: SmsManageApi.updateSenderPhone,
+    onSuccess: () => {
+      setSenderPhoneError(null);
+      setIsSenderPhoneModalOpen(false);
+      void senderPhoneQuery.refetch();
+    },
+    onError: (error) => setSenderPhoneError(extractErrorMessage(error)),
+  });
+
   const smsMutation = useMutation({
     mutationFn: SmsManageApi.sendSms,
     onSuccess: (data) => setResult(data),
@@ -85,6 +105,9 @@ export default function SmsManagementContainer() {
   const trimmedMessage = message.trim();
   const canSend = hasRecipients && trimmedMessage.length > 0 && !smsMutation.isPending;
   const bytes = byteLength(message);
+  const displayedSenderPhone = senderPhoneQuery.data?.phone
+    ? senderPhoneQuery.data.phone.replace(/(\d{3})(\d{4})(\d{4})/, "$1-$2-$3")
+    : senderPhoneQuery.isLoading ? "불러오는 중" : "등록되지 않음";
 
   if (isUserLoading) return <CenterRingLoadingIndicator />;
   if (!currentUser) return null;
@@ -113,6 +136,20 @@ export default function SmsManagementContainer() {
     <Box className={`${styles.container} ${styles.card}`}>
       <Heading size="xl">운영진 문자 발송</Heading>
       <Text color="gray.600">회원 또는 직접 입력한 수신자에게 문자를 발송합니다.</Text>
+      <div className={styles.senderPhone}>
+        <Text>공식 발신번호: {displayedSenderPhone}</Text>
+        <button
+          type="button"
+          className={styles.textButton}
+          onClick={() => {
+            setSenderPhoneInput(senderPhoneQuery.data?.phone ?? "");
+            setSenderPhoneError(null);
+            setIsSenderPhoneModalOpen(true);
+          }}
+        >
+          수정
+        </button>
+      </div>
 
       <div className={styles.section}>
         <Heading size="md">회원 수신자 ({selectedUsers.length}명)</Heading>
@@ -182,6 +219,37 @@ export default function SmsManagementContainer() {
           <Button variant="neutral" onClick={() => { setResult(null); setSelectedUsers([]); setAdditionalPhones(""); setMessage(DEFAULT_MESSAGE); }}>새 작성</Button>
         </div>
       )}
+
+      <BaseModal
+        isOpen={isSenderPhoneModalOpen}
+        onRequestClose={() => setIsSenderPhoneModalOpen(false)}
+      >
+        <Dialog.Header p={0} mb="20px">
+          <Dialog.Title fontSize="lg" fontWeight="semibold">공식 발신번호 수정</Dialog.Title>
+        </Dialog.Header>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            senderPhoneMutation.mutate(senderPhoneInput);
+          }}
+        >
+          <Dialog.Body p={0}>
+            <Input
+              value={senderPhoneInput}
+              onChange={(event) => setSenderPhoneInput(event.target.value)}
+              placeholder="010-0000-0000"
+              aria-label="공식 발신번호"
+            />
+            {senderPhoneError && <Callout type="error">{senderPhoneError}</Callout>}
+          </Dialog.Body>
+          <Dialog.Footer p={0} mt="22px" className={styles.modalActions}>
+            <Button type="button" variant="neutral" onClick={() => setIsSenderPhoneModalOpen(false)}>취소</Button>
+            <Button type="submit" disabled={senderPhoneMutation.isPending || !senderPhoneInput.trim()}>
+              {senderPhoneMutation.isPending ? "저장 중..." : "저장"}
+            </Button>
+          </Dialog.Footer>
+        </form>
+      </BaseModal>
     </Box>
   );
 }
