@@ -1,0 +1,9 @@
+.container { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; display: flex; flex-direction: column; gap: 16px; }
+.card { display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; }
+.inlineForm { display: flex; gap: 8px; align-items: center; }
+.memberList { display: flex; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto; }
+.member { display: flex; gap: 10px; align-items: center; padding: 8px 4px; }
+.actions { display: flex; justify-content: flex-end; }
+.results { width: 100%; border-collapse: collapse; font-size: 14px; }
+.results th, .results td { padding: 9px 6px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+@media (max-width: 600px) { .inlineForm { align-items: stretch; flex-direction: column; } .results { display: block; overflow-x: auto; white-space: nowrap; } }
