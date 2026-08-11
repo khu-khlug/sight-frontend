@@ -185,7 +185,7 @@ export default function SmsManagementContainer() {
           <Heading size="md">회원 수신자 ({selectedUsers.length}명)</Heading>
           <form className={styles.inlineForm} onSubmit={submitSearch}>
             <Input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="이름 검색" aria-label="회원 이름 검색" />
-            <Button type="submit" variant="neutral">검색</Button>
+            <Button type="submit" variant="dark-outline">검색</Button>
           </form>
           {usersQuery.isError && <Callout type="error">{extractErrorMessage(usersQuery.error)}</Callout>}
           {usersQuery.isLoading && <CenterRingLoadingIndicator />}
