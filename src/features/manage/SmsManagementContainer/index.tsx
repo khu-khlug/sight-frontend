@@ -225,10 +225,9 @@ export default function SmsManagementContainer() {
       {step === 3 && (
         <div className={styles.section}>
           <Heading size="md">메시지</Heading>
+          {directPhoneCount > 0 && <Callout type="info">직접 입력한 수신자에게는 {`{realname}`} 위치에 정규화된 전화번호가 표시됩니다.</Callout>}
           <Textarea value={message} onChange={(event) => { setMessage(event.target.value); setShowMessageValidation(false); }} rows={8} aria-label="문자 메시지" />
           <Text>{bytes}바이트 · {bytes <= 90 ? "SMS" : "LMS"} 자동 전환 (90바이트 기준)</Text>
-          <Text color="gray.600">예시: 안녕하세요, {`{realname}`}님 → 안녕하세요, 홍길동님</Text>
-          {directPhoneCount > 0 && <Callout type="info">직접 입력한 수신자에게는 {`{realname}`} 위치에 정규화된 전화번호가 표시됩니다.</Callout>}
           {showMessageValidation && <Callout type="error">메시지를 입력하세요.</Callout>}
           <Box className={styles.actions}>
             <Button variant="neutral" onClick={() => setStep(2)}>이전</Button>
