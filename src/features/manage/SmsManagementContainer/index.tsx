@@ -151,6 +151,8 @@ export default function SmsManagementContainer() {
         </button>
       </div>
 
+      <hr className={styles.divider} />
+
       <div className={styles.section}>
         <Heading size="md">회원 수신자 ({selectedUsers.length}명)</Heading>
         <form className={styles.inlineForm} onSubmit={submitSearch}>
