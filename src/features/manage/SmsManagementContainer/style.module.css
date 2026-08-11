@@ -1,0 +1,22 @@
+.container { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; display: flex; flex-direction: column; gap: 16px; }
+.card { display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; }
+.section { display: flex; flex-direction: column; gap: 12px; }
+.senderPhone { display: flex; align-items: center; gap: 8px; }
+.divider { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid #e2e8f0; }
+.stepper { display: flex; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.stepper li { display: flex; align-items: center; gap: 6px; color: #718096; font-size: 14px; }
+.stepper li span { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border: 1px solid #cbd5e0; border-radius: 50%; }
+.stepper .currentStep { color: #0077b6; font-weight: 600; }
+.stepper .currentStep span, .stepper .completedStep span { border-color: #00a0e9; background: #00a0e9; color: white; }
+.messagePreview { padding: 16px; border: 1px solid #e2e8f0; border-radius: 6px; white-space: pre-wrap; }
+.recipientSummary { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; }
+.textButton { border: 0; padding: 0; color: #00a0e9; background: transparent; font: inherit; cursor: pointer; text-decoration: underline; }
+.textButton:hover { color: #0077b6; }
+.modalActions { display: flex; justify-content: flex-end; gap: 8px; }
+.inlineForm { display: flex; gap: 8px; align-items: center; }
+.memberList { display: flex; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto; }
+.member { display: flex; gap: 10px; align-items: center; padding: 8px 4px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; }
+.results { width: 100%; border-collapse: collapse; font-size: 14px; }
+.results th, .results td { padding: 9px 6px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+@media (max-width: 600px) { .inlineForm { align-items: stretch; flex-direction: column; } .stepper { flex-direction: column; gap: 6px; } .results { display: block; overflow-x: auto; white-space: nowrap; } }

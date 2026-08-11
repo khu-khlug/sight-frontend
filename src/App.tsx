@@ -21,6 +21,7 @@ import BookListPage from "./pages/book";
 import BookMyPage from "./pages/member/book/my";
 import BookDetailPage from "./pages/book/detail";
 import BookManagePage from "./pages/manage/book";
+import SmsManagePage from "./pages/manage/sms";
 const BookScanPage = lazy(() => import("./pages/member/book/scan"));
 
 function App() {
@@ -51,6 +52,7 @@ function App() {
           element={<GroupMatchingNewPage />}
         />
         <Route path="/manage/book" element={<BookManagePage />} />
+        <Route path="/manage/sms" element={<SmsManagePage />} />
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/book" element={<BookListPage />} />
         <Route path="/book/my" element={<BookMyPage />} />
