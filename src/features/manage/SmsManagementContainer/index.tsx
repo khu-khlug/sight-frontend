@@ -58,23 +58,11 @@ export default function SmsManagementContainer() {
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [additionalPhones, setAdditionalPhones] = useState("");
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
-  const [senderPhone, setSenderPhone] = useState("");
-  const [senderError, setSenderError] = useState<string | null>(null);
   const [result, setResult] = useState<SendSmsResponse | null>(null);
 
   useEffect(() => {
     if (!isUserLoading && (isUserError || !currentUser || !currentUser.manager)) navigate("/", { replace: true });
   }, [currentUser, isUserError, isUserLoading, navigate]);
-
-  const senderQuery = useQuery({
-    queryKey: ["sender-phone"],
-    queryFn: SmsManageApi.getSenderPhone,
-    enabled: !!currentUser,
-    retry: 0,
-  });
-  useEffect(() => {
-    if (senderQuery.data) setSenderPhone(senderQuery.data.phone);
-  }, [senderQuery.data]);
 
   const usersQuery = useQuery({
     queryKey: ["sms-member-list", searchName, page],
@@ -86,11 +74,6 @@ export default function SmsManagementContainer() {
     retry: 0,
   });
 
-  const senderMutation = useMutation({
-    mutationFn: SmsManageApi.updateSenderPhone,
-    onSuccess: () => { setSenderError(null); void senderQuery.refetch(); },
-    onError: (error) => setSenderError(extractErrorMessage(error)),
-  });
   const smsMutation = useMutation({
     mutationFn: SmsManageApi.sendSms,
     onSuccess: (data) => setResult(data),
@@ -130,16 +113,6 @@ export default function SmsManagementContainer() {
     <Box className={styles.container}>
       <Heading size="xl">운영진 문자 발송</Heading>
       <Text color="gray.600">회원 또는 직접 입력한 수신자에게 문자를 발송합니다.</Text>
-
-      <section className={styles.card}>
-        <Heading size="md">공식 발신번호</Heading>
-        {senderQuery.isError && <Callout type="error">{extractErrorMessage(senderQuery.error)}</Callout>}
-        <form className={styles.inlineForm} onSubmit={(event) => { event.preventDefault(); senderMutation.mutate(senderPhone); }}>
-          <Input value={senderPhone} onChange={(event) => setSenderPhone(event.target.value)} aria-label="공식 발신번호" />
-          <Button type="submit" variant="neutral" disabled={senderMutation.isPending || !senderPhone.trim()}>저장</Button>
-        </form>
-        {senderError && <Callout type="error">{senderError}</Callout>}
-      </section>
 
       <section className={styles.card}>
         <Heading size="md">회원 수신자 ({selectedUsers.length}명)</Heading>
