@@ -204,7 +204,7 @@ export default function SmsManagementContainer() {
             </>
           )}
           <Box className={styles.actions}>
-            <Button onClick={() => setStep(2)}>다음: 직접 수신번호 입력</Button>
+            <Button onClick={() => setStep(2)}>다음</Button>
           </Box>
         </div>
       )}
@@ -217,7 +217,7 @@ export default function SmsManagementContainer() {
           {showRecipientValidation && <Callout type="error">회원 또는 직접 입력 수신자를 지정하세요.</Callout>}
           <Box className={styles.actions}>
             <Button variant="neutral" onClick={() => setStep(1)}>이전</Button>
-            <Button onClick={moveToMessageStep}>다음: 메시지 작성</Button>
+            <Button onClick={moveToMessageStep}>다음</Button>
           </Box>
         </div>
       )}
@@ -232,7 +232,7 @@ export default function SmsManagementContainer() {
           {showMessageValidation && <Callout type="error">메시지를 입력하세요.</Callout>}
           <Box className={styles.actions}>
             <Button variant="neutral" onClick={() => setStep(2)}>이전</Button>
-            <Button onClick={moveToReviewStep}>다음: 발송 내용 확인</Button>
+            <Button onClick={moveToReviewStep}>다음</Button>
           </Box>
         </div>
       )}
