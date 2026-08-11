@@ -228,6 +228,7 @@ export default function SmsManagementContainer() {
           {directPhoneCount > 0 && <Callout type="info">직접 입력한 수신자에게는 {`{realname}`} 위치에 정규화된 전화번호가 표시됩니다.</Callout>}
           <Textarea value={message} onChange={(event) => { setMessage(event.target.value); setShowMessageValidation(false); }} rows={8} aria-label="문자 메시지" />
           <Text>{bytes}바이트 · {bytes <= 90 ? "SMS" : "LMS"} 자동 전환 (90바이트 기준)</Text>
+          <Text fontSize="sm" color="gray.600">{`{realname}`}을 사용한 경우 수신자 이름 또는 전화번호 길이에 따라 실제 바이트 수와 발송 유형이 달라질 수 있습니다.</Text>
           {showMessageValidation && <Callout type="error">메시지를 입력하세요.</Callout>}
           <Box className={styles.actions}>
             <Button variant="neutral" onClick={() => setStep(2)}>이전</Button>
