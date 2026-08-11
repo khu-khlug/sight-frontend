@@ -110,11 +110,11 @@ export default function SmsManagementContainer() {
   };
 
   return (
-    <Box className={styles.container}>
+    <Box className={`${styles.container} ${styles.card}`}>
       <Heading size="xl">운영진 문자 발송</Heading>
       <Text color="gray.600">회원 또는 직접 입력한 수신자에게 문자를 발송합니다.</Text>
 
-      <section className={styles.card}>
+      <div className={styles.section}>
         <Heading size="md">회원 수신자 ({selectedUsers.length}명)</Heading>
         <form className={styles.inlineForm} onSubmit={submitSearch}>
           <Input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="이름 검색" aria-label="회원 이름 검색" />
@@ -136,20 +136,20 @@ export default function SmsManagementContainer() {
             <PageNavigator currentPage={page} countPerPage={LIMIT} totalCount={usersQuery.data.count} onPageChange={setPage} />
           </>
         )}
-      </section>
+      </div>
 
-      <section className={styles.card}>
+      <div className={styles.section}>
         <Heading size="md">직접 입력 수신번호</Heading>
         <Textarea value={additionalPhones} onChange={(event) => setAdditionalPhones(event.target.value)} placeholder="쉼표로 여러 번호를 입력하세요" aria-label="직접 입력 수신번호" />
         <Text color="gray.600">정규화 후 {directPhoneCount}개 번호가 발송 대상입니다.</Text>
-      </section>
+      </div>
 
-      <section className={styles.card}>
+      <div className={styles.section}>
         <Heading size="md">메시지</Heading>
         <Textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={8} aria-label="문자 메시지" />
         <Text>{bytes}바이트 · {bytes <= 90 ? "SMS" : "LMS"} 자동 전환 (90바이트 기준)</Text>
         <Text color="gray.600">{`{realname}`}은 회원 이름 또는 정규화된 전화번호로 치환됩니다.</Text>
-      </section>
+      </div>
 
       {message.trim().length === 0 && <Callout type="error">메시지를 입력하세요.</Callout>}
       {!hasRecipients && <Callout type="error">회원 또는 직접 입력 수신자를 지정하세요.</Callout>}
@@ -160,7 +160,7 @@ export default function SmsManagementContainer() {
       </Box>
 
       {result && (
-        <section className={styles.card}>
+        <div className={styles.section}>
           <Heading size="md">발송 결과</Heading>
           <Callout type={result.results.every((item) => item.status === "SENT") ? "success" : "info"}>
             {result.results.every((item) => item.status === "SENT") ? "모든 수신자에게 정상 접수되었습니다." : "일부 수신자의 발송 결과를 확인하세요."}
@@ -180,7 +180,7 @@ export default function SmsManagementContainer() {
             </Button>
           )}
           <Button variant="neutral" onClick={() => { setResult(null); setSelectedUsers([]); setAdditionalPhones(""); setMessage(DEFAULT_MESSAGE); }}>새 작성</Button>
-        </section>
+        </div>
       )}
     </Box>
   );
