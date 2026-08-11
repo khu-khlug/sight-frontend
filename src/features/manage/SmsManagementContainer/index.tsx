@@ -136,7 +136,7 @@ export default function SmsManagementContainer() {
         {senderQuery.isError && <Callout type="error">{extractErrorMessage(senderQuery.error)}</Callout>}
         <form className={styles.inlineForm} onSubmit={(event) => { event.preventDefault(); senderMutation.mutate(senderPhone); }}>
           <Input value={senderPhone} onChange={(event) => setSenderPhone(event.target.value)} aria-label="공식 발신번호" />
-          <Button type="submit" disabled={senderMutation.isPending || !senderPhone.trim()}>저장</Button>
+          <Button size="sm" type="submit" disabled={senderMutation.isPending || !senderPhone.trim()}>저장</Button>
         </form>
         {senderError && <Callout type="error">{senderError}</Callout>}
       </section>
@@ -145,7 +145,7 @@ export default function SmsManagementContainer() {
         <Heading size="md">회원 수신자 ({selectedUsers.length}명)</Heading>
         <form className={styles.inlineForm} onSubmit={submitSearch}>
           <Input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="이름 검색" aria-label="회원 이름 검색" />
-          <Button type="submit" variant="neutral">검색</Button>
+          <Button size="sm" type="submit" variant="neutral">검색</Button>
         </form>
         {usersQuery.isError && <Callout type="error">{extractErrorMessage(usersQuery.error)}</Callout>}
         {usersQuery.isLoading && <CenterRingLoadingIndicator />}
