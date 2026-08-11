@@ -36,6 +36,7 @@ const sendSms = async (request: SendSmsRequest) => {
   const response = await apiV2Client.post<SendSmsResponse>(
     "/manager/sms-messages",
     request,
+    { validateStatus: (status) => status === 200 || status === 422 },
   );
   return response.data;
 };

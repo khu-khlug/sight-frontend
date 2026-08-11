@@ -17,6 +17,7 @@ import styles from "./style.module.css";
 
 const LIMIT = 50;
 const DEFAULT_MESSAGE = "[쿠러그]\n\n(발신 전용)\n\n";
+const STEPS = ["회원 수신자", "직접 수신번호", "메시지 작성", "전송 내용 확인"];
 
 type User = ManageUserApiDto["UserResponse"];
 
@@ -63,6 +64,9 @@ export default function SmsManagementContainer() {
   const [isSenderPhoneModalOpen, setIsSenderPhoneModalOpen] = useState(false);
   const [senderPhoneInput, setSenderPhoneInput] = useState("");
   const [senderPhoneError, setSenderPhoneError] = useState<string | null>(null);
+  const [step, setStep] = useState(1);
+  const [showRecipientValidation, setShowRecipientValidation] = useState(false);
+  const [showMessageValidation, setShowMessageValidation] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && (isUserError || !currentUser || !currentUser.manager)) navigate("/", { replace: true });
@@ -113,6 +117,7 @@ export default function SmsManagementContainer() {
   if (!currentUser) return null;
 
   const toggleUser = (user: User) => {
+    setShowRecipientValidation(false);
     setSelectedUsers((previous) => selectedIds.has(user.id)
       ? previous.filter((selected) => selected.id !== user.id)
       : [...previous, user]);
@@ -130,6 +135,20 @@ export default function SmsManagementContainer() {
       additionalPhoneNumbers: additionalPhones.split(",").map((phone) => phone.trim()).filter(Boolean),
       message,
     });
+  };
+  const moveToMessageStep = () => {
+    if (!hasRecipients) {
+      setShowRecipientValidation(true);
+      return;
+    }
+    setStep(3);
+  };
+  const moveToReviewStep = () => {
+    if (!trimmedMessage) {
+      setShowMessageValidation(true);
+      return;
+    }
+    setStep(4);
   };
 
   return (
@@ -153,52 +172,93 @@ export default function SmsManagementContainer() {
 
       <hr className={styles.divider} />
 
-      <div className={styles.section}>
-        <Heading size="md">회원 수신자 ({selectedUsers.length}명)</Heading>
-        <form className={styles.inlineForm} onSubmit={submitSearch}>
-          <Input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="이름 검색" aria-label="회원 이름 검색" />
-          <Button type="submit" variant="neutral">검색</Button>
-        </form>
-        {usersQuery.isError && <Callout type="error">{extractErrorMessage(usersQuery.error)}</Callout>}
-        {usersQuery.isLoading && <CenterRingLoadingIndicator />}
-        {usersQuery.data && (
-          <>
-            <div className={styles.memberList}>
-              {usersQuery.data.users.map((user) => (
-                <label className={styles.member} key={user.id}>
-                  <input type="checkbox" checked={selectedIds.has(user.id)} onChange={() => toggleUser(user)} />
-                  <span>{user.profile.name} · {user.profile.college || "소속 미등록"} · {user.admission} · {user.profile.phone ? "전화번호 등록" : "전화번호 없음"}</span>
-                </label>
-              ))}
-              {usersQuery.data.users.length === 0 && <Callout type="info">검색 결과가 없습니다.</Callout>}
-            </div>
-            <PageNavigator currentPage={page} countPerPage={LIMIT} totalCount={usersQuery.data.count} onPageChange={setPage} />
-          </>
-        )}
-      </div>
+      <ol className={styles.stepper} aria-label="문자 발송 단계">
+        {STEPS.map((label, index) => (
+          <li key={label} className={step === index + 1 ? styles.currentStep : step > index + 1 ? styles.completedStep : undefined} aria-current={step === index + 1 ? "step" : undefined}>
+            <span>{index + 1}</span>{label}
+          </li>
+        ))}
+      </ol>
 
-      <div className={styles.section}>
-        <Heading size="md">직접 입력 수신번호</Heading>
-        <Textarea value={additionalPhones} onChange={(event) => setAdditionalPhones(event.target.value)} placeholder="쉼표로 여러 번호를 입력하세요" aria-label="직접 입력 수신번호" />
-        <Text color="gray.600">정규화 후 {directPhoneCount}개 번호가 발송 대상입니다.</Text>
-      </div>
+      {step === 1 && (
+        <div className={styles.section}>
+          <Heading size="md">회원 수신자 ({selectedUsers.length}명)</Heading>
+          <form className={styles.inlineForm} onSubmit={submitSearch}>
+            <Input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="이름 검색" aria-label="회원 이름 검색" />
+            <Button type="submit" variant="neutral">검색</Button>
+          </form>
+          {usersQuery.isError && <Callout type="error">{extractErrorMessage(usersQuery.error)}</Callout>}
+          {usersQuery.isLoading && <CenterRingLoadingIndicator />}
+          {usersQuery.data && (
+            <>
+              <div className={styles.memberList}>
+                {usersQuery.data.users.map((user) => (
+                  <label className={styles.member} key={user.id}>
+                    <input type="checkbox" checked={selectedIds.has(user.id)} onChange={() => toggleUser(user)} />
+                    <span>{user.profile.name} · {user.profile.college || "소속 미등록"} · {user.admission} · {user.profile.phone ?? "전화번호 없음"}</span>
+                  </label>
+                ))}
+                {usersQuery.data.users.length === 0 && <Callout type="info">검색 결과가 없습니다.</Callout>}
+              </div>
+              <PageNavigator currentPage={page} countPerPage={LIMIT} totalCount={usersQuery.data.count} onPageChange={setPage} />
+            </>
+          )}
+          <Box className={styles.actions}>
+            <Button onClick={() => setStep(2)}>다음: 직접 수신번호 입력</Button>
+          </Box>
+        </div>
+      )}
 
-      <div className={styles.section}>
-        <Heading size="md">메시지</Heading>
-        <Textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={8} aria-label="문자 메시지" />
-        <Text>{bytes}바이트 · {bytes <= 90 ? "SMS" : "LMS"} 자동 전환 (90바이트 기준)</Text>
-        <Text color="gray.600">{`{realname}`}은 회원 이름 또는 정규화된 전화번호로 치환됩니다.</Text>
-      </div>
+      {step === 2 && (
+        <div className={styles.section}>
+          <Heading size="md">직접 입력 수신번호</Heading>
+          <Textarea value={additionalPhones} onChange={(event) => { setAdditionalPhones(event.target.value); setShowRecipientValidation(false); }} placeholder="쉼표로 여러 번호를 입력하세요" aria-label="직접 입력 수신번호" />
+          <Text color="gray.600">정규화 후 {directPhoneCount}개 번호가 발송 대상입니다.</Text>
+          {showRecipientValidation && <Callout type="error">회원 또는 직접 입력 수신자를 지정하세요.</Callout>}
+          <Box className={styles.actions}>
+            <Button variant="neutral" onClick={() => setStep(1)}>이전</Button>
+            <Button onClick={moveToMessageStep}>다음: 메시지 작성</Button>
+          </Box>
+        </div>
+      )}
 
-      {message.trim().length === 0 && <Callout type="error">메시지를 입력하세요.</Callout>}
-      {!hasRecipients && <Callout type="error">회원 또는 직접 입력 수신자를 지정하세요.</Callout>}
-      {smsMutation.isError && <Callout type="error">{extractErrorMessage(smsMutation.error)}</Callout>}
+      {step === 3 && (
+        <div className={styles.section}>
+          <Heading size="md">메시지</Heading>
+          <Textarea value={message} onChange={(event) => { setMessage(event.target.value); setShowMessageValidation(false); }} rows={8} aria-label="문자 메시지" />
+          <Text>{bytes}바이트 · {bytes <= 90 ? "SMS" : "LMS"} 자동 전환 (90바이트 기준)</Text>
+          <Text color="gray.600">예시: 안녕하세요, {`{realname}`}님 → 안녕하세요, 홍길동님</Text>
+          {directPhoneCount > 0 && <Callout type="info">직접 입력한 수신자에게는 {`{realname}`} 위치에 정규화된 전화번호가 표시됩니다.</Callout>}
+          {showMessageValidation && <Callout type="error">메시지를 입력하세요.</Callout>}
+          <Box className={styles.actions}>
+            <Button variant="neutral" onClick={() => setStep(2)}>이전</Button>
+            <Button onClick={moveToReviewStep}>다음: 발송 내용 확인</Button>
+          </Box>
+        </div>
+      )}
 
-      <Box className={styles.actions}>
-        <Button disabled={!canSend} onClick={send}>{smsMutation.isPending ? "발송 중..." : "문자 발송"}</Button>
-      </Box>
+      {step === 4 && !result && (
+        <div className={styles.section}>
+          <Heading size="md">발송 내용 확인</Heading>
+          <Text>공식 발신번호: {displayedSenderPhone}</Text>
+          <div className={styles.recipientSummary}>
+            <Heading size="sm">회원 수신자 ({selectedUsers.length}명)</Heading>
+            {selectedUsers.length > 0 ? selectedUsers.map((user) => <Text key={user.id}>{user.profile.name} · {user.profile.phone ?? "전화번호 없음"}</Text>) : <Text color="gray.600">선택한 회원이 없습니다.</Text>}
+          </div>
+          <div className={styles.recipientSummary}>
+            <Heading size="sm">직접 입력 수신번호 ({directPhoneCount}개)</Heading>
+            {directPhoneCount > 0 ? normalizePhones(additionalPhones).map((phone) => <Text key={phone}>{phone}</Text>) : <Text color="gray.600">직접 입력한 번호가 없습니다.</Text>}
+          </div>
+          <Box className={styles.messagePreview}>{message}</Box>
+          {smsMutation.isError && <Callout type="error">{extractErrorMessage(smsMutation.error)}</Callout>}
+          <Box className={styles.actions}>
+            <Button variant="neutral" disabled={smsMutation.isPending} onClick={() => setStep(3)}>이전</Button>
+            <Button disabled={!canSend} onClick={send}>{smsMutation.isPending ? "발송 중..." : "문자 발송"}</Button>
+          </Box>
+        </div>
+      )}
 
-      {result && (
+      {step === 4 && result && (
         <div className={styles.section}>
           <Heading size="md">발송 결과</Heading>
           <Callout type={result.results.every((item) => item.status === "SENT") ? "success" : "info"}>
@@ -213,12 +273,13 @@ export default function SmsManagementContainer() {
                 setSelectedUsers((users) => users.filter((user) => failed.some((item) => item.memberId === user.id)));
                 setAdditionalPhones(failed.filter((item) => item.memberId === null && item.phone).map((item) => item.phone).join(","));
                 setResult(null);
+                setStep(1);
               }}
             >
               실패·제외 수신자만 다시 작성
             </Button>
           )}
-          <Button variant="neutral" onClick={() => { setResult(null); setSelectedUsers([]); setAdditionalPhones(""); setMessage(DEFAULT_MESSAGE); }}>새 작성</Button>
+          <Button variant="neutral" onClick={() => { setResult(null); setSelectedUsers([]); setAdditionalPhones(""); setMessage(DEFAULT_MESSAGE); setStep(1); }}>새 작성</Button>
         </div>
       )}
 
