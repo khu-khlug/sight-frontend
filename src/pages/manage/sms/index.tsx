@@ -1,14 +1,13 @@
+import { Box } from "@chakra-ui/react";
 import SmsManagementContainer from "../../../features/manage/SmsManagementContainer";
-import SightLayout from "../../../layouts/SightLayout";
-import Location from "../../../components/Location";
+import MainLayout from "../../../layouts/MainLayout";
 
 export default function SmsManagePage() {
   return (
-    <SightLayout>
-      <Location label="문자 발송" />
-      <main>
+    <MainLayout>
+      <Box mt="4">
         <SmsManagementContainer />
-      </main>
-    </SightLayout>
+      </Box>
+    </MainLayout>
   );
 }
