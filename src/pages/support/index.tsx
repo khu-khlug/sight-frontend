@@ -34,8 +34,9 @@ export default function SupportRequestListPage() {
 
   return (
     <MainLayout>
-      <Container>
-        <Box as="main" py={6}>
+      <Box mt={{ base: 4, md: 6 }}>
+        <Container>
+          <Box as="main" py={6}>
           <Box display="flex" justifyContent="space-between" alignItems="center" gap={3} mb={5} flexWrap="wrap">
             <Heading size="xl">지원 신청</Heading>
             <Button onClick={() => navigate("/support/new")}>지원 신청 등록</Button>
@@ -67,7 +68,7 @@ export default function SupportRequestListPage() {
               {supportRequestsQuery.data.supportRequests.length === 0 ? (
                 <Callout type="info">등록된 지원 신청이 없습니다.</Callout>
               ) : (
-                <VStack align="stretch" gap={3} mb={6}>
+                <VStack align="stretch" gap={3}>
                   {supportRequestsQuery.data.supportRequests.map((supportRequest) => (
                     <Box key={supportRequest.id} borderWidth="1px" borderRadius="md" p={4} bg="white">
                       <Box display="flex" justifyContent="space-between" gap={3} flexWrap="wrap">
@@ -85,16 +86,19 @@ export default function SupportRequestListPage() {
                   ))}
                 </VStack>
               )}
-              <PageNavigator
-                currentPage={page}
-                countPerPage={LIMIT}
-                totalCount={supportRequestsQuery.data.count}
-                onPageChange={setPage}
-              />
+              <Box mt={6}>
+                <PageNavigator
+                  currentPage={page}
+                  countPerPage={LIMIT}
+                  totalCount={supportRequestsQuery.data.count}
+                  onPageChange={setPage}
+                />
+              </Box>
             </>
           )}
-        </Box>
-      </Container>
+          </Box>
+        </Container>
+      </Box>
     </MainLayout>
   );
 }
