@@ -22,6 +22,9 @@ import BookMyPage from "./pages/member/book/my";
 import BookDetailPage from "./pages/book/detail";
 import BookManagePage from "./pages/manage/book";
 import SmsManagePage from "./pages/manage/sms";
+import SupportRequestListPage from "./pages/support";
+import SupportRequestNewPage from "./pages/support/new";
+import SupportRequestDetailPage from "./pages/support/detail";
 const BookScanPage = lazy(() => import("./pages/member/book/scan"));
 
 function App() {
@@ -35,6 +38,9 @@ function App() {
         />
         <Route path="/group-matching" element={<GroupMatchingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/support" element={<SupportRequestListPage />} />
+        <Route path="/support/new" element={<SupportRequestNewPage />} />
+        <Route path="/support/:supportRequestId" element={<SupportRequestDetailPage />} />
 
         <Route path="/manage/infra-blue" element={<InfraBluePage />} />
         <Route path="/manage/member" element={<ManageMemberPage />} />
