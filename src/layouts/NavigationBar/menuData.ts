@@ -59,7 +59,7 @@ export const menuItems: MenuItem[] = [
       { label: "세미나", href: "https://khlug.org/seminar" },
       { label: "포트폴리오", href: "https://khlug.org/portfolio" },
       { label: "", href: "", isDivider: true },
-      { label: "지원 신청", href: "https://khlug.org/support" },
+      { label: "지원 신청", href: "/support" },
     ],
   },
   {
