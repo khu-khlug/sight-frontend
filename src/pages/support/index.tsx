@@ -36,7 +36,7 @@ export default function SupportRequestListPage() {
     <MainLayout>
       <Box mt={{ base: 4, md: 6 }}>
         <Container>
-          <Box as="main" py={6}>
+          <Box as="main" pt={0} pb={6}>
           <Box display="flex" justifyContent="space-between" alignItems="center" gap={3} mb={5} flexWrap="wrap">
             <Heading size="xl">지원 신청</Heading>
             <Button onClick={() => navigate("/support/new")}>지원 신청 등록</Button>
