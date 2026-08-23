@@ -13,22 +13,24 @@ export default function SupportRequestNewPage() {
 
   return (
     <MainLayout>
-      <Container>
-        <Box as="main" py={6} maxW="768px">
-          <Heading size="xl" mb={5}>지원 신청 등록</Heading>
-          <SupportRequestForm
-            submitLabel="등록"
-            isSubmitting={createSupportRequest.isPending}
-            error={createSupportRequest.isError ? extractErrorMessage(createSupportRequest.error) : null}
-            onSubmit={(input) => {
-              createSupportRequest.mutate(input, {
-                onSuccess: (supportRequest) => navigate(`/support/${supportRequest.id}`),
-              });
-            }}
-            onCancel={() => navigate("/support")}
-          />
-        </Box>
-      </Container>
+      <Box mt={{ base: 4, md: 6 }}>
+        <Container>
+          <Box as="main" pt={0} pb={6}>
+            <Heading size="xl" mb={5}>지원 신청 등록</Heading>
+            <SupportRequestForm
+              submitLabel="등록"
+              isSubmitting={createSupportRequest.isPending}
+              error={createSupportRequest.isError ? extractErrorMessage(createSupportRequest.error) : null}
+              onSubmit={(input) => {
+                createSupportRequest.mutate(input, {
+                  onSuccess: (supportRequest) => navigate(`/support/${supportRequest.id}`),
+                });
+              }}
+              onCancel={() => navigate("/support")}
+            />
+          </Box>
+        </Container>
+      </Box>
     </MainLayout>
   );
 }

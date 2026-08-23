@@ -57,7 +57,7 @@ export default function SupportRequestForm({
         <VStack align="stretch" gap={4}>
         <Box>
           <label htmlFor="support-category">카테고리</label>
-          <NativeSelect.Root mt={1}>
+          <NativeSelect.Root mt={1} maxW="240px">
             <NativeSelect.Field
               id="support-category"
               value={category}
