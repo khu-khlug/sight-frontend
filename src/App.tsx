@@ -26,6 +26,7 @@ import SupportRequestListPage from "./pages/support";
 import SupportRequestNewPage from "./pages/support/new";
 import SupportRequestDetailPage from "./pages/support/detail";
 const BookScanPage = lazy(() => import("./pages/member/book/scan"));
+const TiptapPlaygroundPage = lazy(() => import("./pages/playground/tiptap"));
 
 function App() {
   const router = createBrowserRouter(
@@ -41,6 +42,14 @@ function App() {
         <Route path="/support" element={<SupportRequestListPage />} />
         <Route path="/support/new" element={<SupportRequestNewPage />} />
         <Route path="/support/:supportRequestId" element={<SupportRequestDetailPage />} />
+        <Route
+          path="/playground/tiptap"
+          element={
+            <Suspense fallback={null}>
+              <TiptapPlaygroundPage />
+            </Suspense>
+          }
+        />
 
         <Route path="/manage/infra-blue" element={<InfraBluePage />} />
         <Route path="/manage/member" element={<ManageMemberPage />} />
