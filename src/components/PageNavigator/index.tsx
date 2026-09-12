@@ -54,7 +54,7 @@ export default function PageNavigator({
   totalCount,
   onPageChange,
 }: Props) {
-  const totalPages = Math.ceil(totalCount / countPerPage);
+  const totalPages = Math.max(1, Math.ceil(totalCount / countPerPage));
 
   const pages = calcPageNumbers(currentPage, countPerPage, totalCount);
 
@@ -84,7 +84,7 @@ export default function PageNavigator({
         aria-label="다음 페이지"
         size="sm"
         variant="ghost"
-        disabled={currentPage === totalPages}
+        disabled={currentPage >= totalPages}
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
       >
         <ChevronRight size={14} />

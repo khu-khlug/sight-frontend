@@ -3,10 +3,16 @@ import { Dialog, Portal } from "@chakra-ui/react";
 type Props = {
   isOpen: boolean;
   onRequestClose?: () => void;
+  contentMaxW?: string;
   children?: React.ReactNode;
 };
 
-export default function BaseModal({ isOpen, onRequestClose, children }: Props) {
+export default function BaseModal({
+  isOpen,
+  onRequestClose,
+  contentMaxW = "400px",
+  children,
+}: Props) {
   return (
     <Dialog.Root
       open={isOpen}
@@ -21,7 +27,8 @@ export default function BaseModal({ isOpen, onRequestClose, children }: Props) {
         <Dialog.Positioner>
           <Dialog.Content
             p="28px"
-            maxW="400px"
+            maxW={contentMaxW}
+            w="calc(100vw - 32px)"
             boxShadow="0px 0px 8px #00000018"
             borderRadius="8px"
           >

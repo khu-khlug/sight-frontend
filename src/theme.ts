@@ -2,7 +2,7 @@ import { createSystem, defaultConfig, defineConfig, defineRecipe } from "@chakra
 
 const buttonRecipe = defineRecipe({
   base: {
-    fontWeight: "medium",
+    fontWeight: "semibold",
     borderRadius: "4px",
   },
   variants: {

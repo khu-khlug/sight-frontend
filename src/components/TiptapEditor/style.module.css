@@ -1,0 +1,88 @@
+.editorShell {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.toolbarButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: #334155;
+  background: transparent;
+  cursor: pointer;
+}
+
+.toolbarButton:hover:not(:disabled),
+.toolbarButton.active {
+  color: #0077b6;
+  background: #e6f7ff;
+}
+
+.toolbarButton:disabled {
+  color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  margin: 5px 4px;
+  background: #cbd5e1;
+}
+
+.editorContent :global(.tiptap) {
+  min-height: 320px;
+  padding: 20px;
+  outline: none;
+  line-height: 1.7;
+}
+
+.editorContent :global(.tiptap > :first-child) {
+  margin-top: 0;
+}
+
+.editorContent :global(.tiptap h2) {
+  margin: 1.2em 0 0.5em;
+  font-size: 1.5rem;
+}
+
+.editorContent :global(.tiptap blockquote) {
+  margin: 1em 0;
+  padding-left: 16px;
+  border-left: 4px solid #80d4ff;
+  color: #475569;
+}
+
+.editorContent :global(.tiptap ul),
+.editorContent :global(.tiptap ol) {
+  padding-left: 24px;
+}
+
+.editorContent :global(.tiptap a) {
+  color: #0077b6;
+  text-decoration: underline;
+}
+
+.editorContent :global(.tiptap img) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 16px 0;
+  border-radius: 4px;
+}
