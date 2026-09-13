@@ -25,6 +25,7 @@ import SmsManagePage from "./pages/manage/sms";
 import SupportRequestListPage from "./pages/support";
 import SupportRequestNewPage from "./pages/support/new";
 import SupportRequestDetailPage from "./pages/support/detail";
+import RequireLogin from "./components/RequireLogin";
 const BookScanPage = lazy(() => import("./pages/member/book/scan"));
 const TiptapPlaygroundPage = lazy(() => import("./pages/playground/tiptap"));
 
@@ -33,10 +34,12 @@ function App() {
     createRoutesFromElements(
       <Route path="/">
         <Route index element={<MainPage />} />
-        <Route
-          path="/member/integrate-discord"
-          element={<IntegrateDiscordPage />}
-        />
+        <Route element={<RequireLogin />}>
+          <Route
+            path="/member/integrate-discord"
+            element={<IntegrateDiscordPage />}
+          />
+        </Route>
         <Route path="/group-matching" element={<GroupMatchingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/support" element={<SupportRequestListPage />} />

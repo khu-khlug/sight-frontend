@@ -5,13 +5,14 @@ import legacyClient, { LEGACY_SITE_URL } from "../../api/client/legacy";
 import Button from "../../components/Button";
 import Container from "../../components/Container";
 import SimpleLogoLayout from "../../layouts/SimpleLogoLayout";
+import { getSafeInternalRedirectPath } from "../../util/redirect";
 import styles from "./style.module.css";
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const [csrfToken, setCsrfToken] = useState("");
 
-  const redirectPath = searchParams.get("redirect") || "/";
+  const redirectPath = getSafeInternalRedirectPath(searchParams.get("redirect"));
 
   useEffect(() => {
     legacyClient
