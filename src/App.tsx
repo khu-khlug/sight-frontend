@@ -30,6 +30,7 @@ import AttendancePage from "./pages/member/attendance";
 import AttendanceResultPage from "./pages/member/attendance/result";
 import DoorLockPage from "./pages/door-lock";
 // QR/바코드 라이브러리가 용량이 커거 지연 로딩 적용
+import RequireLogin from "./components/RequireLogin";
 const BookScanPage = lazy(() => import("./pages/member/book/scan"));
 const ManageAttendancePage = lazy(() => import("./pages/manage/attendance"));
 const TiptapPlaygroundPage = lazy(() => import("./pages/playground/tiptap"));
@@ -39,10 +40,12 @@ function App() {
     createRoutesFromElements(
       <Route path="/">
         <Route index element={<MainPage />} />
-        <Route
-          path="/member/integrate-discord"
-          element={<IntegrateDiscordPage />}
-        />
+        <Route element={<RequireLogin />}>
+          <Route
+            path="/member/integrate-discord"
+            element={<IntegrateDiscordPage />}
+          />
+        </Route>
         <Route path="/group-matching" element={<GroupMatchingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/support" element={<SupportRequestListPage />} />
