@@ -112,6 +112,7 @@ export default function DoorLockContainer() {
         }
         const welcome = result.name ? `${result.name}님 환영합니다.` : "환영합니다.";
         toast.success(welcome, toastOptions);
+        getDoorLockStatus().then(setStatus);
       } else {
         const message =
           result.reason === "timeout"
@@ -247,11 +248,9 @@ export default function DoorLockContainer() {
             </Box>
           ) : (
             <Box color="var(--dl-text-error)" fontSize="sm" fontWeight="medium">
-              <strong>서버에 연결되어 있지 않습니다.</strong>
+              <strong>현재 서비스를 이용할 수 없습니다.</strong>
               <br />
-              <strong>
-                {getMembersDate() ?? "날짜 없음"} 로컬 DB를 사용합니다.
-              </strong>
+              <strong>전원을 껐다 켜보거나 운영진에게 문의하세요.</strong>
             </Box>
           )}
         </Flex>

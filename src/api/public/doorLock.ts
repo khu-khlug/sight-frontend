@@ -10,7 +10,8 @@ export type DoorLockSchedule = {
 
 export type DoorLockStatus = {
   todayVisitorCount: number;
-  currentRoomCount: number;
+  // 재실 인원은 백엔드에 아직 없는 데이터라 null로 둔다.
+  currentRoomCount: number | null;
 };
 
 export type AuthResult =
@@ -32,35 +33,88 @@ const toSchedule = (s: RawSchedule): DoorLockSchedule => ({
   endAt: s.endAt,
 });
 
-const SYSTEM_HEADER = { "x-api-key": import.meta.env.VITE_DOOR_LOCK_API_KEY };
+type RoomConfig = { roomNumber: number; apiKey: string };
 
-export const getCurrentSchedule = async (): Promise<DoorLockSchedule | null> => {
+let cachedRoomConfig: RoomConfig | null = null;
+
+// 방 번호/키는 빌드 설정으로 갖지 않고 매번 데몬에 물어봐서 얻는다 — 페이지 번들에 SYSTEM
+// 권한 값을 정적으로 박아두지 않기 위함.
+const getRoomConfig = async (): Promise<RoomConfig | null> => {
+  if (cachedRoomConfig !== null) return cachedRoomConfig;
   try {
-    const resp = await fetch("http://localhost:8080/schedules/now");
+    const resp = await fetch("http://localhost:8080/room-env-var");
     if (!resp.ok) return null;
-    const data = await resp.json() as RawSchedule | null;
-    return data ? toSchedule(data) : null;
+    cachedRoomConfig = (await resp.json()) as RoomConfig;
+    return cachedRoomConfig;
   } catch {
     return null;
   }
+};
+
+const systemHeader = (apiKey: string) => ({ "x-api-key": apiKey });
+
+const SCHEDULES_KEY = "door_lock_schedules";
+
+const cacheSchedules = (schedules: RawSchedule[]): void => {
+  localStorage.setItem(SCHEDULES_KEY, JSON.stringify(schedules));
+};
+
+const cachedSchedules = (): RawSchedule[] => {
+  const raw = localStorage.getItem(SCHEDULES_KEY);
+  if (!raw) return [];
+  return JSON.parse(raw) as RawSchedule[];
+};
+
+const refreshSchedules = async (): Promise<void> => {
+  const config = await getRoomConfig();
+  if (config === null) return;
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const resp = await apiV2Client.get<{ schedules: RawSchedule[] }>("/schedules", {
+      params: { from: startOfDay.toISOString(), limit: 50 },
+      headers: systemHeader(config.apiKey),
+    });
+    cacheSchedules(resp.data.schedules);
+  } catch {
+    // 실패 시 기존 캐시 유지
+  }
+};
+
+export const getCurrentSchedule = async (): Promise<DoorLockSchedule | null> => {
+  await refreshSchedules();
+  const now = new Date();
+  const current = cachedSchedules().find(
+    (s) =>
+      new Date(s.scheduledAt) <= now &&
+      (s.endAt === null || new Date(s.endAt) >= now),
+  );
+  return current ? toSchedule(current) : null;
 };
 
 export const getNextSchedule = async (): Promise<DoorLockSchedule | null> => {
+  const now = new Date();
+  const next = cachedSchedules().find((s) => new Date(s.scheduledAt) > now);
+  return next ? toSchedule(next) : null;
+};
+
+export const getDoorLockStatus = async (): Promise<DoorLockStatus | null> => {
+  const config = await getRoomConfig();
+  if (config === null) return null;
   try {
-    const resp = await fetch("http://localhost:8080/schedules/next");
-    if (!resp.ok) return null;
-    const data = await resp.json() as RawSchedule | null;
-    return data ? toSchedule(data) : null;
+    const resp = await apiV2Client.get<{ count: number }>(
+      "/internal/door-lock/daily-visit-count",
+      {
+        params: { room: config.roomNumber },
+        headers: systemHeader(config.apiKey),
+      },
+    );
+    return { todayVisitorCount: resp.data.count, currentRoomCount: null };
   } catch {
     return null;
   }
 };
 
-export const getDoorLockStatus = async (): Promise<DoorLockStatus | null> => {
-  return null;
-};
-
-const MEMBERS_KEY = "door_lock_members";
 const MEMBERS_DATE_KEY = "door_lock_members_date";
 
 const todayString = () => new Date().toISOString().slice(0, 10);
@@ -68,67 +122,90 @@ const todayString = () => new Date().toISOString().slice(0, 10);
 export const getMembersDate = (): string | null =>
   localStorage.getItem(MEMBERS_DATE_KEY);
 
-export const sendDaemonDownAlert = (): Promise<void> =>
-  apiV2Client
-    .post("/internal/door-lock/alert-die", null, { headers: SYSTEM_HEADER })
+export const sendDaemonDownAlert = async (): Promise<void> => {
+  const config = await getRoomConfig();
+  if (config === null) return;
+  await apiV2Client
+    .post("/internal/door-lock/alert-die", null, { headers: systemHeader(config.apiKey) })
     .then(() => {})
     .catch(() => {});
+};
 
+// 회원목록은 데몬이 파일로 캐싱한다 — Chromium 프로필이 재설치 시 초기화되면서
+// localStorage가 같이 날아가는데, 데몬 파일 캐시는 그 영향을 안 받는다.
 export const syncMembers = async (): Promise<void> => {
   const today = todayString();
   if (localStorage.getItem(MEMBERS_DATE_KEY) === today) return;
+  const config = await getRoomConfig();
+  if (config === null) return;
   try {
     const resp = await apiV2Client.get<{ members: { number: number; name: string }[] }>(
       "/internal/door-lock/members",
-      { headers: SYSTEM_HEADER },
+      { headers: systemHeader(config.apiKey) },
     );
-    const map: Record<string, string> = {};
-    for (const m of resp.data.members) map[String(m.number)] = m.name;
-    localStorage.setItem(MEMBERS_KEY, JSON.stringify(map));
+    await fetch("http://localhost:8080/members", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ members: resp.data.members }),
+    });
     localStorage.setItem(MEMBERS_DATE_KEY, today);
   } catch {
-    // 실패 시 기존 캐시 유지, 날짜 미갱신으로 다음 마운트에서 재시도
+    // 실패 시 날짜 미갱신으로 다음 마운트에서 재시도
   }
 };
 
-const lookupLocal = (studentId: string): { found: boolean; name: string } => {
-  const raw = localStorage.getItem(MEMBERS_KEY);
-  if (!raw) return { found: false, name: "" };
-  const map = JSON.parse(raw) as Record<string, string>;
-  if (!(studentId in map)) return { found: false, name: "" };
-  return { found: true, name: map[studentId] };
+const lookupLocal = async (studentId: string): Promise<{ found: boolean; name: string }> => {
+  try {
+    const resp = await fetch("http://localhost:8080/members");
+    if (!resp.ok) return { found: false, name: "" };
+    const data = (await resp.json()) as { members: { number: number; name: string }[] };
+    const member = data.members.find((m) => String(m.number) === studentId);
+    return member ? { found: true, name: member.name } : { found: false, name: "" };
+  } catch {
+    return { found: false, name: "" };
+  }
 };
 
-const localFallback = (
+const openRelay = (studentId: string): Promise<void> =>
+  fetch("http://localhost:8080/unlock", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId }),
+  })
+    .then(() => {})
+    .catch(() => {});
+
+const localFallback = async (
   studentId: string,
   reason: "timeout" | "network" | "signal_failed",
-): AuthResult => {
-  const local = lookupLocal(studentId);
-  return local.found
-    ? { success: true, name: local.name, localUsed: true }
-    : { success: false, reason, localNotFound: true };
+): Promise<AuthResult> => {
+  const local = await lookupLocal(studentId);
+  if (!local.found) return { success: false, reason, localNotFound: true };
+  await openRelay(studentId);
+  return { success: true, name: local.name, localUsed: true };
 };
 
 export const authenticate = async (studentId: string): Promise<AuthResult> => {
+  const config = await getRoomConfig();
+  if (config === null) return localFallback(studentId, "signal_failed");
+
   try {
-    const resp = await fetch("http://localhost:8080/unlock", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentId: studentId }),
-    });
-
-    if (resp.ok) {
-      const data = await resp.json().catch(() => ({})) as { name?: string };
-      return { success: true, name: data.name ?? "" };
+    const resp = await apiV2Client.post<{ name: string }>(
+      "/internal/door-lock/accesses",
+      { number: Number(studentId), roomNumber: config.roomNumber },
+      { headers: systemHeader(config.apiKey), timeout: 5000 },
+    );
+    await openRelay(studentId);
+    return { success: true, name: resp.data.name };
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "response" in error) {
+      const status = (error as { response?: { status?: number } }).response?.status;
+      if (status !== undefined) {
+        return { success: false, reason: "unauthorized" };
+      }
     }
-
-    const data = await resp.json().catch(() => ({})) as { message?: string };
-    if (resp.status === 504 || data.message === "timeout")
-      return localFallback(studentId, "timeout");
-    if (resp.status === 502 || data.message === "network")
-      return localFallback(studentId, "network");
-    return { success: false, reason: "unauthorized" };
-  } catch {
-    return localFallback(studentId, "signal_failed");
+    const isTimeout =
+      typeof error === "object" && error !== null && "code" in error && error.code === "ECONNABORTED";
+    return localFallback(studentId, isTimeout ? "timeout" : "network");
   }
 };
