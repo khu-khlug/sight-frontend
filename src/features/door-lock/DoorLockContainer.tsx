@@ -1,4 +1,10 @@
-import { useEffect, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { Box, Flex, Text, chakra } from "@chakra-ui/react";
 import { toast } from "react-toastify";
 import DoorLockKeypad from "./DoorLockKeypad";
@@ -11,6 +17,7 @@ import {
   syncMembers,
   getMembersDate,
   sendDaemonDownAlert,
+  openRelay,
   type DoorLockSchedule,
   type DoorLockStatus,
 } from "../../api/public/doorLock";
@@ -20,7 +27,14 @@ function formatTime(isoString: string): string {
   return `${d.getHours()}시 ${String(d.getMinutes()).padStart(2, "0")}분`;
 }
 
-export default function DoorLockContainer() {
+const BYPASS_TAP_COUNT = 6;
+const BYPASS_TAP_WINDOW_MS = 5000;
+
+export type DoorLockContainerHandle = {
+  handleLogoTap: () => void;
+};
+
+const DoorLockContainer = forwardRef<DoorLockContainerHandle>((_, ref) => {
   const [input, setInput] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [currentSchedule, setCurrentSchedule] =
@@ -30,6 +44,31 @@ export default function DoorLockContainer() {
   );
   const [status, setStatus] = useState<DoorLockStatus | null>(null);
   const [isServerOnline, setIsServerOnline] = useState(true);
+  const logoTapTimestamps = useRef<number[]>([]);
+
+  // 도입 초기 인증 오류 대비용 임시 우회 — 시스템 안정화되면 제거.
+  // 로고를 5초 안에 6번 연속 탭하면 인증 없이 바로 릴레이를 연다.
+  useImperativeHandle(ref, () => ({
+    handleLogoTap: () => {
+      const now = Date.now();
+      const recentTaps = logoTapTimestamps.current.filter(
+        (t) => now - t < BYPASS_TAP_WINDOW_MS,
+      );
+      recentTaps.push(now);
+
+      if (recentTaps.length >= BYPASS_TAP_COUNT) {
+        openRelay("bypass-logo-tap");
+        toast.info("우회로 문을 열었습니다", {
+          position: "top-center",
+          autoClose: 1500,
+          hideProgressBar: true,
+        });
+        logoTapTimestamps.current = [];
+      } else {
+        logoTapTimestamps.current = recentTaps;
+      }
+    },
+  }));
 
   useEffect(() => {
     let failCount = 0;
@@ -275,4 +314,6 @@ export default function DoorLockContainer() {
       </Box>
     </Flex>
   );
-}
+});
+
+export default DoorLockContainer;
