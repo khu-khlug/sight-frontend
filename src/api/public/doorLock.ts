@@ -189,7 +189,7 @@ const lookupLocal = async (studentId: string): Promise<{ found: boolean; name: s
   }
 };
 
-const openRelay = (studentId: string): Promise<void> =>
+export const openRelay = (studentId: string): Promise<void> =>
   fetch("http://localhost:8080/unlock", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
