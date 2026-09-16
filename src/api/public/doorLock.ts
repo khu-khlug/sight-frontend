@@ -10,8 +10,8 @@ export type DoorLockSchedule = {
 
 export type DoorLockStatus = {
   todayVisitorCount: number;
-  // 재실 인원은 백엔드에 아직 없는 데이터라 null로 둔다.
-  currentRoomCount: number | null;
+  // 블루투스로 들어온 사람만 집계된 값이라 실제 재실 인원의 하한선이다 — 화면에는 "N+명"으로 표시한다.
+  currentRoomCount: number;
 };
 
 export type AuthResult =
@@ -98,9 +98,7 @@ export const getNextSchedule = async (): Promise<DoorLockSchedule | null> => {
   return next ? toSchedule(next) : null;
 };
 
-export const getDoorLockStatus = async (): Promise<DoorLockStatus | null> => {
-  const config = await getRoomConfig();
-  if (config === null) return null;
+const getTodayVisitorCount = async (config: RoomConfig): Promise<number | null> => {
   try {
     const resp = await apiV2Client.get<{ count: number }>(
       "/internal/door-lock/daily-visit-count",
@@ -109,10 +107,31 @@ export const getDoorLockStatus = async (): Promise<DoorLockStatus | null> => {
         headers: systemHeader(config.apiKey),
       },
     );
-    return { todayVisitorCount: resp.data.count, currentRoomCount: null };
+    return resp.data.count;
   } catch {
     return null;
   }
+};
+
+// 공개 API라 room-env-var 없이도 부를 수 있지만, 실패하면 0으로 표시한다.
+const getCurrentRoomCount = async (): Promise<number> => {
+  try {
+    const resp = await apiV2Client.get<{ occupants: { name: string }[] }>("/occupants");
+    return resp.data.occupants.length;
+  } catch {
+    return 0;
+  }
+};
+
+export const getDoorLockStatus = async (): Promise<DoorLockStatus | null> => {
+  const config = await getRoomConfig();
+  if (config === null) return null;
+  const [todayVisitorCount, currentRoomCount] = await Promise.all([
+    getTodayVisitorCount(config),
+    getCurrentRoomCount(),
+  ]);
+  if (todayVisitorCount === null) return null;
+  return { todayVisitorCount, currentRoomCount };
 };
 
 const MEMBERS_DATE_KEY = "door_lock_members_date";

@@ -242,7 +242,7 @@ export default function DoorLockContainer() {
               <Text as="span" fontSize="md">
                 현재{" "}
                 <Text as="span" fontWeight="bold">
-                  {status?.currentRoomCount ?? "?"}명
+                  {status?.currentRoomCount ?? 0}+명
                 </Text>
               </Text>
             </Box>
