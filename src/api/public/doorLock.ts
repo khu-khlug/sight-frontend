@@ -126,7 +126,11 @@ export const sendDaemonDownAlert = async (): Promise<void> => {
   const config = await getRoomConfig();
   if (config === null) return;
   await apiV2Client
-    .post("/internal/door-lock/alert-die", null, { headers: systemHeader(config.apiKey) })
+    .post(
+      "/internal/door-lock/alert-die",
+      { roomNumber: config.roomNumber },
+      { headers: systemHeader(config.apiKey) },
+    )
     .then(() => {})
     .catch(() => {});
 };
