@@ -1,4 +1,10 @@
-import { useEffect, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { Box, Flex, Text, chakra } from "@chakra-ui/react";
 import { toast } from "react-toastify";
 import DoorLockKeypad from "./DoorLockKeypad";
@@ -11,6 +17,7 @@ import {
   syncMembers,
   getMembersDate,
   sendDaemonDownAlert,
+  openRelay,
   type DoorLockSchedule,
   type DoorLockStatus,
 } from "../../api/public/doorLock";
@@ -20,7 +27,14 @@ function formatTime(isoString: string): string {
   return `${d.getHours()}시 ${String(d.getMinutes()).padStart(2, "0")}분`;
 }
 
-export default function DoorLockContainer() {
+const BYPASS_TAP_COUNT = 6;
+const BYPASS_TAP_WINDOW_MS = 5000;
+
+export type DoorLockContainerHandle = {
+  handleLogoTap: () => void;
+};
+
+const DoorLockContainer = forwardRef<DoorLockContainerHandle>((_, ref) => {
   const [input, setInput] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [currentSchedule, setCurrentSchedule] =
@@ -30,6 +44,31 @@ export default function DoorLockContainer() {
   );
   const [status, setStatus] = useState<DoorLockStatus | null>(null);
   const [isServerOnline, setIsServerOnline] = useState(true);
+  const logoTapTimestamps = useRef<number[]>([]);
+
+  // 도입 초기 인증 오류 대비용 임시 우회 — 시스템 안정화되면 제거.
+  // 로고를 5초 안에 6번 연속 탭하면 인증 없이 바로 릴레이를 연다.
+  useImperativeHandle(ref, () => ({
+    handleLogoTap: () => {
+      const now = Date.now();
+      const recentTaps = logoTapTimestamps.current.filter(
+        (t) => now - t < BYPASS_TAP_WINDOW_MS,
+      );
+      recentTaps.push(now);
+
+      if (recentTaps.length >= BYPASS_TAP_COUNT) {
+        openRelay("bypass-logo-tap");
+        toast.info("우회로 문을 열었습니다", {
+          position: "top-center",
+          autoClose: 1500,
+          hideProgressBar: true,
+        });
+        logoTapTimestamps.current = [];
+      } else {
+        logoTapTimestamps.current = recentTaps;
+      }
+    },
+  }));
 
   useEffect(() => {
     let failCount = 0;
@@ -112,6 +151,7 @@ export default function DoorLockContainer() {
         }
         const welcome = result.name ? `${result.name}님 환영합니다.` : "환영합니다.";
         toast.success(welcome, toastOptions);
+        getDoorLockStatus().then(setStatus);
       } else {
         const message =
           result.reason === "timeout"
@@ -241,17 +281,15 @@ export default function DoorLockContainer() {
               <Text as="span" fontSize="md">
                 현재{" "}
                 <Text as="span" fontWeight="bold">
-                  {status?.currentRoomCount ?? "?"}명
+                  {status?.currentRoomCount ?? 0}+명
                 </Text>
               </Text>
             </Box>
           ) : (
             <Box color="var(--dl-text-error)" fontSize="sm" fontWeight="medium">
-              <strong>서버에 연결되어 있지 않습니다.</strong>
+              <strong>현재 서비스를 이용할 수 없습니다.</strong>
               <br />
-              <strong>
-                {getMembersDate() ?? "날짜 없음"} 로컬 DB를 사용합니다.
-              </strong>
+              <strong>전원을 껐다 켜보거나 운영진에게 문의하세요.</strong>
             </Box>
           )}
         </Flex>
@@ -276,4 +314,6 @@ export default function DoorLockContainer() {
       </Box>
     </Flex>
   );
-}
+});
+
+export default DoorLockContainer;

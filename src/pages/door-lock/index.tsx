@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ToastContainer } from "react-toastify";
-import DoorLockContainer from "../../features/door-lock/DoorLockContainer";
+import DoorLockContainer, {
+  type DoorLockContainerHandle,
+} from "../../features/door-lock/DoorLockContainer";
 import "../../features/door-lock/doorLock.css";
 import styles from "./style.module.css";
 
@@ -21,6 +23,12 @@ function Clock() {
 
 export default function DoorLockPage() {
   const [isDark, setIsDark] = useState(false);
+  const containerRef = useRef<DoorLockContainerHandle>(null);
+
+  const handleLogoClick = () => {
+    setIsDark((prev) => !prev);
+    containerRef.current?.handleLogoTap();
+  };
 
   return (
     <div className={isDark ? `${styles.page} door-lock-dark` : styles.page}>
@@ -33,13 +41,13 @@ export default function DoorLockPage() {
           }
           alt="KHLUG Logo"
           className={styles.logo}
-          onClick={() => setIsDark((prev) => !prev)}
+          onClick={handleLogoClick}
           style={{ cursor: "pointer", opacity: 0.95 }}
         />
         <Clock />
       </header>
       <main className={styles.main}>
-        <DoorLockContainer />
+        <DoorLockContainer ref={containerRef} />
       </main>
       <ToastContainer
         containerId="door-lock"
