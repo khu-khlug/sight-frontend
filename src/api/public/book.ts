@@ -1,5 +1,6 @@
 import { isAxiosError } from "axios";
 import apiV2Client from "../client/v2";
+import { BookCategory } from "../../constant";
 
 // DTOs
 
@@ -12,6 +13,7 @@ export type BookListItemDto = {
   publishedYear: number;
   totalCount: number;
   availableCount: number;
+  category: BookCategory;
 };
 
 export type BookListResponseDto = {
