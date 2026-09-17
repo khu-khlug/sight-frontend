@@ -1,5 +1,6 @@
 import { isAxiosError } from "axios";
 import apiV2Client from "../client/v2";
+import { BookCategory } from "../../constant";
 
 // DTOs
 
@@ -44,6 +45,21 @@ export type BorrowRecordListResponseDto = {
 const getStats = async (): Promise<BookStatsDto> => {
   const response = await apiV2Client.get<BookStatsDto>("/book/stats");
   return response.data;
+};
+
+export type UpdateBookRequest = {
+  title: string;
+  author: string;
+  publisher: string;
+  publishedYear: string;
+  coverImageUrl: string;
+  description: string;
+  category: BookCategory;
+};
+
+/** 도서 정보 수정 */
+const updateBook = async (bookId: string, request: UpdateBookRequest): Promise<void> => {
+  await apiV2Client.put(`/book/${bookId}`, request);
 };
 
 /** 도서 권 삭제 (item 개수가 0이면 book도 삭제) */
@@ -101,6 +117,7 @@ const getBookPreviewByIsbn = async (isbn: string): Promise<BookPreviewDto | null
 export const BookManageApi = {
   getStats,
   registerBook,
+  updateBook,
   deleteBook,
   listCurrentBorrows,
   listBorrowRecords,
