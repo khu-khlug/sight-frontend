@@ -41,6 +41,7 @@ export type BookDetailDto = {
   publishedYear: string;
   totalCount: number;
   availableCount: number;
+  category: BookCategory;
   isbn: string;
   description: string;
   itemList: BookItemDto[];

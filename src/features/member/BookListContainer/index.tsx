@@ -22,6 +22,7 @@ import AvailabilityBadge from "../../book/AvailabilityBadge";
 
 import Container from "../../../components/Container";
 import Callout from "../../../components/Callout";
+import BrandButton from "../../../components/Button";
 import "./style.css";
 import { BookPublicApi, BookListItemDto } from "../../../api/public/book";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
@@ -282,21 +283,34 @@ export default function BookListContainer() {
       <Flex gap={2} mb={5} wrap="wrap" align="center">
         <Flex gap={2} wrap="wrap">
           {(["all", "available", "unavailable"] as AvailableFilter[]).map(
-            (f) => (
-              <Button
-                key={f}
-                size="sm"
-                variant={availableFilter === f ? "solid" : "outline"}
-                colorScheme={availableFilter === f ? "blue" : "gray"}
-                onClick={() => handleFilterChange(f)}
-              >
-                {f === "all"
+            (f) => {
+              const label =
+                f === "all"
                   ? "전체"
                   : f === "available"
                     ? "대출 가능"
-                    : "대출 불가"}
-              </Button>
-            ),
+                    : "대출 불가";
+              return availableFilter === f ? (
+                <BrandButton
+                  key={f}
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleFilterChange(f)}
+                >
+                  {label}
+                </BrandButton>
+              ) : (
+                <Button
+                  key={f}
+                  size="sm"
+                  variant="outline"
+                  colorScheme="gray"
+                  onClick={() => handleFilterChange(f)}
+                >
+                  {label}
+                </Button>
+              );
+            },
           )}
         </Flex>
         <Flex w={{ base: "full", md: "auto" }} flex="1 1 auto" gap={2} align="center">
@@ -312,7 +326,7 @@ export default function BookListContainer() {
               <Button size="sm" variant="outline" colorScheme="gray">
                 카테고리
                 {selectedCategories.size > 0 && (
-                  <Text as="span" color="green.500">
+                  <Text as="span" color="brand.500">
                     {" "}
                     +{selectedCategories.size}
                   </Text>
@@ -328,8 +342,11 @@ export default function BookListContainer() {
                   overflowY="auto"
                   borderRadius="md"
                   overflowX="hidden"
+                  bg="blackAlpha.200"
+                  backdropFilter="blur(6px)"
                   mb={8}
                   css={{
+                    boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.35) !important",
                     scrollbarWidth: "none",
                     msOverflowStyle: "none",
                     "&::-webkit-scrollbar": { display: "none" },
@@ -338,23 +355,30 @@ export default function BookListContainer() {
                   <Popover.Body p={0}>
                     <Grid
                       templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }}
-                      gap="1px"
-                      bg="gray.200"
+                      gap={0}
                     >
                       {categoryGrid.map((category) => {
                         const label = BookCategoryLabel[category];
                         const [first, second] = label.split("/");
                         const selected = selectedCategories.has(category);
-                        const bg = selected ? "green.100" : "white";
-                        const hoverBg = selected ? "green.200" : "gray.100";
                         return (
-                          <Box key={category} height="64px" p={1} bg="white">
+                          <Box
+                            key={category}
+                            height="64px"
+                            p={1}
+                          >
                             <Button
                               variant="ghost"
-                              bg={bg}
+                              bg={selected ? "brand.50" : "white"}
+                              borderWidth="1px"
+                              borderColor={selected ? "var(--main-color)" : "transparent"}
+                              transition="border-color 0.2s, transform 0.2s"
                               w="full"
                               h="full"
-                              _hover={{ bg: hoverBg }}
+                              _hover={{
+                                borderColor: "var(--main-color)",
+                                transform: "translateY(-2px)",
+                              }}
                               onClick={() => handleCategoryClick(category)}
                             >
                               <Flex direction="column" align="center" gap={0} lineHeight={1}>

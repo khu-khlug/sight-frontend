@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Flex, Text, Button } from "@chakra-ui/react";
+import { Flex, Text, Button, Select, Portal, createListCollection } from "@chakra-ui/react";
 import { toast } from "react-toastify";
 
 import Callout from "../../../components/Callout";
@@ -9,6 +9,14 @@ import BookScanLayout from "../../book/BookScanLayout";
 import { BookPublicApi, BookDetailDto } from "../../../api/public/book";
 import { BookManageApi, BookPreviewDto } from "../../../api/manage/book";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
+import { BookCategory, BookCategoryLabel } from "../../../constant";
+
+const categoryOptions = createListCollection({
+  items: Object.values(BookCategory).map((category) => ({
+    label: BookCategoryLabel[category],
+    value: category,
+  })),
+});
 
 type State =
   | { status: "idle" }
@@ -21,6 +29,7 @@ type State =
 export default function BookRegisterScanContainer() {
   const navigate = useNavigate();
   const [state, setState] = useState<State>({ status: "idle" });
+  const [selectedCategory, setSelectedCategory] = useState<BookCategory | "">("");
 
   const handleScan = async (result: ScanResult) => {
     if (!result.data) {
@@ -28,11 +37,13 @@ export default function BookRegisterScanContainer() {
       return;
     }
 
+    setSelectedCategory("");
     const isbn = result.data;
     setState({ status: "loading" });
     try {
       const book = await BookPublicApi.getBookByIsbn(isbn);
       if (book) {
+        setSelectedCategory(book.category);
         setState({ status: "ready", isbn, book });
       } else {
         const preview = await BookManageApi.getBookPreviewByIsbn(isbn);
@@ -59,7 +70,10 @@ export default function BookRegisterScanContainer() {
     }
   };
 
-  const handleRescan = () => setState({ status: "idle" });
+  const handleRescan = () => {
+    setSelectedCategory("");
+    setState({ status: "idle" });
+  };
 
   const bookForCard =
     state.status === "ready" ? state.book
@@ -69,7 +83,21 @@ export default function BookRegisterScanContainer() {
 
   const scanSection = (() => {
     if (state.status === "idle") {
-      return <BarcodeScanner onScan={handleScan} />;
+      return (
+        <>
+          <BarcodeScanner onScan={handleScan} />
+          {/* 바코드 없이 테스트하기 위한 임시 우회 버튼 — 테스트 끝나면 제거 */}
+          <Button
+            mt={2}
+            w="full"
+            size="sm"
+            variant="ghost"
+            onClick={() => handleScan({ type: "TEST", data: "9788966260959" })}
+          >
+            (테스트) 스캔 건너뛰기
+          </Button>
+        </>
+      );
     }
 
     if (state.status === "loading") {
@@ -90,6 +118,8 @@ export default function BookRegisterScanContainer() {
     }
 
     const isRegistering = state.status === "registering";
+    const isExisting = state.status === "ready";
+    const categoryMissing = !isExisting && !selectedCategory;
 
     return (
       <>
@@ -104,7 +134,38 @@ export default function BookRegisterScanContainer() {
           <Button flex={1} variant="outline" onClick={handleRescan} disabled={isRegistering}>
             다시 스캔
           </Button>
-          <Button flex={1} colorScheme="blue" onClick={handleConfirm} loading={isRegistering}>
+          <Select.Root
+            flex={1}
+            size="sm"
+            collection={categoryOptions}
+            value={selectedCategory ? [selectedCategory] : []}
+            disabled={isExisting}
+            onValueChange={(e) => setSelectedCategory((e.value[0] as BookCategory) ?? "")}
+          >
+            <Select.Trigger borderRadius="md">
+              <Select.ValueText placeholder="카테고리 선택">
+                {selectedCategory ? `카테고리: ${BookCategoryLabel[selectedCategory]}` : undefined}
+              </Select.ValueText>
+            </Select.Trigger>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content>
+                  {categoryOptions.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+          </Select.Root>
+          <Button
+            flex={1}
+            colorScheme="blue"
+            onClick={handleConfirm}
+            loading={isRegistering}
+            disabled={categoryMissing}
+          >
             등록하기
           </Button>
         </Flex>
