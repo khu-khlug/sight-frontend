@@ -129,6 +129,7 @@ function BookDetail({
   const [publisher, setPublisher] = useState(book.publisher);
   const [publishedYear, setPublishedYear] = useState(book.publishedYear);
   const [description, setDescription] = useState(book.description);
+  const [coverImageUrl, setCoverImageUrl] = useState(book.coverImageUrl);
 
   const { mutate: save, isPending: isSaving } = useMutation({
     mutationFn: () =>
@@ -137,7 +138,7 @@ function BookDetail({
         author,
         publisher,
         publishedYear,
-        coverImageUrl: book.coverImageUrl,
+        coverImageUrl,
         description,
         category,
       }),
@@ -158,6 +159,7 @@ function BookDetail({
     setPublisher(book.publisher);
     setPublishedYear(book.publishedYear);
     setDescription(book.description);
+    setCoverImageUrl(book.coverImageUrl);
     setIsEditing(true);
   };
 
@@ -194,39 +196,55 @@ function BookDetail({
         }}
       >
         {/* 표지 */}
-        {book.coverImageUrl ? (
-          <Image
-            src={book.coverImageUrl}
-            alt={book.title}
-            maxH="280px"
-            w="auto"
-            maxW="100%"
-            mx="auto"
-            display="block"
-            borderRadius="6px"
-          />
-        ) : (
-          <Box
-            css={{
-              width: "100%",
-              height: "200px",
-              background: "var(--chakra-colors-gray-200)",
-              borderRadius: "6px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              "@media (orientation: landscape)": {
-                width: "160px",
-                height: "220px",
-                flexShrink: 0,
-              },
-            }}
-          >
-            <Text fontSize="xs" color="gray.500">
-              표지 없음
-            </Text>
-          </Box>
-        )}
+        <Box
+          css={{
+            "@media (orientation: landscape)": {
+              width: "160px",
+              flexShrink: 0,
+            },
+          }}
+        >
+          {book.coverImageUrl ? (
+            <Image
+              src={book.coverImageUrl}
+              alt={book.title}
+              maxH="280px"
+              w="auto"
+              maxW="100%"
+              mx="auto"
+              display="block"
+              borderRadius="6px"
+            />
+          ) : (
+            <Box
+              css={{
+                width: "100%",
+                height: "200px",
+                background: "var(--chakra-colors-gray-200)",
+                borderRadius: "6px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                "@media (orientation: landscape)": {
+                  height: "220px",
+                },
+              }}
+            >
+              <Text fontSize="xs" color="gray.500">
+                표지 없음
+              </Text>
+            </Box>
+          )}
+          {isEditing && (
+            <Input
+              mt={2}
+              size="sm"
+              placeholder="표지 이미지 URL"
+              value={coverImageUrl}
+              onChange={(e) => setCoverImageUrl(e.target.value)}
+            />
+          )}
+        </Box>
 
         {/* 정보 섹션 (description 제외) */}
         <Flex direction="column" gap={3} flex={1} pt={2}>

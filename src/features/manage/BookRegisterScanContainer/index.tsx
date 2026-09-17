@@ -60,9 +60,12 @@ export default function BookRegisterScanContainer() {
     const preview = state.status === "ready-unknown" ? state.preview : undefined;
     if (!isbn) return;
 
+    // isbn이 이미 DB에 있는 도서(book이 있음)면 category를 보내지 않는다 — 새 도서일 때만 필요.
+    const category = book ? undefined : (selectedCategory as BookCategory);
+
     setState({ status: "registering", isbn, book, preview });
     try {
-      const { bookId } = await BookManageApi.registerBook(isbn);
+      const { bookId } = await BookManageApi.registerBook(isbn, category);
       toast.success("도서가 등록되었습니다.", { autoClose: 1000, hideProgressBar: true });
       navigate(`/book/${bookId}`);
     } catch (e) {
