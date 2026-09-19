@@ -21,12 +21,18 @@ import BookListPage from "./pages/book";
 import BookMyPage from "./pages/member/book/my";
 import BookDetailPage from "./pages/book/detail";
 import BookManagePage from "./pages/manage/book";
+import SchedulePage from "./pages/member/schedule";
 import SmsManagePage from "./pages/manage/sms";
 import SupportRequestListPage from "./pages/support";
 import SupportRequestNewPage from "./pages/support/new";
 import SupportRequestDetailPage from "./pages/support/detail";
+import AttendancePage from "./pages/member/attendance";
+import AttendanceResultPage from "./pages/member/attendance/result";
+import DoorLockPage from "./pages/door-lock";
+// QR/바코드 라이브러리가 용량이 커거 지연 로딩 적용
 import RequireLogin from "./components/RequireLogin";
 const BookScanPage = lazy(() => import("./pages/member/book/scan"));
+const ManageAttendancePage = lazy(() => import("./pages/manage/attendance"));
 const TiptapPlaygroundPage = lazy(() => import("./pages/playground/tiptap"));
 
 function App() {
@@ -70,6 +76,17 @@ function App() {
           element={<GroupMatchingNewPage />}
         />
         <Route path="/manage/book" element={<BookManagePage />} />
+        <Route path="/schedule" element={<SchedulePage />} />
+        <Route
+          path="/manage/attendance"
+          element={
+            <Suspense fallback={null}>
+              <ManageAttendancePage />
+            </Suspense>
+          }
+        />
+        <Route path="/attendance" element={<AttendancePage />} />
+        <Route path="/attendance/:scheduleId" element={<AttendanceResultPage />} />
         <Route path="/manage/sms" element={<SmsManagePage />} />
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/book" element={<BookListPage />} />
@@ -83,6 +100,7 @@ function App() {
             </Suspense>
           }
         />
+        <Route path="/door-lock" element={<DoorLockPage />} />
       </Route>,
     ),
     {

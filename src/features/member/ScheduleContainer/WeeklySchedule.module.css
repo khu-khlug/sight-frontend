@@ -1,0 +1,148 @@
+.weekly {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.weekNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navBtn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #475569;
+  transition: background 0.15s;
+}
+
+.navBtn:hover {
+  background: #f1f5f9;
+}
+
+.weekLabel {
+  font-size: 13px;
+  color: #64748b;
+  min-width: 120px;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.dayCol {
+  min-height: 120px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dayColToday {
+  border-color: #00a0e9;
+}
+
+.dayColSelected {
+  background: #f0f9ff;
+  border-color: #7dd3fc;
+}
+
+.dayHeader {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dayHeaderToday {
+  color: #00a0e9;
+}
+
+.dayHeaderSelected {
+  color: #0077b6;
+  font-weight: 700;
+}
+
+.dayHeaderSat {
+  color: #3498db;
+}
+
+.dayHeaderSun {
+  color: #e74c3c;
+}
+
+.scheduleBlock {
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1.3;
+  transition: opacity 0.15s, transform 0.1s;
+  overflow: hidden;
+}
+
+.scheduleBlock:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.scheduleTime {
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.scheduleTitle {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty {
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.loading {
+  text-align: center;
+  color: #94a3b8;
+  padding: 24px 0;
+  font-size: 13px;
+}
+
+@media screen and (max-width: 767px) {
+  .weekly {
+    overflow-x: auto;
+  }
+
+  .grid {
+    grid-template-columns: repeat(7, 72px);
+    min-width: 504px;
+  }
+}

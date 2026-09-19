@@ -1,0 +1,143 @@
+.form {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  background: #fff;
+  margin-bottom: 16px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldTitle {
+  flex: 2;
+  min-width: 160px;
+}
+
+.fixedValue {
+  height: 36px;
+  padding: 0 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #334155;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.input,
+.select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #334155;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: #00a0e9;
+}
+
+.select {
+  padding-right: 6px;
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+.submitBtn {
+  height: 36px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 6px;
+  background: #00a0e9;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.submitBtn:hover {
+  background: #0077b6;
+}
+
+.submitBtn:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.cancelBtn:hover {
+  border-color: #94a3b8;
+  color: #334155;
+}
+
+.inputNarrow {
+  width: 72px;
+}
+
+.required {
+  color: #ef4444;
+}
+
+.fieldCheckbox {
+  justify-content: flex-end;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.toggleLabel {
+  font-size: 13px;
+  color: #334155;
+  white-space: nowrap;
+  user-select: none;
+}
