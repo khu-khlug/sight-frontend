@@ -1,5 +1,6 @@
 import { isAxiosError } from "axios";
 import apiV2Client from "../client/v2";
+import { BookCategory } from "../../constant";
 
 // DTOs
 
@@ -46,15 +47,40 @@ const getStats = async (): Promise<BookStatsDto> => {
   return response.data;
 };
 
+export type UpdateBookRequest = {
+  title: string;
+  author: string;
+  publisher: string;
+  publishedYear: string;
+  coverImageUrl: string;
+  description: string;
+  category: BookCategory;
+};
+
+/** 도서 정보 수정 */
+const updateBook = async (bookId: string, request: UpdateBookRequest): Promise<void> => {
+  await apiV2Client.put(`/book/${bookId}`, {
+    ...request,
+    publishedYear: Number(request.publishedYear),
+  });
+};
+
 /** 도서 권 삭제 (item 개수가 0이면 book도 삭제) */
 const deleteBook = async (bookId: string): Promise<void> => {
   await apiV2Client.delete(`/book/${bookId}`);
 };
 
-/** 도서 등록 (isbn으로 정보 자동입력) */
-const registerBook = async (isbn: string): Promise<{ bookId: string }> => {
+/**
+ * 도서 등록 (isbn으로 정보 자동입력).
+ * category는 새 도서일 때만 필수 — isbn이 이미 등록된 도서면 category를 보내면 안 된다
+ * (백엔드가 이미 있는 도서에 category가 오면 400을 반환한다).
+ */
+const registerBook = async (
+  isbn: string,
+  category?: BookCategory,
+): Promise<{ bookId: string }> => {
   const response = await apiV2Client.post<{ bookId: string }>("/book/register", null, {
-    params: { isbn },
+    params: { isbn, category },
   });
   return response.data;
 };
@@ -101,6 +127,7 @@ const getBookPreviewByIsbn = async (isbn: string): Promise<BookPreviewDto | null
 export const BookManageApi = {
   getStats,
   registerBook,
+  updateBook,
   deleteBook,
   listCurrentBorrows,
   listBorrowRecords,
