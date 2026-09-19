@@ -3,6 +3,7 @@ import AvailabilityBadge from "../AvailabilityBadge";
 import Container from "../../../components/Container";
 import { BookDetailDto } from "../../../api/public/book";
 import { BookPreviewDto } from "../../../api/manage/book";
+import { BookCategoryLabel } from "../../../constant";
 
 type BookCardDto = BookDetailDto | BookPreviewDto;
 
@@ -69,6 +70,11 @@ function BookInfoSection({ book }: { book: BookCardDto }) {
         <Text fontWeight="semibold" fontSize="lg">
           {book.title}
         </Text>
+        {"category" in book && book.category && (
+          <Text fontSize="sm" color="gray.500">
+            {BookCategoryLabel[book.category]}
+          </Text>
+        )}
         {book.author && (
           <Text fontSize="sm" color="gray.600">
             {book.author}

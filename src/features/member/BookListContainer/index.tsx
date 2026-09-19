@@ -15,15 +15,18 @@ import {
   Select,
   createListCollection,
   Portal,
+  Popover,
 } from "@chakra-ui/react";
 import { Search, ChevronDown } from "lucide-react";
 import AvailabilityBadge from "../../book/AvailabilityBadge";
 
 import Container from "../../../components/Container";
 import Callout from "../../../components/Callout";
+import BrandButton from "../../../components/Button";
 import "./style.css";
 import { BookPublicApi, BookListItemDto } from "../../../api/public/book";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
+import { BookCategory, BookCategoryLabel } from "../../../constant";
 
 const PAGE_SIZE = 20;
 
@@ -117,6 +120,21 @@ function BookCard({ book }: { book: BookListItemDto }) {
   );
 }
 
+const categoryGrid: BookCategory[] = [
+  BookCategory.LANGUAGE_FRAMEWORK,
+  BookCategory.WEB_NETWORK,
+  BookCategory.APP,
+  BookCategory.AI_DATA_SCIENCE,
+  BookCategory.SECURITY_HACKING,
+  BookCategory.HARDWARE_SYSTEM_PROGRAMMING,
+  BookCategory.SOFTWARE_ENGINEERING,
+  BookCategory.COMPUTER_SCIENCE,
+  BookCategory.MATH,
+  BookCategory.PRACTICAL,
+  BookCategory.LIBERAL_ARTS,
+  BookCategory.OTHER,
+];
+
 export default function BookListContainer() {
   const [availableFilter, setAvailableFilter] =
     useState<AvailableFilter>("all");
@@ -130,6 +148,20 @@ export default function BookListContainer() {
     query: string;
   } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const [selectedCategories, setSelectedCategories] = useState<Set<BookCategory>>(
+    new Set(),
+  );
+
+  const handleCategoryClick = (category: BookCategory) => {
+    setSelectedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+    setVisibleCount(PAGE_SIZE);
+  };
 
   const { status, data, error } = useQuery({
     queryKey: ["books"],
@@ -156,8 +188,10 @@ export default function BookListContainer() {
       books = books.filter((b) => b.availableCount > 0);
     else if (availableFilter === "unavailable")
       books = books.filter((b) => b.availableCount === 0);
+    if (selectedCategories.size > 0)
+      books = books.filter((b) => selectedCategories.has(b.category));
     return sortBooks(books, sort);
-  }, [data, availableFilter, sort, activeSearch]);
+  }, [data, availableFilter, sort, activeSearch, selectedCategories]);
 
   const handleFilterChange = (value: AvailableFilter) => {
     setAvailableFilter(value);
@@ -246,31 +280,129 @@ export default function BookListContainer() {
       </Flex>
       </chakra.form>
 
-      <Flex gap={2} mb={5} wrap="wrap" align="center" justify="space-between">
+      <Flex gap={2} mb={5} wrap="wrap" align="center">
         <Flex gap={2} wrap="wrap">
           {(["all", "available", "unavailable"] as AvailableFilter[]).map(
-            (f) => (
-              <Button
-                key={f}
-                size="sm"
-                variant={availableFilter === f ? "solid" : "outline"}
-                colorScheme={availableFilter === f ? "blue" : "gray"}
-                onClick={() => handleFilterChange(f)}
-              >
-                {f === "all"
+            (f) => {
+              const label =
+                f === "all"
                   ? "전체"
                   : f === "available"
                     ? "대출 가능"
-                    : "대출 불가"}
-              </Button>
-            ),
+                    : "대출 불가";
+              return availableFilter === f ? (
+                <BrandButton
+                  key={f}
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleFilterChange(f)}
+                >
+                  {label}
+                </BrandButton>
+              ) : (
+                <Button
+                  key={f}
+                  size="sm"
+                  variant="outline"
+                  colorScheme="gray"
+                  onClick={() => handleFilterChange(f)}
+                >
+                  {label}
+                </Button>
+              );
+            },
           )}
         </Flex>
-        <chakra.select
+        <Flex w={{ base: "full", md: "auto" }} flex="1 1 auto" gap={2} align="center">
+          <Popover.Root
+            positioning={{
+              placement: "bottom-start",
+              gutter: 8,
+              overflowPadding: 16,
+              flip: false,
+            }}
+          >
+            <Popover.Trigger asChild>
+              <Button size="sm" variant="outline" colorScheme="gray">
+                카테고리
+                {selectedCategories.size > 0 && (
+                  <Text as="span" color="brand.500">
+                    {" "}
+                    +{selectedCategories.size}
+                  </Text>
+                )}
+              </Button>
+            </Popover.Trigger>
+            <Portal>
+              <Popover.Positioner>
+                <Popover.Content
+                  w={{ base: "calc(100vw - 32px)", md: "420px" }}
+                  maxW="420px"
+                  maxH="60vh"
+                  overflowY="auto"
+                  borderRadius="md"
+                  overflowX="hidden"
+                  bg="blackAlpha.200"
+                  backdropFilter="blur(6px)"
+                  mb={8}
+                  css={{
+                    boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.35) !important",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                    "&::-webkit-scrollbar": { display: "none" },
+                  }}
+                >
+                  <Popover.Body p={0}>
+                    <Grid
+                      templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }}
+                      gap={0}
+                    >
+                      {categoryGrid.map((category) => {
+                        const label = BookCategoryLabel[category];
+                        const [first, second] = label.split("/");
+                        const selected = selectedCategories.has(category);
+                        return (
+                          <Box
+                            key={category}
+                            height="64px"
+                            p={1}
+                          >
+                            <Button
+                              variant="ghost"
+                              bg={selected ? "brand.50" : "white"}
+                              borderWidth="1px"
+                              borderColor={selected ? "var(--main-color)" : "transparent"}
+                              transition="border-color 0.2s, transform 0.2s"
+                              w="full"
+                              h="full"
+                              _hover={{
+                                borderColor: "var(--main-color)",
+                                transform: "translateY(-2px)",
+                              }}
+                              onClick={() => handleCategoryClick(category)}
+                            >
+                              <Flex direction="column" align="center" gap={0} lineHeight={1}>
+                                <Text lineHeight={1.25}>{first}</Text>
+                                {second && (
+                                  <Text lineHeight={1.25}>{second}</Text>
+                                )}
+                              </Flex>
+                            </Button>
+                          </Box>
+                        );
+                      })}
+                    </Grid>
+                  </Popover.Body>
+                </Popover.Content>
+              </Popover.Positioner>
+            </Portal>
+          </Popover.Root>
+          <chakra.select
           fontSize="sm"
           w="160px"
           h="32px"
           px={2}
+          ml="auto"
           borderWidth={1}
           borderRadius="md"
           borderColor="inherit"
@@ -283,6 +415,7 @@ export default function BookListContainer() {
           <option value="year-desc">발행연도 최신순</option>
           <option value="year-asc">발행연도 오래된순</option>
         </chakra.select>
+        </Flex>
       </Flex>
 
       {(() => {

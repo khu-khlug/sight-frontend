@@ -13,8 +13,8 @@ export default function AvailabilityBadge({ availableCount, size = "xs" }: Props
       py={1}
       borderRadius="md"
       fontSize={size}
-      bg={available ? "green.500" : "red.500"}
-      color="white"
+      bg={available ? "green.100" : "red.100"}
+      color={available ? "green.500" : "red.400"}
     >
       {available ? "대출 가능" : "대출 불가"}
     </Badge>
