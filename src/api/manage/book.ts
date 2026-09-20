@@ -78,11 +78,11 @@ const listBorrowRecords = async (): Promise<BorrowRecordListResponseDto> => {
 
 export type BookPreviewDto = {
   title: string;
-  author: string;
-  coverImageUrl: string;
-  publisher: string;
-  publishedYear: number;
-  description: string;
+  author: string | null;
+  coverImageUrl: string | null;
+  publisher: string | null;
+  publishedYear: number | null;
+  description: string | null;
 };
 
 /** 등록 전 미리보기 (DB 저장 없이 외부 API 조회) */
