@@ -17,6 +17,7 @@ import GroupMatchingManagementPage from "./pages/manage/group-matching";
 import GroupMatchingAnswersPage from "./pages/manage/group-matching-answers";
 import GroupMatchingNewPage from "./pages/manage/group-matching-new";
 import LoginPage from "./pages/login";
+import StuauthErrorGuidePage from "./pages/stuauth-error-guide";
 import BookListPage from "./pages/book";
 import BookMyPage from "./pages/member/book/my";
 import BookDetailPage from "./pages/book/detail";
@@ -48,6 +49,7 @@ function App() {
         </Route>
         <Route path="/group-matching" element={<GroupMatchingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/stuauth-error-guide" element={<StuauthErrorGuidePage />} />
         <Route path="/support" element={<SupportRequestListPage />} />
         <Route path="/support/new" element={<SupportRequestNewPage />} />
         <Route path="/support/:supportRequestId" element={<SupportRequestDetailPage />} />
