@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import dayjs from "dayjs";
+import { Box } from "@chakra-ui/react";
 import { getCategoryColor } from "./categoryColors";
 import styles from "./WeeklySchedule.module.css";
 
@@ -85,9 +86,10 @@ export default function WeeklySchedule({
           const isSelected = dateStr === anchorDate;
 
           return (
-            <div
+            <Box
               key={dateStr}
               className={[styles.dayCol, isToday ? styles.dayColToday : "", isSelected ? styles.dayColSelected : ""].join(" ")}
+              bg={isSelected ? undefined : "#fcfcfc"}
               onClick={() => onDateSelect?.(dateStr)}
               style={{ cursor: onDateSelect ? "pointer" : undefined }}
             >
@@ -132,7 +134,7 @@ export default function WeeklySchedule({
                   );
                 })
               )}
-            </div>
+            </Box>
           );
         })}
       </div>

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import dayjs from "dayjs";
+import { Box } from "@chakra-ui/react";
 import styles from "./MonthlyCalendar.module.css";
 
 type Props = {
@@ -45,7 +46,7 @@ export default function MonthlyCalendar({
   const today = dayjs().format("YYYY-MM-DD");
 
   return (
-    <div className={styles.calendar}>
+    <Box className={styles.calendar} bg="#fcfcfc">
       <div className={styles.header}>
         <button
           type="button"
@@ -124,6 +125,6 @@ export default function MonthlyCalendar({
           );
         })}
       </div>
-    </div>
+    </Box>
   );
 }

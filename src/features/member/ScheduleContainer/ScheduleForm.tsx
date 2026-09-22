@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Box } from "@chakra-ui/react";
 import { useIsManager } from "../../../hooks/user/useIsManager";
 import { SchedulePublicApi, type GetScheduleResponseDto } from "../../../api/public/schedule";
 import { useMyGroups } from "./useMyGroups";
@@ -143,7 +144,7 @@ export default function ScheduleForm({
   };
 
   return (
-    <div className={styles.form}>
+    <Box className={styles.form} bg="#fcfcfc">
       <div className={styles.row}>
         {/* 제목 */}
         <div className={`${styles.field} ${styles.fieldTitle}`}>
@@ -374,6 +375,6 @@ export default function ScheduleForm({
           </button>
         </div>
       </div>
-    </div>
+    </Box>
   );
 }

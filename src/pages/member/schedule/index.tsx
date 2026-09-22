@@ -1,6 +1,6 @@
 import { useState } from "react";
 import dayjs from "dayjs";
-import SightLayout from "../../../layouts/SightLayout";
+import MainLayout from "../../../layouts/MainLayout";
 import ScheduleContainer from "../../../features/member/ScheduleContainer/ScheduleContainer";
 import ScheduleForm from "../../../features/member/ScheduleContainer/ScheduleForm";
 import styles from "./style.module.css";
@@ -10,7 +10,7 @@ export default function SchedulePage() {
   const [anchorDate, setAnchorDate] = useState(dayjs().format("YYYY-MM-DD"));
 
   return (
-    <SightLayout>
+    <MainLayout>
       <main className={styles.content}>
         <div className={styles.header}>
           <h1 className={styles.headerTitle}>일정</h1>
@@ -34,6 +34,6 @@ export default function SchedulePage() {
           onAnchorDateChange={setAnchorDate}
         />
       </main>
-    </SightLayout>
+    </MainLayout>
   );
 }

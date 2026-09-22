@@ -1,3 +1,4 @@
+import { Box } from "@chakra-ui/react";
 import { getCategoryColor } from "./categoryColors";
 import ScheduleFloorPlan from "./ScheduleFloorPlan";
 import styles from "./ScheduleFilter.module.css";
@@ -29,7 +30,7 @@ export default function ScheduleFilter({
   const isGroupActivityActive = activeCategories.has("GROUP_ACTIVITY");
 
   return (
-    <div className={styles.filter}>
+    <Box className={styles.filter} bg="#fcfcfc">
       <div className={styles.section}>
         <div className={styles.sectionLabel}>카테고리</div>
         <div className={styles.categoryRow}>
@@ -80,6 +81,6 @@ export default function ScheduleFilter({
           </div>
         )}
       </div>
-    </div>
+    </Box>
   );
 }
