@@ -63,28 +63,40 @@ export default function StuauthErrorGuidePage() {
         <a href="https://jajudy.khu.ac.kr/stuauth">stuauth</a>를 통해 로그인을
         시도할 때 500 에러가 발생하는 경우 제공되는 가이드입니다.
       </p>
-      <p>
-        만일 해당 가이드를 진행하여도 문제가 지속된다면, 중앙동아리연합회 혹은
-        쿠러그(<a href="mailto:we_are@khlug.org">we_are@khlug.org</a>)로 상황 및
-        에러 페이지 스크린샷을 함께 전달해주시면 감사하겠습니다.
-      </p>
-      <img src="/images/stuauth-error-guide/step1.png" alt="Info21 상단의 MY PAGE 위치" />
+      <img
+        src="/images/stuauth-error-guide/step1.png"
+        alt="Info21 상단의 MY PAGE 위치"
+      />
       <p>
         1. info21 페이지에 로그인한 후, 우측 상단의 <b>MY PAGE</b>를 클릭합니다.
       </p>
-      <img src="/images/stuauth-error-guide/step2.png" alt="MY PAGE 메뉴의 개인정보관리 항목" />
+      <img
+        src="/images/stuauth-error-guide/step2.png"
+        alt="MY PAGE 메뉴의 개인정보관리 항목"
+      />
       <p>
         2. MY PAGE를 클릭하면 나오는 메뉴 중 <b>개인정보관리</b>를 클릭합니다.
       </p>
-      <img src="/images/stuauth-error-guide/step3.png" alt="현재 비밀번호 입력 후 확인 버튼을 누르는 화면" />
+      <img
+        src="/images/stuauth-error-guide/step3.png"
+        alt="현재 비밀번호 입력 후 확인 버튼을 누르는 화면"
+      />
       <p>
         3. 비밀번호를 입력하고, <b>확인</b>을 클릭합니다.
       </p>
-      <img src="/images/stuauth-error-guide/step4.png" alt="개인정보관리의 휴대폰 및 E-mail 입력란" />
+      <img
+        src="/images/stuauth-error-guide/step4.png"
+        alt="개인정보관리의 휴대폰 및 E-mail 입력란"
+      />
       <p>
         4. 개인정보관리 페이지 내 <b>휴대폰</b>과 <b>E-mail</b> 항목이 정확하게
         입력이 되어 있는지 확인합니다. 대부분의 경우 해당 칸이 비어 있어 에러가
         발생합니다.
+      </p>
+      <p>
+        만일 해당 가이드를 진행하여도 문제가 지속된다면, 중앙동아리연합회 혹은
+        쿠러그(<a href="mailto:we_are@khlug.org">we_are@khlug.org</a>)로 상황 및
+        에러 페이지 스크린샷을 함께 전달해주시면 감사하겠습니다.
       </p>
     </Box>
   );
