@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import dayjs from "dayjs";
 import { Box } from "@chakra-ui/react";
 import styles from "./MonthlyCalendar.module.css";
@@ -20,6 +20,14 @@ export default function MonthlyCalendar({
 }: Props) {
   const anchor = dayjs(anchorDate);
   const currentMonth = anchor.startOf("month");
+  const monthKey = currentMonth.format("YYYY-MM");
+
+  const prevMonthKeyRef = useRef(monthKey);
+  const monthSlideDirRef = useRef<"left" | "right">("left");
+  if (monthKey !== prevMonthKeyRef.current) {
+    monthSlideDirRef.current = monthKey > prevMonthKeyRef.current ? "left" : "right";
+    prevMonthKeyRef.current = monthKey;
+  }
 
   // 일요일 시작 기준 주 범위
   const weekStart = anchor.subtract(anchor.day(), "day");
@@ -78,7 +86,10 @@ export default function MonthlyCalendar({
         ))}
       </div>
 
-      <div className={styles.days}>
+      <div
+        key={monthKey}
+        className={`${styles.days} ${monthSlideDirRef.current === "left" ? styles.slideFromRight : styles.slideFromLeft}`}
+      >
         {calendarDays.map((day) => {
           const dateStr = day.format("YYYY-MM-DD");
           const isOtherMonth = !day.isSame(currentMonth, "month");

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import dayjs from "dayjs";
 import { Box } from "@chakra-ui/react";
 import { getCategoryColor } from "./categoryColors";
@@ -41,6 +41,14 @@ export default function WeeklySchedule({
     return Array.from({ length: 7 }, (_, i) => sunday.add(i, "day"));
   }, [anchorDate]);
 
+  const weekKey = weekDays[0].format("YYYY-MM-DD");
+  const prevWeekKeyRef = useRef(weekKey);
+  const weekSlideDirRef = useRef<"left" | "right">("left");
+  if (weekKey !== prevWeekKeyRef.current) {
+    weekSlideDirRef.current = weekKey > prevWeekKeyRef.current ? "left" : "right";
+    prevWeekKeyRef.current = weekKey;
+  }
+
   const weekLabel = `${weekDays[0].format("M/D")} ~ ${weekDays[6].format("M/D")}`;
   const today = dayjs().format("YYYY-MM-DD");
   const dayLabels = ["일", "월", "화", "수", "목", "금", "토"];
@@ -77,7 +85,10 @@ export default function WeeklySchedule({
         </div>
       </div>
 
-      <div className={styles.grid}>
+      <div
+        key={weekKey}
+        className={`${styles.grid} ${weekSlideDirRef.current === "left" ? styles.slideFromRight : styles.slideFromLeft}`}
+      >
         {weekDays.map((date, idx) => {
           const dateStr = date.format("YYYY-MM-DD");
           const isToday = dateStr === today;
