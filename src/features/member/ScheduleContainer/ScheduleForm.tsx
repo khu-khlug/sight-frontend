@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Box, Portal, Select, createListCollection } from "@chakra-ui/react";
 import { useIsManager } from "../../../hooks/user/useIsManager";
 import { SchedulePublicApi, type GetScheduleResponseDto } from "../../../api/public/schedule";
 import { useMyGroups } from "./useMyGroups";
@@ -21,6 +22,24 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   const m = i % 2 === 0 ? "00" : "30";
   return `${String(h).padStart(2, "0")}:${m}`;
 });
+
+const TIME_COLLECTION = createListCollection({
+  items: TIME_OPTIONS.map((t) => ({ value: t, label: t })),
+});
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTime(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+const MIN_TIME = timeToMinutes(TIME_OPTIONS[0]);
+const MAX_TIME = timeToMinutes(TIME_OPTIONS[TIME_OPTIONS.length - 1]);
 
 const EXPOINT_DEFAULTS: Record<string, string> = {
   CLUB: "60",
@@ -143,7 +162,7 @@ export default function ScheduleForm({
   };
 
   return (
-    <div className={styles.form}>
+    <Box className={styles.form} bg="#fcfcfc">
       <div className={styles.row}>
         {/* 제목 */}
         <div className={`${styles.field} ${styles.fieldTitle}`}>
@@ -239,33 +258,95 @@ export default function ScheduleForm({
         {/* 시작 시간 */}
         <div className={styles.field}>
           <label className={styles.label}>시작</label>
-          <select
-            className={styles.select}
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
+          <Select.Root
+            collection={TIME_COLLECTION}
+            value={[startTime]}
+            onValueChange={(e) => {
+              const next = e.value[0];
+              setStartTime(next);
+              if (timeToMinutes(endTime) <= timeToMinutes(next)) {
+                setEndTime(minutesToTime(Math.min(timeToMinutes(next) + 60, MAX_TIME)));
+              }
+            }}
+            size="sm"
+            width="70px"
           >
-            {TIME_OPTIONS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger className={styles.select}>
+                <Select.ValueText />
+              </Select.Trigger>
+            </Select.Control>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content
+                  css={{
+                    "&::-webkit-scrollbar": { width: "10px" },
+                    "&::-webkit-scrollbar-track": { background: "transparent" },
+                    "&::-webkit-scrollbar-thumb": {
+                      background: "blackAlpha.300",
+                      borderRadius: "full",
+                      border: "2px solid transparent",
+                      backgroundClip: "padding-box",
+                    },
+                  }}
+                >
+                  {TIME_COLLECTION.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      <Select.ItemText>{item.label}</Select.ItemText>
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+          </Select.Root>
         </div>
 
         {/* 종료 시간 */}
         <div className={styles.field}>
           <label className={styles.label}>종료</label>
-          <select
-            className={styles.select}
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
+          <Select.Root
+            collection={TIME_COLLECTION}
+            value={[endTime]}
+            onValueChange={(e) => {
+              const next = e.value[0];
+              setEndTime(next);
+              if (timeToMinutes(startTime) >= timeToMinutes(next)) {
+                setStartTime(minutesToTime(Math.max(timeToMinutes(next) - 60, MIN_TIME)));
+              }
+            }}
+            size="sm"
+            width="70px"
           >
-            {TIME_OPTIONS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+            <Select.HiddenSelect />
+            <Select.Control>
+              <Select.Trigger className={styles.select}>
+                <Select.ValueText />
+              </Select.Trigger>
+            </Select.Control>
+            <Portal>
+              <Select.Positioner>
+                <Select.Content
+                  css={{
+                    "&::-webkit-scrollbar": { width: "10px" },
+                    "&::-webkit-scrollbar-track": { background: "transparent" },
+                    "&::-webkit-scrollbar-thumb": {
+                      background: "blackAlpha.300",
+                      borderRadius: "full",
+                      border: "2px solid transparent",
+                      backgroundClip: "padding-box",
+                    },
+                  }}
+                >
+                  {TIME_COLLECTION.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      <Select.ItemText>{item.label}</Select.ItemText>
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Portal>
+          </Select.Root>
         </div>
 
         {/* 장소 */}
@@ -374,6 +455,6 @@ export default function ScheduleForm({
           </button>
         </div>
       </div>
-    </div>
+    </Box>
   );
 }

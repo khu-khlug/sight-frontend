@@ -49,15 +49,45 @@
   gap: 4px;
 }
 
+.slideFromRight {
+  animation: slideFromRight 0.25s ease;
+}
+
+.slideFromLeft {
+  animation: slideFromLeft 0.25s ease;
+}
+
+@keyframes slideFromRight {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    transform: translateX(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 .dayCol {
   min-height: 120px;
-  background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .dayColToday {

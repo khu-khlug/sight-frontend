@@ -28,8 +28,27 @@
   background: #0077b6;
 }
 
+.formWrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.25s ease, opacity 0.2s ease;
+}
+
+.formWrapperOpen {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.formWrapperInner {
+  overflow: hidden;
+}
+
 .content {
   max-width: 1100px;
-  margin: 0 auto;
-  padding: 24px 16px 40px;
+  margin: 24px auto 0;
+  padding: 20px 20px 40px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
 }
