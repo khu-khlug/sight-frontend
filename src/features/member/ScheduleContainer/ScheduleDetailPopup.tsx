@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import { Badge } from "@chakra-ui/react";
 import { getCategoryColor } from "./categoryColors";
 import { SchedulePublicApi, type GetScheduleResponseDto } from "../../../api/public/schedule";
 import { useIsManager } from "../../../hooks/user/useIsManager";
 import { useCurrentUser } from "../../../hooks/user/useCurrentUser";
+import { useActiveAttendanceSchedules } from "../../../hooks/main/useActiveAttendanceSchedule";
 import type { ScheduleItem } from "./WeeklySchedule";
 import styles from "./ScheduleDetailPopup.module.css";
 
@@ -43,11 +45,14 @@ export default function ScheduleDetailPopup({ schedule, onClose, onDelete, onEdi
   const end = dayjs(schedule.endAt);
   const { isManager } = useIsManager();
   const { data: currentUser } = useCurrentUser();
+  const { data: activeSchedules } = useActiveAttendanceSchedules();
+  const navigate = useNavigate();
 
   const isGroupActivity = schedule.category === "GROUP_ACTIVITY";
   const isAuthor = currentUser?.id !== undefined && currentUser.id === schedule.author;
   const canEdit = (isManager && !isGroupActivity) || (isGroupActivity && isAuthor);
   const canDelete = isManager || (isGroupActivity && isAuthor);
+  const isAttendanceOpen = activeSchedules?.some((s) => s.id === schedule.id) ?? false;
 
   const [detail, setDetail] = useState<GetScheduleResponseDto | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(true);
@@ -145,9 +150,17 @@ export default function ScheduleDetailPopup({ schedule, onClose, onDelete, onEdi
               </>
             )}
           </div>
-          {(canEdit || canDelete) && (
+          {(canEdit || canDelete || isAttendanceOpen) && (
             <div className={styles.footer}>
               <div className={styles.footerLeft}>
+                {isAttendanceOpen && (
+                  <button
+                    className={styles.attendBtn}
+                    onClick={() => navigate("/attendance")}
+                  >
+                    출석하기
+                  </button>
+                )}
                 {canEdit && (
                   <button
                     className={styles.editBtn}

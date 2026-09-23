@@ -145,6 +145,22 @@
   background: #eff6ff;
 }
 
+.attendBtn {
+  background: #00a0e9;
+  border: 1px solid #00a0e9;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.attendBtn:hover {
+  background: #0077b6;
+}
+
 .editBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

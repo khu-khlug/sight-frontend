@@ -64,6 +64,15 @@ export const getActiveSchedule = async (): Promise<AttendanceSchedule | null> =>
   }
 };
 
+export const getActiveSchedules = async (): Promise<AttendanceSchedule[]> => {
+  try {
+    const resp = await apiV2Client.get<{ schedules: RawSchedule[] }>("/active-attendances");
+    return resp.data.schedules.map(toAttendanceSchedule);
+  } catch {
+    return [];
+  }
+};
+
 export const getSchedule = async (scheduleId: string): Promise<AttendanceSchedule | null> => {
   try {
     const resp = await apiV2Client.get<RawSchedule>(`/schedules/${scheduleId}`);

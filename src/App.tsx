@@ -87,8 +87,10 @@ function App() {
             </Suspense>
           }
         />
-        <Route path="/attendance" element={<AttendancePage />} />
-        <Route path="/attendance/:scheduleId" element={<AttendanceResultPage />} />
+        <Route element={<RequireLogin />}>
+          <Route path="/attendance" element={<AttendancePage />} />
+          <Route path="/attendance/:scheduleId" element={<AttendanceResultPage />} />
+        </Route>
         <Route path="/manage/sms" element={<SmsManagePage />} />
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/book" element={<BookListPage />} />
