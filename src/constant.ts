@@ -90,6 +90,37 @@ export const Semester = {
 } as const;
 export type Semester = (typeof Semester)[keyof typeof Semester];
 
+export const BookCategory = {
+  LANGUAGE_FRAMEWORK: "LANGUAGE_FRAMEWORK",
+  LIBERAL_ARTS: "LIBERAL_ARTS",
+  PRACTICAL: "PRACTICAL",
+  APP: "APP",
+  SOFTWARE_ENGINEERING: "SOFTWARE_ENGINEERING",
+  COMPUTER_SCIENCE: "COMPUTER_SCIENCE",
+  AI_DATA_SCIENCE: "AI_DATA_SCIENCE",
+  SECURITY_HACKING: "SECURITY_HACKING",
+  MATH: "MATH",
+  WEB_NETWORK: "WEB_NETWORK",
+  HARDWARE_SYSTEM_PROGRAMMING: "HARDWARE_SYSTEM_PROGRAMMING",
+  OTHER: "OTHER",
+} as const;
+export type BookCategory = (typeof BookCategory)[keyof typeof BookCategory];
+
+export const BookCategoryLabel: Record<BookCategory, string> = {
+  [BookCategory.LANGUAGE_FRAMEWORK]: "언어/프레임워크",
+  [BookCategory.LIBERAL_ARTS]: "교양",
+  [BookCategory.PRACTICAL]: "실용",
+  [BookCategory.APP]: "앱",
+  [BookCategory.SOFTWARE_ENGINEERING]: "소프트웨어 공학",
+  [BookCategory.COMPUTER_SCIENCE]: "컴퓨터 과학",
+  [BookCategory.AI_DATA_SCIENCE]: "AI/데이터사이언스",
+  [BookCategory.SECURITY_HACKING]: "보안 · 해킹",
+  [BookCategory.MATH]: "수학",
+  [BookCategory.WEB_NETWORK]: "웹/네트워크",
+  [BookCategory.HARDWARE_SYSTEM_PROGRAMMING]: "하드웨어/시스템 프로그래밍",
+  [BookCategory.OTHER]: "기타",
+};
+
 export const SemesterLabel: Record<Semester, string> = {
   [Semester.FIRST]: "1학기",
   [Semester.SECOND]: "2학기",

@@ -22,6 +22,7 @@ import {
 import { UserPublicApi } from "../../../api/public/user";
 import { extractErrorMessage } from "../../../util/extractErrorMessage";
 import { DateFormats } from "../../../util/date";
+import { BookCategoryLabel } from "../../../constant";
 
 function AvailabilityCard({
   book,
@@ -168,6 +169,12 @@ function BookDetail({
             color="gray.700"
           >
             <tbody>
+              {book.category && (
+                <tr>
+                  <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">카테고리</Box>
+                  <Box as="td" py="2px">{BookCategoryLabel[book.category]}</Box>
+                </tr>
+              )}
               {book.author && (
                 <tr>
                   <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">저자</Box>
@@ -204,8 +211,8 @@ function BookDetail({
       {/* 섹션 3: 설명 + 아이템 리스트 */}
       <Box mt={6} borderTopWidth={1} pt={5}>
         {book.description && (
-          <Box mb={5}>
-            <Text fontSize="sm" color="gray.600" lineHeight="1.7">
+          <Box mb={5} pb={5} borderBottomWidth={1}>
+            <Text fontSize="md" color="gray.600" lineHeight="1.7">
               {book.description}
             </Text>
           </Box>
