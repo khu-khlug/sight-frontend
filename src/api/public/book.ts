@@ -6,10 +6,10 @@ import apiV2Client from "../client/v2";
 export type BookListItemDto = {
   bookId: string;
   title: string;
-  coverImageUrl: string;
-  author: string;
-  publisher: string;
-  publishedYear: number;
+  coverImageUrl: string | null;
+  author: string | null;
+  publisher: string | null;
+  publishedYear: number | null;
   totalCount: number;
   availableCount: number;
 };
@@ -33,14 +33,14 @@ export type BookItemDto = {
 export type BookDetailDto = {
   bookId: string;
   title: string;
-  coverImageUrl: string;
-  author: string;
-  publisher: string;
-  publishedYear: string;
+  coverImageUrl: string | null;
+  author: string | null;
+  publisher: string | null;
+  publishedYear: number | null;
   totalCount: number;
   availableCount: number;
   isbn: string;
-  description: string;
+  description: string | null;
   itemList: BookItemDto[];
 };
 
