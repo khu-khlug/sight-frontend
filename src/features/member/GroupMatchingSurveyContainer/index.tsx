@@ -64,7 +64,7 @@ export default function GroupMatchingSurveyContainer() {
     error: answerError,
     refetch: refetchAnswer,
   } = useQuery({
-    queryKey: ["my-group-matching-answer", survey?.id],
+    queryKey: ["my-group-matching-answer", survey],
     queryFn: () => GroupMatchingPublicApi.getMyAnswer(survey!.id),
     enabled: !!survey,
     retry: 0,
@@ -97,7 +97,7 @@ export default function GroupMatchingSurveyContainer() {
     groupType === GroupType.PROJECT_STYLE_STUDY;
 
   const { data: options, status: optionsStatus } = useQuery({
-    queryKey: ["group-matching-options", survey?.id, groupType],
+    queryKey: ["group-matching-options", survey, groupType],
     queryFn: () =>
       GroupMatchingPublicApi.listOptions(
         survey!.id,
