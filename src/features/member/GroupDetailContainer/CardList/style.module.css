@@ -1,0 +1,245 @@
+.intro {
+  width: 220px;
+  min-width: 0;
+  margin-bottom: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  margin-bottom: 2px;
+}
+
+.listDescription {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  color: #6b7280;
+  font-size: var(--chakra-font-sizes-sm);
+  line-height: 18px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.titleEditTrigger {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.titleEditTrigger > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editTitleInput,
+.editDescriptionInput {
+  width: 100%;
+  min-width: 0;
+  padding: 0 0 2px;
+  border: 0;
+  border-bottom: 1px solid #9ca3af;
+  border-radius: 0;
+  background: transparent;
+}
+
+.editTitleInput {
+  font-size: var(--chakra-font-sizes-xl);
+  font-weight: 600;
+}
+
+.editDescriptionInput {
+  color: #6b7280;
+  font-size: var(--chakra-font-sizes-sm);
+  line-height: 18px;
+}
+
+.titleEditTrigger:focus-visible,
+.listDescription:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.editTitleInput:focus,
+.editDescriptionInput:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.header > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.addButton {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #555;
+}
+
+.addButton:hover,
+.addButton:focus-visible {
+  background: #e5e7eb;
+  color: #111;
+}
+
+.addButton:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.cardAddForm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 220px;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  padding: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+}
+
+.cardTitleInput {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 7px;
+  border: 0;
+  background: transparent;
+  font-size: var(--chakra-font-sizes-sm);
+}
+
+.cardTitleInput:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.cardSubmitButton {
+  flex: none;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: var(--main-color);
+  color: white;
+  font-size: var(--chakra-font-sizes-sm);
+}
+
+.cardSubmitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.cardSubmitButton:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.cardArea {
+  flex: 1;
+  min-height: 0;
+  width: 232px;
+}
+
+.list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dropSpace {
+  flex: none;
+  visibility: hidden;
+}
+
+.placedCard {
+  animation: cardPlaced 220ms ease-out both;
+}
+
+@keyframes cardPlaced {
+  from { opacity: 0.6; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.newCard {
+  animation: cardAppear 220ms ease-out both;
+}
+
+.deletingList {
+  pointer-events: none;
+  animation: listDisappear 140ms ease-out forwards;
+}
+
+@keyframes listDisappear {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .newCard,
+  .placedCard,
+  .deletingList {
+    animation: none;
+  }
+}
+
+.deleteListButton {
+  display: block;
+  width: 220px;
+  padding: 12px 8px;
+  border-radius: 6px;
+  background: transparent;
+  text-align: center;
+  color: var(--chakra-colors-gray-500);
+  font-size: var(--chakra-font-sizes-sm);
+  transition: background-color 150ms ease;
+}
+
+.deleteListButton:hover,
+.deleteListButton:focus-visible {
+  background: rgba(107, 114, 128, 0.12);
+}
+
+.deleteListButton:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deleteListButton {
+    transition: none;
+  }
+}

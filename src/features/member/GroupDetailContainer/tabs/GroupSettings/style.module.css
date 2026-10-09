@@ -1,0 +1,622 @@
+.container {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.menu,
+.editor {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 200ms ease, transform 200ms ease, visibility 0s linear 200ms;
+}
+
+.activePane {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition: opacity 200ms ease, transform 200ms ease, visibility 0s;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 15px;
+  padding-top: 5px;
+}
+
+.menuButton {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 8px;
+  border-radius: 6px;
+  color: inherit;
+  font-size: var(--chakra-font-sizes-md);
+  text-align: left;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.menuButton svg {
+  flex: none;
+  color: var(--chakra-colors-gray-500);
+}
+
+button.menuButton {
+  cursor: pointer;
+}
+
+button.menuButton:hover {
+  color: var(--main-color);
+}
+
+.menuButton:hover {
+  background: var(--chakra-colors-blackAlpha-50);
+}
+
+button.menuButton:focus-visible,
+.statusAction:focus-visible,
+.footer button:focus-visible,
+.toggle button:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.statusActions {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: -8px;
+  padding: 0 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: grid-template-rows 200ms ease, margin-top 200ms ease,
+    padding-bottom 200ms ease, opacity 200ms ease, transform 200ms ease,
+    visibility 0s linear 200ms;
+}
+
+.statusActions[data-open="true"] {
+  grid-template-rows: 1fr;
+  margin-top: 0;
+  padding-bottom: 6px;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition: grid-template-rows 200ms ease, margin-top 200ms ease,
+    padding-bottom 200ms ease, opacity 200ms ease, transform 200ms ease,
+    visibility 0s;
+}
+
+.statusActionContent {
+  display: grid;
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.statusHint {
+  margin: 0 0 2px;
+  color: var(--chakra-colors-gray-500);
+  font-size: var(--chakra-font-sizes-xs);
+}
+
+/* 개인설정 펼침 안의 "라벨 + 좌우 슬라이드 토글" 한 줄. .toggle 자체는 GroupInfoEditor의
+   "참여 신청"과 공유하는 공용 컴포넌트라, 폭만 이 좁은 메뉴 칸에 맞게 줄인다. 라벨이 길어지면
+   줄바꿈되고(.settingLabel), 토글은 항상 우측에 고정 폭으로 붙는다(.settingToggle) — 그래서
+   세로 정렬도 가운데가 아니라 위쪽 기준으로 맞춘다. */
+.settingRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 2px;
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+}
+
+.settingRow:hover {
+  background-color: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04));
+}
+
+.settingLabel {
+  min-width: 0;
+  padding-top: 6px;
+  overflow-wrap: break-word;
+  font-size: var(--chakra-font-sizes-sm);
+  cursor: help;
+}
+
+.settingHelpIcon {
+  display: inline-block;
+  vertical-align: -2px;
+  color: var(--chakra-colors-gray-400);
+}
+
+.statusAction {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: white;
+  font-size: var(--chakra-font-sizes-sm);
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.successAction {
+  color: var(--chakra-colors-green-600);
+}
+
+.failAction {
+  color: var(--chakra-colors-red-600);
+}
+
+.successAction:hover:not(:disabled) {
+  background: var(--chakra-colors-green-600);
+  color: white;
+}
+
+.failAction:hover:not(:disabled) {
+  background: var(--chakra-colors-red-600);
+  color: white;
+}
+
+.statusAction:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+}
+
+.descriptionField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+  color: var(--chakra-colors-gray-500);
+  font-size: var(--chakra-font-sizes-sm);
+}
+
+.categoryField {
+  min-width: 0;
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+}
+
+.categoryLabel {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--chakra-colors-gray-500);
+  font-size: var(--chakra-font-sizes-sm);
+}
+
+.categoryOptions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.categoryButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 7px 3px;
+  border-radius: 6px;
+  font-size: var(--chakra-font-sizes-sm);
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.categoryButton:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--chakra-colors-gray-300);
+  border-radius: 6px;
+  background: white;
+  color: var(--chakra-colors-gray-900);
+  font-size: var(--chakra-font-sizes-sm);
+}
+
+.textarea {
+  padding: 8px;
+  overflow: hidden;
+  resize: none;
+  transition: border-color 150ms ease;
+}
+
+.textarea:hover,
+.inlineInput:hover {
+  border-color: var(--chakra-colors-gray-400);
+}
+
+.textarea:focus-visible,
+.choiceOption:focus-visible,
+.removeButton:focus-visible,
+.addButton:focus-visible,
+.addField button:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.rowGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.separated {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--chakra-colors-gray-300);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 6px 8px;
+  font-size: var(--chakra-font-sizes-sm);
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+}
+
+.row:hover {
+  background: var(--chakra-colors-blackAlpha-50);
+}
+
+.rowLabel {
+  flex: none;
+  width: 60px;
+  padding-top: 6px;
+  color: var(--chakra-colors-gray-500);
+}
+
+.tagList {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.repositoryList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.editableTag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+}
+
+.editingTag {
+  width: 100%;
+}
+
+.removeButton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  color: var(--chakra-colors-red-500);
+  cursor: pointer;
+}
+
+.removeButton:hover {
+  background: var(--chakra-colors-red-100);
+}
+
+.addBadge:hover .addButton {
+  color: var(--main-color);
+}
+
+.addButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--chakra-colors-gray-600);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.addField {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+}
+
+.formEnter {
+  animation: formEnter 180ms ease-out both;
+}
+
+.formExit {
+  pointer-events: none;
+  animation: formExit 180ms ease-in both;
+}
+
+@keyframes formEnter {
+  from { opacity: 0; transform: translateY(-5px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes formExit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-5px) scale(0.98); }
+}
+
+.inlineInput {
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--chakra-colors-gray-300);
+  border-radius: 4px;
+  background: white;
+  color: var(--chakra-colors-gray-900);
+  font-size: var(--chakra-font-sizes-sm);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  resize: none;
+  transition: border-color 150ms ease;
+}
+
+.inlineInput:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 1px;
+}
+
+.addField button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--main-color);
+  cursor: pointer;
+}
+
+.addField button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.addField button:not(:disabled):hover {
+  color: var(--chakra-colors-gray-700);
+}
+
+.options {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.choiceOption {
+  width: calc(100% + 10px);
+  margin-left: -5px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.selectedOption {
+  background-color: white;
+  color: var(--chakra-colors-black);
+}
+
+.interestOption.selectedOption:hover {
+  background-color: var(--chakra-colors-blackAlpha-200, rgba(0, 0, 0, 0.08));
+  color: var(--main-color);
+}
+
+.unselectedOption {
+  background-color: var(--chakra-colors-blackAlpha-300, rgba(0, 0, 0, 0.16));
+  color: var(--chakra-colors-gray-500);
+}
+
+.unselectedOption:hover {
+  background-color: var(--chakra-colors-whiteAlpha-500, rgba(255, 255, 255, 0.36));
+  color: var(--main-color);
+}
+
+.unselectedVisibility {
+  background-color: transparent;
+  color: var(--chakra-colors-black);
+}
+
+.unselectedVisibility:hover {
+  background-color: var(--chakra-colors-whiteAlpha-600, rgba(255, 255, 255, 0.48));
+  color: var(--main-color);
+}
+
+.toggle {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  padding: 3px;
+  border-radius: 7px;
+  background: var(--chakra-colors-gray-100);
+}
+
+.toggle::before {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 2);
+  border-radius: 5px;
+  background: white;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  transition: transform 200ms ease;
+  content: "";
+}
+
+/* "참여 신청"(allowJoin)뿐 아니라 개인설정 토글들도 재사용하는 공용 좌우 슬라이드 규칙 —
+   오른쪽 옵션이 선택됐을 때 흰 배경을 오른쪽으로 민다. */
+.toggle[data-right-selected="true"]::before {
+  transform: translateX(100%);
+}
+
+.toggle button {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 5px 2px;
+  border-radius: 5px;
+  color: var(--chakra-colors-gray-600);
+  font-size: var(--chakra-font-sizes-sm);
+  cursor: pointer;
+  transition: color 200ms ease;
+}
+
+.toggle .selected {
+  color: var(--chakra-colors-gray-900);
+}
+
+.toggle button:hover {
+  color: var(--chakra-colors-gray-900);
+}
+
+/* 버튼 안이 아이콘 하나뿐이라(설명은 툴팁으로 옮김) 텍스트 길이에 따라 들쭉날쭉해지던 문제가
+   없다 — 폭을 임의 고정값 대신 아이콘 버튼 두 개(각 28px)에 꼭 맞게 content로 둔다. .toggle
+   button의 flex:1(위)과 특정도가 같아서 캐스케이드 순서상 이기도록 반드시 그 뒤에 와야 한다 —
+   안 그러면 flex:1이 다시 이겨서(그것도 너비가 content로 정해지는 부모 밑이라) 폭이 아이콘마다
+   제각각으로 틀어진다. */
+.settingToggle {
+  flex: none;
+  width: auto;
+  height: 28px;
+}
+
+.settingToggle button {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 100%;
+  padding: 0;
+  transition: color 200ms ease, background-color 150ms ease;
+}
+
+.settingToggle button:hover:not(:disabled) {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+}
+
+.footer {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  padding: 12px 15px;
+  border-top: 1px solid var(--chakra-colors-gray-200);
+}
+
+.footer button {
+  flex: 1;
+  padding: 7px;
+  border-radius: 6px;
+  font-size: var(--chakra-font-sizes-sm);
+  cursor: pointer;
+  transition: background-color 150ms ease, filter 150ms ease;
+}
+
+.cancelButton:hover {
+  background: var(--chakra-colors-gray-100);
+}
+
+.saveButton:not(:disabled):hover {
+  filter: brightness(0.94);
+}
+
+.cancelButton {
+  border: 1px solid var(--chakra-colors-gray-300);
+  background: white;
+}
+
+.saveButton {
+  background: var(--main-color);
+  color: white;
+}
+
+.saveButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .editor,
+  .statusActions,
+  .statusActions[data-open="true"],
+  .toggle::before,
+  .toggle button {
+    transition: none;
+  }
+
+  .formEnter,
+  .formExit {
+    animation: none;
+  }
+}

@@ -1,0 +1,107 @@
+/*
+ * Dashboard가 공용 ScrollArea 대신 .tabArea 높이를 그대로 넘긴다(GroupChat과 같은 패턴).
+ * 그래서 이 컴포넌트 자신이 height: 100% 뼈대를 갖는다 — 위(필터류)는 고정, 아래
+ * (검색결과)만 자기만의 ScrollArea로 스크롤된다.
+ */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.filters {
+  flex: none;
+  padding: 0 15px;
+}
+
+.resultsArea {
+  flex: 1;
+  min-height: 0;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 15px;
+}
+
+/*
+ * 9개(색 8 + 라벨없음 1)가 줄넘침 없이 가용 너비를 1/9씩 나눠 쓴다.
+ * align-items 기본값(stretch)을 두면 각 원이 행의 세로 높이만큼 늘어나 버려서(aspect-ratio는
+ * width만 정해진 상태에서 height를 늘려 맞추려는데, stretch가 그 height를 더 큰 값으로
+ * 덮어써서 타원이 된다) center로 바꿔 늘어나지 않게 한다.
+ */
+.labelFilterRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.labelFilterDot {
+  flex: 1;
+  aspect-ratio: 1;
+  min-width: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+}
+
+/* 원형 라벨 필터(.labelFilterDot)와 같은 박스를 그대로 채운다 — 1/n 크기를 그대로 물려받는다 */
+.noLabelMarkWrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * 검정 아이콘 — 켜짐/꺼짐 상관없이 항상 그리고, 항상 이 크기(scale(1.4))다. 이 값이
+ * 두 상태에서 절대 달라지지 않아야, "크기는 그대로고 흰 아이콘 유무만 다르다"가 보장된다.
+ * lucide 아이콘은 stroke="currentColor"라서, color 값이 곧 아이콘 선 색이다.
+ */
+.noLabelMarkBase {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scale(1.3);
+  color: black;
+}
+
+/* 꺼짐일 때만 그 위에 얹는, 한 단계 작은 흰 아이콘 — 검정과의 크기 차이가 테두리처럼 보인다 */
+.noLabelMarkOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scale(1.3);
+  color: white;
+}
+
+/* Card 컴포넌트와 같은 느낌(흰 배경 카드 + 둥근 모서리)의 결과 카드 — 배경(whiteAlpha)은
+   Chakra bg prop으로 준다(이 앱에서 whiteAlpha/blackAlpha는 항상 그렇게 쓴다). */
+.resultItem {
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+/*
+ * 라벨 필터(원형)와 헷갈리지 않게, 검색대상 라디오는 알약 모양 세그먼트 버튼으로 그린다.
+ * 기본 원형 컨트롤(RadioGroup.ItemControl)은 숨기고, RadioGroup.Item 자체를 눌리는 칩으로 쓴다.
+ */
+.searchTargetItem {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--chakra-colors-gray-200);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.searchTargetItem[data-state="checked"] {
+  background-color: var(--main-color);
+  border-color: var(--main-color);
+  color: white;
+}

@@ -1,0 +1,49 @@
+.root {
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * 세로 스크롤박스 전용. 왼쪽/위/아래만 패딩(gutter)을 주고 오른쪽은 비워 둔다 — 오른쪽은
+ * 컨텐츠박스의 margin-right(같은 gutter 값)가 맡는다. 이렇게 좌측 패딩=우측 마진으로 맞추면
+ * 콘텐츠는 전체 박스 안에서 좌우 중앙에 오고, 세로 스크롤바는 그 사이 빈 공간과 무관하게
+ * 테두리에 바로 붙는다(HoverScrollbar가 insetInlineEnd로 따로 처리).
+ *
+ * min-height:100%는 콘텐츠가 뷰포트보다 짧을 때도 이 박스가 뷰포트 높이만큼 차지하게 한다 —
+ * 그래야 안의 콘텐츠가 height:100%로 실제 픽셀 높이를 받을 수 있다(짧으면 꽉 채우고, 길면
+ * 그만큼 늘어나 기존 세로 스크롤은 그대로 유지).
+ */
+.verticalContent {
+  min-height: 100%;
+}
+
+.verticalContentBox {
+  height: 100%;
+}
+
+/*
+ * 가로 스크롤박스 전용. 위/왼쪽/오른쪽만 패딩을 주고 아래는 비워 둔다 — 아래는 컨텐츠박스의
+ * margin-bottom이 맡는다. min-width는 일부러 안 건다 — 콘텐츠(예: 카드 묶음을 가로로 늘어놓는
+ * 칸반 컬럼들)가 뷰포트보다 넓어져야 가로 스크롤이 생긴다(zag-js ScrollArea.Content 기본값인
+ * min-width:fit-content를 그대로 쓴다).
+ */
+.horizontalContent {
+  height: 100%;
+}
+
+.horizontalContentBox {
+  margin-bottom: 0;
+}
+
+/*
+ * 가로+세로 둘 다 스크롤하는 박스. 콘텐츠(예: 줄번호 있는 코드 테이블)가 두 방향 모두
+ * 뷰포트보다 커질 수 있어야 하므로, 컨텐츠박스에 width/height를 강제하지 않고 내용 그대로
+ * 둔다 — margin-right/margin-bottom만으로 gutter를 만든다.
+ */
+.bothContent {
+  min-height: 100%;
+}
+
+.bothContentBox {
+  height: 100%;
+}

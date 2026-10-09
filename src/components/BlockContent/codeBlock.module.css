@@ -1,0 +1,136 @@
+.block {
+  margin: 0 0 1em;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #24292e;
+  border: 1px solid #d4d4d8;
+  --code-line-number-width: 4ch;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid #d4d4d8;
+  background: #fafafa;
+  user-select: none;
+  font-size: 12px;
+}
+
+.languageTrigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: inherit;
+  background: transparent;
+}
+
+.languageLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.languageIcon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.languageIcon > svg {
+  position: absolute;
+}
+
+.languageMenu {
+  width: 260px;
+  height: min(320px, var(--available-height, 320px));
+  max-width: calc(100vw - 16px);
+  padding: 0;
+  overflow: hidden;
+  background: #ffffff;
+  color: #24292e;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.languageOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.languageOption[data-highlighted],
+.languageTrigger:hover {
+  background: #f4f4f5;
+}
+
+.wrapButton {
+  display: flex;
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.wrapButton:hover,
+.wrapButton[aria-pressed="true"] {
+  background: var(--chakra-colors-blackAlpha-100);
+}
+
+.block .codeArea {
+  margin: 0;
+  padding: 12px;
+  border-radius: 0;
+  overflow-x: auto;
+}
+
+.block .codeArea > code {
+  display: block;
+  padding-left: var(--code-line-number-width);
+  min-height: 1.6em;
+  line-height: 1.6;
+  border-radius: 0;
+}
+
+.codeContainer {
+  position: relative;
+  /* 줄번호의 z-index를 코드 영역 안으로 제한해 sticky 제목줄 아래에 그린다. */
+  isolation: isolate;
+}
+
+.lineNumbers {
+  position: absolute;
+  inset: 0 auto 0 12px;
+  width: var(--code-line-number-width);
+  z-index: 1;
+  background: #ffffff;
+  user-select: none;
+  pointer-events: none;
+}
+
+.lineNumber {
+  position: absolute;
+  right: 1ch;
+  left: 0;
+  color: #71717a;
+  text-align: right;
+}

@@ -1,0 +1,17 @@
+.wide-layout {
+  --layout-header-height: calc(40px + 2 * var(--layout-nav-padding-y, 20px));
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+/* 헤더 높이만큼만 비우고, 그 외 간격은 콘텐츠가 정한다. flow-root로 자식 margin이 영역 밖으로 빠지지 않게 한다. */
+.wide-layout__content {
+  display: flow-root;
+  padding-top: var(--layout-header-height);
+}
+
+@media screen and (max-width: 767px) {
+  .wide-layout {
+    --layout-header-height: calc(36px + 2 * var(--layout-nav-padding-y, 16px));
+  }
+}

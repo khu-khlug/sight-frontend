@@ -1,0 +1,27 @@
+/*
+ * CSS grid-template-rows의 0fr/1fr 트릭으로 여닫는다. 자식을 항상 mount해둔 채로 행 크기만
+ * 트랜지션해서, JS로 실제 높이를 재지 않고도 등장/퇴장 애니메이션이 매끄럽다.
+ */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 200ms ease, opacity 150ms ease;
+}
+
+.collapse.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+/* grid-template-rows 트릭이 동작하려면 자식이 overflow: hidden인 딱 하나의 wrapper여야 한다 */
+.inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapse {
+    transition: none;
+  }
+}

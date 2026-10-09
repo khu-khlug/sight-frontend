@@ -1,0 +1,161 @@
+/* 테두리·패딩이 없는 순수 위치 기준 박스 — .card 크기를 그대로 물려받는다(아래 참고) */
+.wrapper {
+  --card-radius: 6px;
+  position: relative;
+}
+
+.card {
+  background-color: white;
+  border: 1px solid #f4f4f4;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.coverImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cardBody {
+  position: relative;
+  padding: 14px;
+}
+
+.withHandle {
+  padding-right: 30px;
+}
+
+.dragHandle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 34px;
+  padding: 0;
+  transform: translateY(-50%);
+  cursor: grab;
+  touch-action: none;
+}
+
+.dragHandle::before {
+  display: block;
+  width: 12px;
+  height: 18px;
+  background: linear-gradient(var(--chakra-colors-gray-400) 0 0) 3px center / 2px 18px no-repeat,
+    linear-gradient(var(--chakra-colors-gray-400) 0 0) 9px center / 2px 18px no-repeat;
+  opacity: 0.3;
+  transition: opacity 150ms ease;
+  content: "";
+}
+
+.dragHandle:hover::before,
+.dragHandle:focus-visible::before {
+  opacity: 0.8;
+}
+
+.dragHandle:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dragHandle::before {
+    transition: none;
+  }
+}
+
+/* 카드에 마우스를 올리거나 내부 버튼에 포커스하면 테두리만 강조한다. */
+.wrapper:not(.disabled) .card:hover,
+.wrapper:not(.disabled) .card:focus-within {
+  border-color: var(--main-color);
+}
+
+/*
+ * disabled/dimmed 같은 "어둡게 보일 이유"마다 이 반투명 검정 박스를 하나씩 덧댄다 —
+ * 배경색을 직접 바꾸는 대신 겹쳐 쌓는 방식이라, 이유가 여러 개 겹치면 자연히 더
+ * 어두워진다. .wrapper는 테두리·패딩이 전혀 없어서, inset: 0이 .card의 바깥 테두리까지
+ * 정확히 맞아떨어진다(픽셀 보정이 필요 없다).
+ */
+.overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--card-radius);
+  pointer-events: none;
+}
+
+.labels {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 5px;
+}
+
+.labelDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--chakra-font-sizes-md);
+  font-weight: 600;
+}
+
+.metadata {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: var(--chakra-font-sizes-sm);
+  color: #666;
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.assignee {
+  min-width: 0;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+
+.portfolio {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--chakra-colors-brand-300);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.portfolioInactive {
+  color: var(--chakra-colors-gray-300);
+}
+
+.portfolio:hover:not(:disabled),
+.portfolio:focus-visible:not(:disabled) {
+  color: var(--chakra-colors-brand-600);
+}
+
+.portfolio:focus-visible {
+  outline: 2px solid var(--chakra-colors-brand-600);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.portfolio:disabled {
+  cursor: default;
+}

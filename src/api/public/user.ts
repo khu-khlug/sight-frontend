@@ -58,6 +58,17 @@ const checkFirstTodayLogin = async (): Promise<void> => {
   await apiV2Client.post("/users/@me/check-first-today-login");
 };
 
+// 그룹 단위가 아니라 사용자 전역 설정이다(멤버 마이페이지가 마이그레이션되면 그쪽 API로 옮겨야
+// 함 — GroupDetailContainer/tabs/GroupSettings 참고). 경로가 "/group/"로 시작하는 건 지금
+// 백엔드 라우팅 구조를 그대로 따른 것뿐, groupId를 받지 않는다.
+export type UpdateUserPreferenceRequestDto = {
+  usePersonalGithubUsage: boolean;
+};
+
+const updatePreference = async (input: UpdateUserPreferenceRequestDto): Promise<void> => {
+  await apiV2Client.put("/group/user-preference", input);
+};
+
 export type UserPublicApiDto = {
   GetDiscordIntegrationResponseDto: GetDiscordIntegrationResponseDto;
 };
@@ -68,4 +79,5 @@ export const UserPublicApi = {
   issueAndRedirectToDiscordOAuth2Url,
   disconnectDiscordIntegration,
   checkFirstTodayLogin,
+  updatePreference,
 };

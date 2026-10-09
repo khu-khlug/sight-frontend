@@ -1,0 +1,283 @@
+/*
+ * 창 레이어 전체. 호출하는 쪽(GroupDetailContainer)이 탭바+대시보드(--dashboard-width)
+ * 만큼 왼쪽을 비워두고 그 오른쪽의 칸반 가시 영역을 차지한다. 6개 물리 슬롯(싱글/싱글내림/
+ * 좌펼침/우펼침/좌내림/우내림)은 전부 이 안에서 absolute로 위치가 정해지는 형제 영역이고,
+ * 창이 슬롯을 옮길 때도 같은 DOM 엘리먼트가 position만 바뀌어 이동 애니메이션이 된다(리마운트
+ * 없음) — WindowLayer/index.tsx가 이 클래스들을 창마다 골라 붙인다.
+ */
+.overlay {
+  --window-header-height: 38px;
+  --window-hover-lift: 6px;
+  /* 듀얼 모드에서 두 슬롯 사이 간격. */
+  --dual-gap: 20px;
+  --content-inset: 40px;
+  --sub-window-inset: 16px;
+  /* JS는 분할 비율과 높이 기준 최소 폭만 전달한다. 현재 가용 폭으로 위치와 너비를
+     함께 계산해서, 대시보드 전환 중에도 ResizeObserver/React 갱신을 기다리지 않는다.
+     우측도 left로 배치해서 좌우 전환 시 같은 속성끼리 보간한다. */
+  --dual-available-width: calc(100% - 2 * var(--content-inset) - var(--dual-gap));
+  --dual-slot-width-left: clamp(
+    var(--dual-min-slot-width),
+    calc(var(--dual-available-width) * var(--dual-split-ratio)),
+    max(var(--dual-min-slot-width), calc(var(--dual-available-width) - var(--dual-min-slot-width)))
+  );
+  --dual-slot-width-right: calc(var(--dual-available-width) - var(--dual-slot-width-left));
+  --right-slot-left: calc(var(--content-inset) + var(--dual-slot-width-left) + var(--dual-gap));
+  /* 싱글도 같은 이유로 right 대신 width를 명시한다 — 싱글→듀얼(한쪽으로 보내기) 전환 때
+     width가 "값→auto"를 거치지 않고 (전체폭)→(절반폭)으로 바로 보간되게 한다. */
+  --single-slot-width: calc(100% - 2 * var(--content-inset));
+  /* 칸반 보드의 마진(KanbanBoard/style.module.css의 .box, margin: 8px)과 같은 값 — 사용자
+     눈엔 이게 "페이지 프레임"으로 보인다. 내려간 창은 화면 진짜 끝(0)이 아니라 이 프레임
+     경계에 붙어야 한다. */
+  --page-frame: 8px;
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: var(--dashboard-width);
+  z-index: 2;
+  transition: left 160ms ease-in;
+  overflow: hidden;
+}
+
+/*
+ * 칸반 보드(KanbanBoard/style.module.css의 .box)와 같은 위·아래·오른쪽 8px 마진, 8px
+ * 모서리를 재현해서, 그 마진 바깥(공통 배경이 보이는 부분)은 어두워지지 않게 한다.
+ */
+.overlayDim {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  bottom: 8px;
+  left: 0;
+  z-index: 0;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.5);
+  opacity: 1;
+  transition: opacity 200ms ease;
+  animation: windowOverlayFadeIn 160ms ease;
+}
+
+/* 아무것도 가리지 않아도 되는 상태(전부 내려갔거나 빈 슬롯이 섞여 있음): 바깥 클릭이 칸반으로
+   그대로 전달돼야 하니 오버레이 자신은 클릭을 통과시키고 딤도 없앤다(창 자체는 각 슬롯에서
+   다시 pointer-events를 켠다). */
+.overlayClickThrough {
+  pointer-events: none;
+}
+
+.overlayDimHidden {
+  opacity: 0;
+}
+
+/* 대시보드가 펼쳐지면 왼쪽이 대시보드 패널에 바로 붙어서, 그쪽 모서리는 둥글지 않아야 한다. */
+.overlayDimSquareLeft {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+@keyframes windowOverlayFadeIn {
+  from {
+    background-color: rgba(0, 0, 0, 0);
+  }
+}
+
+/*
+ * 슬롯 하나(창 하나가 놓이는 자리)의 공통 위치 규칙. 각 슬롯 종류는 아래에서 left/right/
+ * width/height/bottom만 다르게 덮어쓴다 — 그 값들이 바뀔 때 transition으로 이동/크기
+ * 애니메이션이 된다. bottom 기준 정렬이라 내려갈 때(height만 줄어들 때) 위쪽만 줄고 바닥은
+ * 고정된다.
+ */
+.slot {
+  position: absolute;
+  z-index: 1;
+  transition: left 160ms ease-in, width 160ms ease-in, height 160ms ease-in, bottom 160ms ease-in;
+  pointer-events: auto;
+}
+
+/* 메인·서브 역할 변경에서는 높이와 세로 위치를 즉시 반영한다. */
+.slotRoleChanged {
+  transition: left 160ms ease-in, width 160ms ease-in;
+}
+
+.slotSingle {
+  left: var(--content-inset);
+  width: var(--single-slot-width);
+  bottom: var(--content-inset);
+  height: calc(100% - 2 * var(--content-inset));
+}
+
+/* 싱글이 내려간 상태: 페이지 프레임 경계(--page-frame)에 붙는다. */
+.slotSingleMinimized {
+  left: var(--content-inset);
+  width: var(--single-slot-width);
+  bottom: var(--page-frame);
+  height: var(--window-header-height);
+}
+
+.slotLeftExpanded {
+  left: var(--content-inset);
+  width: var(--dual-slot-width-left);
+  bottom: var(--content-inset);
+  height: calc(100% - 2 * var(--content-inset));
+}
+
+.slotRightExpanded {
+  left: var(--right-slot-left);
+  width: var(--dual-slot-width-right);
+  bottom: var(--content-inset);
+  height: calc(100% - 2 * var(--content-inset));
+}
+
+/* 서브 역할의 펼친 창만 위아래를 같은 만큼 줄인다. 이동·역할 전환도 슬롯 transition을 따른다. */
+.slotSubExpanded {
+  bottom: calc(var(--content-inset) + var(--sub-window-inset));
+  height: calc(100% - 2 * var(--content-inset) - 2 * var(--sub-window-inset));
+}
+
+/*
+ * 듀얼인데 반대쪽이 비어 있거나(Empty) 내려가 있어서 실제로는 이쪽 창 하나만 칸반을
+ * 가리고 있을 때 쓴다(WindowLayer/index.tsx의 coverage와 같은 조건) — 폭은 그대로 두고
+ * 위치만 자기 쪽 가장자리로 더 밀착시켜서, 창과 반대 가장자리 사이에 칸반이 보이는 틈을
+ * 넓힌다(드래그로 정하는 폭 비율과는 별개 메커니즘 — 이건 벽과의 거리만 바꾼다).
+ * --page-frame(내려간 창 기준, 8px)까지 붙이면 펼쳐진 창엔 너무 바짝 붙어 보여서, 그 절반
+ * (--content-inset의 절반)만큼만 당긴다. .slot의 left 트랜지션을 그대로 타고 흐른다.
+ */
+.slotLeftExpandedAlone {
+  left: calc(var(--content-inset) / 2);
+}
+
+.slotRightExpandedAlone {
+  left: calc(100% - var(--content-inset) / 2 - var(--dual-slot-width-right));
+}
+
+/* 내려간 좌/우 창: 페이지 프레임 경계(--page-frame)에 붙는다 — 펼쳐진 창의 바닥 라인
+   (--content-inset)과 더 이상 겹치지 않는다. 헤더 폭도 펼쳤을 때와 같은 --dual-slot-width-*
+   를 그대로 따라간다("내려갔을 때 창 헤더도 설정된 크기여야 한다"). */
+.slotLeftMinimized {
+  left: var(--content-inset);
+  width: var(--dual-slot-width-left);
+  bottom: var(--page-frame);
+  height: var(--window-header-height);
+}
+
+.slotRightMinimized {
+  left: var(--right-slot-left);
+  width: var(--dual-slot-width-right);
+  bottom: var(--page-frame);
+  height: var(--window-header-height);
+}
+
+/* 좌우 전환 트랜지션이 진행되는 동안, 버튼을 누른 쪽 창을 반대쪽 위로 지나가게 한다
+   (WindowLayer/index.tsx가 전환 직후에만 붙였다가 트랜지션 시간 뒤에 뗀다). */
+.slotFront {
+  z-index: 2;
+}
+
+/* 내려간 슬롯이 들뜨는 효과 — 네이티브 :hover 대신 WindowLayer/index.tsx의
+   liftMinimizedSlots가 붙이는 .slotLifted 클래스로 건다. 호버로 거는 경로와 KanbanBoard의
+   가로 스크롤바 호버로 거는 경로가 같은 함수를 공유해야 해서(스크롤바가 떠 있는 동안은
+   스크롤바 자신의 z-index가 헤더보다 위로 올라와 네이티브 :hover가 헤더에 안 걸린다) 클래스
+   기반으로 바꿨다. */
+.slotLifted {
+  height: calc(var(--window-header-height) + var(--window-hover-lift));
+}
+
+/* 실제 콘텐츠가 없는 빈 슬롯(§ 싱글→듀얼 보내기로 생김) 표시. */
+.emptySlot {
+  pointer-events: none;
+}
+
+/* 창들을 담는 그룹 — 레이아웃에는 관여하지 않고(display:contents) 그 안의 .slot들은 여전히
+   .overlay 기준으로 absolute 위치가 잡힌다. "바깥 클릭" 판정에서 "창 안쪽 클릭"을 가려내는
+   DOM 경계로만 쓴다(WindowLayer/index.tsx의 windowsGroupRef). */
+.windowsGroup {
+  display: contents;
+}
+
+/*
+ * 듀얼 양쪽 다 실제 창일 때(둘 다 내려가 있거나 둘 다 펼쳐져 있을 때) 나타나는, 두 헤더
+ * "사이" 히트존. 펼침일 땐 헤더 높이에 맞춰 위쪽에, 내림일 땐 기존처럼 아래쪽에 놓인다.
+ */
+.midGapZone {
+  position: absolute;
+  left: 50%;
+  z-index: 2;
+  width: var(--dual-gap);
+  height: var(--window-header-height);
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translateX(-50%);
+}
+
+.midGapZoneBottom {
+  bottom: var(--page-frame);
+}
+
+.midGapZoneTop {
+  top: var(--content-inset);
+}
+
+/* 내림 상태의 사이 히트존 호버: 두 헤더를 동시에 들어 올린다. 실제로 높이가 적용돼야 하는
+   건 창 내부(.windowAnim)가 아니라 그걸 담은 슬롯 자체다 — 슬롯 높이가 고정이면 안의
+   .windowAnim만 키워봤자 부모 박스 밖으로 넘쳐 안 보인다. */
+.overlay:has(.midGapZoneBottom:hover) .slotLeftMinimized,
+.overlay:has(.midGapZoneBottom:hover) .slotRightMinimized {
+  height: calc(var(--window-header-height) + var(--window-hover-lift)) !important;
+}
+
+/* 사이 히트존 호버(펼침/내림 공통): 양쪽 헤더 모두 음영(Window/style.module.css의
+   :global(.js-window-header)를 :has()로 참조). 헤더 자신이 베이스 배경이라 완전 불투명한
+   색을 써야 한다(반투명이면 뒤가 비쳐 보인다) — Window의 호버 음영과 같은 값. */
+.overlay:has(.midGapZone:hover) :global(.js-window-header) {
+  background-color: var(--chakra-colors-gray-100, #f4f4f5) !important;
+}
+
+/*
+ * 듀얼 좌우 폭 드래그 핸들 — 두 창 "사이"가 되는 자리(한쪽이 내려가거나 비어 있으면 거기에
+ * 창이 있었다면 사이가 됐을 자리)에 둔다. 위치는 항상 일반 배치(content-inset) 기준으로
+ * 계산된 값이라, "혼자일 때 가장자리로 붙이기"(slotLeftExpandedAlone 등)로 실제 창이
+ * 당겨져 있어도 핸들 자체는 그 영향을 안 받는다. 시각적 간격(--dual-gap, 20px)보다 좁은
+ * 히트 영역만 차지하되, 클릭하기엔 충분한 폭을 준다. 위쪽 헤더 높이(--window-header-height)
+ * 만큼은 비워둔다 — 그 자리는 "창 헤더 사이"(.midGapZoneTop, 둘 다 내리기 버튼)의 몫이라,
+ * 안 비워두면 더 높은 z-index 때문에 그 클릭을 가로채 버린다.
+ */
+.resizeHandle {
+  position: absolute;
+  top: calc(var(--content-inset) + var(--window-header-height));
+  bottom: var(--content-inset);
+  z-index: 3;
+  width: 16px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+/* 드래그 중 위치와 크기는 즉시 반영하고, 종료하면 기본 transition을 복원한다. */
+.overlayDragging .slot {
+  transition: none;
+}
+
+.resizeHandle,
+:global(html[data-window-split-resizing]),
+:global(html[data-window-split-resizing] *),
+:global(html[data-window-split-resizing]::after) {
+  cursor: ew-resize !important;
+}
+
+/* iframe·미디어 조작부 위에 투명한 막을 두어 커서를 고정한다. 드래그 이벤트는 기존
+   핸들의 포인터 캡처로 전달되고, 종료 시 html 속성과 함께 막이 즉시 사라진다. */
+:global(html[data-window-split-resizing]::after) {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: auto;
+}
+
+.overlay[data-available-area-changing] .slot {
+  transition: none;
+}

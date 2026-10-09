@@ -1,0 +1,188 @@
+/*
+ * 창 상자 하나의 크롬. 오버레이·딤 배경·크기·위치·내리기/올리기 이동은 WindowLayer(감싸는
+ * .slot*)가 맡고, 여기서는 이 창 하나의 헤더·콘텐츠만 다룬다. 이 컴포넌트는 항상 부모 슬롯의
+ * 100%를 채운다. --window-header-height/--window-hover-lift는 WindowLayer의 .overlay가
+ * 선언해 아래로 내려준다.
+ */
+.windowAnim {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  animation: windowIn 160ms ease;
+}
+
+.windowAnim.closing {
+  animation: windowOut 160ms ease forwards;
+}
+
+/* 내려간 헤더에 호버하면(부모 슬롯의 height가 늘어나는 동안) 그 늘어난 만큼 드러나는 콘텐츠
+   영역도 흰색 대신 헤더와 같은 톤으로 맞춘다. js-window-minimized는 un-hashed 전역 마커라
+   :global()로 감싸야 한다. */
+:global(.js-window-minimized):hover:not(:has(button:hover)) .content {
+  background-color:  rgba(250, 250, 250, 0.9) !important;
+}
+
+@keyframes windowIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes windowOut {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.window {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--chakra-colors-blackAlpha-200, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-radius 200ms ease;
+}
+
+/* 내려간 상태에서는 페이지 프레임 경계에 붙으므로 아래쪽 꼭짓점은 둥글면 안 되고, 아래쪽
+   테두리 선도 없어야 한다(프레임에 맞닿은 쪽이라 선이 필요 없다). */
+.windowMinimized {
+  border-radius: 16px 16px 0 0;
+  border-bottom: none;
+  box-shadow: inset 0 -10px 10px -10px rgba(0, 0, 0, 0.5);
+}
+
+.header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: var(--window-header-height);
+}
+
+.headerMinimized {
+  cursor: pointer;
+  /* bg prop(인라인 background-color)보다 우선해야 해서 !important. 살짝 회색+반투명하게
+     둬서 "내려가 있다"는 상태가 옅게 티나게 한다. */
+  background-color:  rgba(250, 250, 250, 0.9) !important;
+}
+
+/* 펼쳐진 상태에서도, 헤더의 콘텐츠 없는 빈 영역(헤더 왼쪽 표시·버튼이 아닌 나머지)에 호버하면
+   음영을 넣는다. 헤더 자신이 베이스 배경(bg prop)이라 반투명 색(blackAlpha 등)을 쓰면 뒤가
+   비쳐 보인다 — 완전 불투명한 회색을 써야 한다. .headerLeft나 버튼 위에 있을 땐 제외한다. */
+.header:hover:not(:has(.headerLeft:hover)):not(:has(button:hover)) {
+  background-color: var(--chakra-colors-gray-100, #f4f4f5) !important;
+}
+
+/* 헤더 전체 높이를 다 차지하고 왼쪽 끝에 붙는다 — 그래야 라벨 위/아래 빈틈이 .header 자신한테
+   클릭을 넘기지 않고 이 박스가 전부 받는다(headerLeftTogglesMinimize=false일 때 이 박스가
+   stopPropagation으로 내리기를 막는 범위이기도 하다). 안의 내용물 정렬·여백은 이 박스가 아니라
+   여기 들어오는 콘텐츠(headerLeft prop)가 패딩으로 알아서 한다. */
+.headerLeft {
+  height: 100%;
+  /* flex item의 min-width 기본값은 auto(자식의 최소 콘텐츠 너비) — 이대로면 좁아져도 자식
+     (예: 파일 경로 말줄임표) 크기 아래로 못 줄어들어 헤더 전체가 넘치고 .headerRightSlot이
+     밖으로 밀려난다. 0으로 풀어야 안의 콘텐츠가 실제로 줄어들거나 말줄임표를 탈 수 있다. */
+  min-width: 0;
+}
+
+.headerRightSlot {
+  display: flex;
+  align-items: stretch;
+  /* .header의 align-items:center를 따르면 이 영역이 자기 콘텐츠(아이콘) 높이만큼만 차지해서
+     헤더 전체 높이와 차이가 생긴다 — 바닥은 맞고 위쪽에만 틈이 남는 식으로 보인다. 헤더
+     높이를 꽉 채우게 하면 그 틈이 없어지고, 안의 아이콘은 .iconSlot의 align-items:center로
+     여전히 중앙에 있다. */
+  align-self: stretch;
+  /* 좁아질 때 줄어들 공간은 전부 .headerLeft가 흡수해야 한다 — 닫기 등 우측 아이콘이 밀려나
+     사라지면 안 되므로 이 영역 자체는 줄어들지 않는다. */
+  flex-shrink: 0;
+  /* 닫기~내리기까지 모든 아이콘 사이에 빈 공간이 없어야 한다 — 갭을 두지 않고, 각 .iconSlot의
+     flex:1로 전체 폭을 정확히 1/n씩 나눠 서로 맞닿게 한다. */
+}
+
+/* 좌/우 버튼 두 개를 묶는 래퍼. 감싸지 않았을 때(듀얼 모드)와 똑같이 두 버튼이 맞닿아야
+   하므로 gap을 두지 않는다. 이 래퍼 자신은 .headerRightSlot 안에서 다른 .iconSlot(flex:1)
+   형제 둘(내리기·닫기)과 같은 줄에 있는데, 그 둘과 똑같이 1/n씩 나누려면 이 래퍼가 자기
+   안의 아이콘 2개 몫(flex:2)을 차지해야 한다 — 그래야 전체가 "아이콘 개수만큼" 똑같이
+   나뉜다(싱글: 내리기+좌+우+닫기=4등분, 듀얼은 래퍼 없이 이미 iconSlot 4개라 자동으로 맞음). */
+.navGroup {
+  display: flex;
+  flex: 2;
+  align-items: stretch;
+}
+
+.iconSlot {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  color: var(--chakra-colors-gray-500, #718096);
+}
+
+.iconCircle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transition: background-color 150ms ease;
+}
+
+.iconSlot:hover {
+  background-color: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04));
+}
+
+.iconSlot:hover .iconCircle svg {
+  stroke-width: 3px;
+}
+
+.closeSlot:hover .iconCircle {
+  color: var(--chakra-colors-red-400, #f87171);
+}
+
+.minimizeSlot:hover .iconCircle {
+  color: var(--chakra-colors-yellow-400, #facc15);
+}
+
+.navSlot:hover .iconCircle {
+  color: var(--chakra-colors-blue-400, #60a5fa);
+}
+
+.expandSlot:hover .iconCircle {
+  color: var(--chakra-colors-green-400, #4ade80);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  /* flex 자식의 min-width 기본값은 auto(자기 콘텐츠의 최소 너비) — 안의 콘텐츠(예: 카드
+     커버이미지의 음수 마진 bleed 계산)가 폭을 넓히려 하면 이 밑으로 못 줄어들어 .window
+     밖으로 넓어지려 한다. 0으로 풀어야 실제로 .window 폭에 맞춰진다. */
+  min-width: 0;
+}
+
+.scrollbar {
+  bottom: 10px !important;
+  /* FileWindow의 임시 클리핑 마스크(clipMaskRight/clipMaskBottom, z-index:1)보다 위에
+     그려지게 한다 — 안 그러면 마스크가 스크롤바까지 덮어버린다. */
+  z-index: 2;
+}
+
+/* 가로 스크롤바용 보정 — .window의 둥근 모서리(border-radius: 16px)가 왼쪽/오른쪽 양쪽에
+   다 걸려 있으므로, 트랙의 길이를 정하는 양 끝(insetInlineStart/End)을 똑같이 10px씩
+   당겨서 둥근 모서리와 안 겹치게 한다. */
+.scrollbarHorizontal {
+  inset-inline-start: 10px !important;
+  inset-inline-end: 10px !important;
+  /* 위 .scrollbar와 같은 이유 — 클리핑 마스크보다 위에 그려져야 한다. */
+  z-index: 2;
+}

@@ -1,0 +1,26 @@
+.boundary {
+  width: 100%;
+  height: 100%;
+}
+
+.slot {
+  display: contents;
+}
+
+.active {
+  background-color: #f3f4f6 !important;
+  background-image: none !important;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.active > .slot {
+  position: absolute;
+  visibility: hidden;
+  contain: strict;
+}
+
+.active > .slot * {
+  visibility: hidden !important;
+  animation-play-state: paused !important;
+}

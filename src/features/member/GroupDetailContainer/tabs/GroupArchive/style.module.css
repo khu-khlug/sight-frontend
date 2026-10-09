@@ -1,0 +1,167 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.viewSwitch {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  margin: 0 15px 12px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--chakra-colors-gray-100);
+}
+
+.draftButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  margin: 12px 15px;
+  padding: 8px 10px;
+  border: solid 1px var(--chakra-colors-gray-300);
+  border-radius: 6px;
+  background: none;
+  color: var(--chakra-colors-gray-700, #3f3f46);
+  font-size: var(--chakra-font-sizes-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.draftButton:hover {
+  background: var(--chakra-colors-blackAlpha-200, rgba(0, 0, 0, 0.08));
+}
+
+.listArea {
+  flex: 1;
+  min-height: 0;
+}
+
+.viewButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 4px;
+  border-radius: 6px;
+  color: var(--chakra-colors-gray-600);
+  font-size: var(--chakra-font-sizes-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.viewButton:hover {
+  color: var(--chakra-colors-gray-900);
+}
+
+.viewButton:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.activeView {
+  background: white;
+  color: var(--chakra-colors-gray-900);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+}
+
+.count {
+  color: var(--chakra-colors-gray-500);
+}
+
+.viewContent {
+  animation: archive-view-in 220ms ease-out;
+}
+
+@keyframes archive-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.savedRecord {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--chakra-colors-gray-50);
+}
+
+.recordMeta {
+  overflow-wrap: anywhere;
+}
+
+.cardLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cardLink:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+.recordContent {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow-wrap: anywhere;
+}
+
+.recordActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.moreButton,
+.removeButton {
+  padding: 2px 0;
+  font-size: var(--chakra-font-sizes-sm);
+  cursor: pointer;
+}
+
+.moreButton {
+  color: var(--main-color);
+}
+
+.removeButton {
+  color: var(--chakra-colors-gray-500);
+}
+
+.moreButton:hover,
+.removeButton:hover {
+  text-decoration: underline;
+}
+
+.moreButton:focus-visible,
+.removeButton:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewContent {
+    animation: none;
+  }
+}
+
+.icon {
+    display: inline-block;
+    margin-right: 4px;
+}

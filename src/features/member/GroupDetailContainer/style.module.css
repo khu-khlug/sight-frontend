@@ -1,0 +1,55 @@
+/*
+ * KanbanBoard(카드리스트 여러 개)가 섹션 전체 폭을 채우는 유일한 일반 흐름 자식이고, Dashboard는
+ * 여기 위에 절대위치로 뜨는 오버레이다(.dashboardOverlay). KanbanBoard는 대시보드가 펼쳐지든
+ * 접히든 폭이 바뀌지 않는다 — 왼쪽에 탭바 폭만큼 여백을 KanbanBoard 자신이 갖고 있고
+ * (KanbanBoard/style.module.css), Dashboard는 그 여백 위에 겹쳐 뜬다.
+ *
+ * 탭바 뒤에는 기존 섹션 그라데이션을 유지한다. 칸반 영역의 마진은 별도 배경 레이어가
+ * 대시보드와 같은 흰 알파·그라데이션을 그려서 두 영역의 경계가 이어지게 한다.
+ * 높이를 뷰포트 기준으로 명시하고 overflow: hidden을 둬서, 안의 요소가 계산 오차로 살짝
+ * 넘치더라도 페이지에 세로 스크롤이 생기지 않게 막는다.
+ */
+.section {
+  position: relative;
+  isolation: isolate;
+  height: calc(100vh - var(--layout-header-height, 80px));
+  overflow: hidden;
+  background-image: linear-gradient(180deg, #f8f9fb 0%, #f3f4f6 55%, #ebeff0 100%);
+  --dashboard-surface: rgba(255, 255, 255, 0.6);
+  --dashboard-glow:
+radial-gradient(500px circle at 72px 0%, rgba(255, 250, 235, 0.2) 0%, rgba(255, 250, 235, 0) 70%),
+    radial-gradient(600px circle at var(--dashboard-width) 50%, rgba(190, 170, 230, 0.06) 0%, rgba(190, 170, 230, 0) 50%),
+    radial-gradient(500px circle at 140px 100%, rgba(170, 220, 190, 0.04) 0%, rgba(170, 220, 190, 0) 60%);
+}
+
+.kanbanBackground {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* 대시보드가 직접 칠하는 영역을 제외하고 같은 반투명 표면을 마진에 이어 그린다. */
+.kanbanBackground::after {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 0 0 var(--dashboard-width));
+  background-color: var(--dashboard-surface);
+  background-image: var(--dashboard-glow);
+  transition: clip-path 160ms ease-in;
+  content: "";
+}
+
+/*
+ * Dashboard(탭바+콘텐츠 패널)가 KanbanBoard 위에 겹쳐 뜨는 오버레이. 펼침/접힘은 이 레이어
+ * 안에서만 일어나고 KanbanBoard의 레이아웃에는 영향을 주지 않는다.
+ * 자체 배경은 없다 — Dashboard의 흰 알파와 backdrop-filter가 뒤의 탭바 배경 또는
+ * 칸반 배경과 카드를 직접 비춘다.
+ */
+.dashboardOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 1;
+}

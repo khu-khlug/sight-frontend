@@ -1,0 +1,230 @@
+/* 대시보드가 헤더를 뺀 나머지 공간을 .tabArea로 내려주므로, 이 컨테이너는 그 100%를 그대로 쓴다 */
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-left: 15px;
+}
+
+.dropOverlay {
+  position: absolute;
+  inset: 0 15px 0 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 2px dashed var(--main-color);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--main-color);
+  font-size: var(--chakra-font-sizes-sm);
+  pointer-events: none;
+}
+
+/*
+ * 입력 폼(.form, flex: none)을 뺀 나머지 전체를 항상 차지한다 — 대화가 짧아도 이 영역
+ * 자체는 줄어들지 않고, 안의 메시지만 위쪽부터 쌓인 채로 남는다.
+ * min-height: 0이 없으면 flex 아이템은 내용 크기 밑으로 줄어들지 않아서 overflow가 안 걸리고
+ * 부모가 대신 늘어나 버린다.
+ * position: relative는 Chakra ScrollArea 기본 레시피에 이미 있지만, 아래 ::before/::after
+ * 그라데이션이 이 박스 기준으로 뜨는 걸 명확히 하려고 다시 적어둔다.
+ */
+.messages {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding-right: 15px;
+}
+
+/*
+ * 위/아래에 "더 볼 내용이 있다"는 어두운 그라데이션. zag가 이미 계산해 둔 상태를 그대로
+ * 쓴다 — JS로 스크롤 위치를 따로 재지 않는다.
+ * .fadeTopAnchor/.fadeBottomAnchor는 height: 0인 sticky 박스다 — 흐름에서 차지하는
+ * 공간이 정확히 0이라(음수 margin으로 상쇄할 필요가 없다), 스크롤 맨 끝에 여백이 생기지
+ * 않는다. 그라데이션 자체는 이 앵커의 ::after를 position: absolute로 그려서, 앵커(높이 0)
+ * 기준으로 위/아래 48px만큼 기존 메시지 위에 겹쳐 보이게 한다 — 앵커 바깥으로 공간을
+ * 추가하는 게 아니라 이미 있는 콘텐츠 위에 얹히는 것뿐이라 스크롤 가능한 총 높이가 안 변한다.
+ * - [data-overflow-y]는 .messages(Root)에 붙는다: 세로로 실제 넘치는 내용이 있을 때만
+ *   (스크롤 자체가 불가능하면 안 붙는다).
+ * - [data-at-top]/[data-at-bottom]은 .viewport 자신에 붙는다: 이미 그 끝에 있으면 그
+ *   방향 그라데이션은 필요 없다.
+ * 두 조건을 같이 만족해야, "스크롤할 게 아예 없을 때"와 "스크롤해서 이미 끝에 닿았을 때"
+ * 모두 그라데이션이 사라진다.
+ */
+.fadeTopAnchor,
+.fadeBottomAnchor {
+  position: sticky;
+  flex: none;
+  height: 0;
+  z-index: 1;
+}
+
+.fadeTopAnchor {
+  top: 0;
+}
+
+.fadeBottomAnchor {
+  bottom: 0;
+}
+
+.fadeTopAnchor::after,
+.fadeBottomAnchor::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--fade-height);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.fadeTopAnchor::after {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.05), transparent);
+}
+
+.fadeBottomAnchor::after {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.05), transparent);
+}
+
+.messages[data-overflow-y] .viewport:not([data-at-top]) .fadeTopAnchor::after {
+  opacity: 1;
+}
+
+.messages[data-overflow-y] .viewport:not([data-at-bottom]) .fadeBottomAnchor::after {
+  opacity: 1;
+}
+
+.viewport {
+  --fade-height: 48px;
+  border-radius: 10px;
+}
+
+/*
+ * 좌우 여백은 .viewport가 아니라 여기(메시지박스 자신)에 준다. .viewport에 padding을
+ * 주면 형제인 ::before/::after(그라데이션)도 flex 아이템이라 같이 안쪽으로 줄어들었다 —
+ * .viewport는 비워두고 그라데이션은 끝까지 채우게, 메시지 내용만 안쪽 여백을 갖게 나눈다.
+ */
+.messagesContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 0 10px;
+}
+
+/* 입력창 바로 위, 정사각형 썸네일이 가로로 늘어선다. 파일이 많아지면 다음 줄로 접힌다. */
+.attachments {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 15px 0 0;
+}
+
+.attachmentItem {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--chakra-colors-gray-200);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--chakra-colors-gray-50);
+  color: var(--chakra-colors-gray-400);
+}
+
+.attachmentItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 일반 파일은 이미지 대신 아이콘 + 파일명(칸에 안 맞으면 말줄임)을 보여준다 */
+.attachmentFile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 4px 2px;
+}
+
+.attachmentFileName {
+  max-width: 100%;
+  font-size: var(--chakra-font-sizes-2xs);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 썸네일 우상단에 겹쳐서 뜨는 제거(x) 버튼 */
+.attachmentRemove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 0;
+  cursor: pointer;
+}
+
+/*
+ * +/이모지/전송 버튼을 입력창과 같은 테두리 하나 안에 넣은 박스. 버튼들은 따로 테두리를
+ * 갖지 않고(ghost/투명) 이 박스 하나만 테두리를 가져서, 시각적으로 하나의 입력창처럼 보인다.
+ * align-items: flex-end로 둬서 textarea가 여러 줄로 늘어나도 버튼들은 맨 아래 줄에 붙는다.
+ */
+.form {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 0px;
+  margin: 10px 15px 10px 0;
+  padding: 2px 4px;
+  border: 1px solid var(--chakra-colors-gray-200);
+  border-radius: 8px;
+}
+
+/*
+ * 입력이 길어지면 index.tsx에서 scrollHeight를 재서 이 높이를 늘린다 — 일정 줄(max-height)
+ * 이상이면 늘어나지 않고 안에서 스크롤된다.
+ * 스크롤바는 앱 컨벤션대로 기본(브라우저) 스크롤바를 숨긴다 — textarea는 네이티브 폼
+ * 엘리먼트라 HoverScrollbar(ScrollArea 기반)를 그대로 씌울 수 없어서, 스크롤 자체는
+ * 되게 두고 막대만 숨긴다.
+ */
+.textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  overflow-y: auto;
+  padding: 6px 4px;
+  scrollbar-width: none;
+}
+
+.textarea::-webkit-scrollbar {
+  display: none;
+}
+
+.textarea:focus,
+.textarea:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
