@@ -5,7 +5,6 @@ import ColorPaletteMenu from "./ColorPaletteMenu";
 import HeadingMenu from "./HeadingMenu";
 import { applyListType as applyListTypeTo, insertDetails } from "./blockCommands";
 import type { ListTypeName } from "./convertList";
-import { runStyleCommand } from "./styleDebug";
 import { applyDefaultHeadingBold } from "./markdownHeadingPrefix";
 import { MARKDOWN_NODE_CHARS } from "./markdownNodeConfirm";
 import { WRAP_CHARS } from "../BlockContent/extensions";
@@ -218,7 +217,7 @@ function Toolbar({ editor, disabled, onSubmit, onPaletteOpenChange, findOpen, on
         });
         if (!headingRanges.length) return;
       }
-      runStyleCommand(editor, "heading:paragraph", () => editor.chain().focus()
+      editor.chain().focus()
         .setParagraph()
         .command(({ tr }) => {
           const bold = tr.doc.type.schema.marks.bold;
@@ -227,11 +226,11 @@ function Toolbar({ editor, disabled, onSubmit, onPaletteOpenChange, findOpen, on
           tr.removeStoredMark(bold);
           return true;
         })
-        .run());
+        .run();
       return;
     }
-    runStyleCommand(editor, `heading:${level}`, () => editor.chain().focus()
-      .setNode("heading", { level }).command(applyDefaultHeadingBold).run());
+    editor.chain().focus()
+      .setNode("heading", { level }).command(applyDefaultHeadingBold).run();
   };
   // 링크 안이면 링크를 풀고, 아니면 선택한 글자(없으면 안내 글자를 넣어 선택해 둔다 — 바로 입력하면 바뀐다)에
   // 주소 없는 링크를 건다. 주소는 링크 앞 아이콘을 눌러 입력한다.
@@ -264,15 +263,15 @@ function Toolbar({ editor, disabled, onSubmit, onPaletteOpenChange, findOpen, on
     ],
     [
       { type: "custom", key: "heading", render: () => <HeadingMenu level={toolbarState.headingLevel} onSelect={handleSelectHeading} /> },
-      { type: "button", key: "bold", icon: Bold, label: "굵게", onClick: () => runStyleCommand(editor, "bold:toggle", () => editor.chain().focus().toggleBold().run()), isActive: toolbarState.bold },
+      { type: "button", key: "bold", icon: Bold, label: "굵게", onClick: () => editor.chain().focus().toggleBold().run(), isActive: toolbarState.bold },
       { type: "button", key: "italic", icon: Italic, label: "기울임", onClick: () => editor.chain().focus().toggleItalic().run(), isActive: toolbarState.italic },
       { type: "button", key: "underline", icon: UnderlineIcon, label: "밑줄", onClick: () => editor.chain().focus().toggleUnderline().run(), isActive: toolbarState.underline },
       { type: "button", key: "strike", icon: Strikethrough, label: "취소선", onClick: () => editor.chain().focus().toggleStrike().run(), isActive: toolbarState.strike },
       { type: "button", key: "highlight", icon: Highlighter, label: "하이라이트", onClick: () => editor.chain().focus().toggleHighlight().run(), isActive: toolbarState.highlight },
     ],
     [
-      { type: "custom", key: "color", render: () => <ColorPaletteMenu kind="text" currentColor={toolbarState.textColor} recentColors={recentColors} onOpenChange={(open) => setOpenPalettes((current) => ({ ...current, text: open }))} onSelect={(color) => { runStyleCommand(editor, `text-color:${color}`, () => editor.chain().focus().setColor(color).run()); rememberColor(color); }} onClear={() => runStyleCommand(editor, "text-color:clear", () => editor.chain().focus().unsetColor().run())} /> },
-      { type: "custom", key: "backgroundColor", render: () => <ColorPaletteMenu kind="background" currentColor={toolbarState.backgroundColor} recentColors={recentColors} onOpenChange={(open) => setOpenPalettes((current) => ({ ...current, background: open }))} onSelect={(color) => { runStyleCommand(editor, `background-color:${color}`, () => editor.chain().focus().setBackgroundColor(color).run()); rememberColor(color); }} onClear={() => runStyleCommand(editor, "background-color:clear", () => editor.chain().focus().unsetBackgroundColor().run())} /> },
+      { type: "custom", key: "color", render: () => <ColorPaletteMenu kind="text" currentColor={toolbarState.textColor} recentColors={recentColors} onOpenChange={(open) => setOpenPalettes((current) => ({ ...current, text: open }))} onSelect={(color) => { editor.chain().focus().setColor(color).run(); rememberColor(color); }} onClear={() => editor.chain().focus().unsetColor().run()} /> },
+      { type: "custom", key: "backgroundColor", render: () => <ColorPaletteMenu kind="background" currentColor={toolbarState.backgroundColor} recentColors={recentColors} onOpenChange={(open) => setOpenPalettes((current) => ({ ...current, background: open }))} onSelect={(color) => { editor.chain().focus().setBackgroundColor(color).run(); rememberColor(color); }} onClear={() => editor.chain().focus().unsetBackgroundColor().run()} /> },
       {
         type: "custom", key: "emoji", render: () => (
           showEmojiPicker ? (

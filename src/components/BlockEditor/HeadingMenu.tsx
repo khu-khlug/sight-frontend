@@ -4,7 +4,6 @@ import { useState } from "react";
 
 import { cn } from "../../util/cn";
 import contentStyles from "../BlockContent/style.module.css";
-import { readElementStyle } from "./styleDebug";
 import styles from "./style.module.css";
 
 const LEVELS = [1, 2, 3, 4, 5, 6] as const;
@@ -57,8 +56,7 @@ export default function HeadingMenu({ level, onSelect }: Props) {
                 as="button"
                 className={cn(styles.headingMenuOption, HEADING_PREVIEW_CLASS[lvl], level === lvl ? styles.headingMenuOptionActive : undefined)}
                 aria-current={level === lvl ? "true" : undefined}
-                onClick={(event) => {
-                  console.log("[BlockEditor style] heading-preview", JSON.stringify({ level: lvl, ...readElementStyle(event.currentTarget) }, null, 2));
+                onClick={() => {
                   onSelect(lvl);
                   setOpen(false);
                 }}

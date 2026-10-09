@@ -1,12 +1,5 @@
 import { Badge, Box, Heading, ScrollArea, Text } from "@chakra-ui/react";
 import { Users } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-toastify";
-import { GroupDevelopmentApi } from "../../../../api/public/group/GroupDevelopmentApi";
-import { GroupExposureApi } from "../../../../api/public/group/GroupExposureApi";
-import { UserDevelopmentApi } from "../../../../api/public/UserDevelopmentApi";
-import { useGroupAction } from "../../../../hooks/group/useGroupAction";
-import { extractErrorMessage } from "../../../../util/extractErrorMessage";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 
 import GroupCategoryBadge from "../../../../components/GroupCategoryBadge";
@@ -18,7 +11,6 @@ import AiChat from "../tabs/AiChat";
 import GroupActivityLog from "../tabs/GroupActivityLog";
 import GroupArchive from "../tabs/GroupArchive";
 import GroupChat from "../tabs/GroupChat";
-import GroupDevelopment from "../tabs/GroupDevelopment";
 import GroupExposure from "../tabs/GroupExposure";
 import GroupInfo from "../tabs/GroupInfo";
 import { GroupInfo as GroupInfoData } from "../tabs/GroupInfo/types";
@@ -101,20 +93,6 @@ export default function Dashboard({
   const isLeader = currentUserQuery.data?.id === groupInfo.leaderUserId;
   const specialOrganizations = [...new Set(groupInfo.specialOrganizations)];
   const portfolioCounts = { listCount: groupInfo.portfolioListCount, cardCount: groupInfo.portfolioCardCount };
-  const scenario = useGroupAction(groupInfo.id);
-  const queryClient = useQueryClient();
-  // 그룹에 속한 값이 아니라 현재 사용자(전역) 값이라 useGroupAction(그룹별 쿼리 무효화)이
-  // 아니라 current-user 쿼리만 무효화하는 별도 mutation을 둔다.
-  const managerScenario = useMutation({
-    mutationFn: (manager: boolean) => UserDevelopmentApi.updateScenario({ manager }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["current-user"] }),
-    onError: (error: Error) => toast.error(extractErrorMessage(error)),
-  });
-  const cohortQuery = useQuery({
-    queryKey: ["group-detail", groupInfo.id, "report-context"],
-    queryFn: () => GroupExposureApi.getActivityReportContext(groupInfo.id),
-    enabled: showContent && activeId === "development",
-  });
   const repoViewportRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
   const repoViewportId = useId();
@@ -285,17 +263,6 @@ export default function Dashboard({
                           <GroupMemberList groupId={groupInfo.id} category={groupInfo.category} />
                         ) : activeId === "log" ? (
                           <GroupActivityLog groupId={groupInfo.id} />
-                        ) : activeId === "development" ? (
-                          <GroupDevelopment
-                            info={groupInfo}
-                            isPending={scenario.isPending}
-                            onInfoChange={(info) => scenario.mutate(() => GroupDevelopmentApi.updateScenario(groupInfo.id, { info }))}
-                            openCohort={cohortQuery.data ?? null}
-                            onOpenCohortChange={(openCohort) => scenario.mutate(() => GroupDevelopmentApi.updateScenario(groupInfo.id, { openCohort }))}
-                            isManager={currentUserQuery.data?.manager ?? false}
-                            isManagerPending={managerScenario.isPending}
-                            onManagerChange={(manager) => managerScenario.mutate(manager)}
-                          />
                         ) : activeId === "aiChat" ? (
                         <AiChat/>
                         ) : (
