@@ -81,6 +81,9 @@ type Props = {
   // key는 WindowLayerHandle.openWindow와 같은 식별자다. 호출부가 key를 보고 카드인지
   // 파일인지 판별해 알맞은 창을 렌더링한다 — WindowLayer는 그 판별에 관여하지 않는다.
   renderContent: (key: string, binding: WindowBinding) => ReactNode;
+  // 콘텐츠 판별은 호출부가 맡고, 레이어는 지원하지 않는 복원 슬롯을 기본 닫기 규칙으로 제외한다.
+  isSupportedContent: (key: string) => boolean;
+  onUnsupportedContent: () => void;
   isDashboardExpanded?: boolean;
   // 실제 내비게이션(navigate 호출)이 필요할 때만 부른다 — commit()이 자기 행동의 결과로
   // URL을 바꿀 때. 해시 문법 자체는 windowHash.ts가 갖고 있고, 여기서는 완성된 문자열만
@@ -175,7 +178,7 @@ function mainCardId(state: LayoutState | null, roleData: Record<number, string>)
  * 해시 문법과 상태 적용은 여기서 소유한다. 일반 조작은 해시가 바뀔 때마다 히스토리를 추가한다.
  */
 const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
-  { renderContent, isDashboardExpanded = false, onHashChange, onMainCardChange, onCoverageChange, dualWindowEnabled = true, initialSplitRatio = 0.7, onSplitRatioCommit },
+  { renderContent, isSupportedContent, onUnsupportedContent, isDashboardExpanded = false, onHashChange, onMainCardChange, onCoverageChange, dualWindowEnabled = true, initialSplitRatio = 0.7, onSplitRatioCommit },
   ref,
 ) {
   const [snapshot, setSnapshot] = useState<WindowSnapshot>({
@@ -545,7 +548,17 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
       commit(applyCloseWindow(state, target), roleData, windowIds);
     },
     syncFromHash: (hash: string, savedHistory?: unknown) => {
-      const decoded = decodeWindowHash(hash);
+      let decoded = decodeWindowHash(hash);
+      let rejectedContent = false;
+      while (decoded.state !== null) {
+        const unsupported = Object.entries(decoded.roleData).find(([, key]) => !isSupportedContent(key));
+        if (!unsupported) break;
+        rejectedContent = true;
+        const target = targetForRole(decoded.state, Number(unsupported[0]));
+        const next = applyCloseWindow(decoded.state, target);
+        decoded = next === null ? { state: null, roleData: {} } : normalizeRoles(next, decoded.roleData);
+      }
+      if (rejectedContent) onUnsupportedContent();
       const canonicalHash = encodeWindowHash(decoded.state, decoded.roleData);
       const history = readWindowHistory(savedHistory, canonicalHash, decoded.roleData);
       if (history) {
@@ -589,7 +602,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
     setScrollbarGrabbed: (grabbed: boolean) => {
       setHoverSource("scrollbarGrabbed", grabbed);
     },
-  }), [state, roleData, windowIds, canGoDual, onMainCardChange, onHashChange, setHoverSource, splitRatio, mainSide, overlayWidth, overlayHeight]);
+  }), [state, roleData, windowIds, canGoDual, onMainCardChange, onHashChange, setHoverSource, splitRatio, mainSide, overlayWidth, overlayHeight, isSupportedContent, onUnsupportedContent]);
 
   // 화면이 좁아지면 듀얼을 싱글로 되돌린다(되돌릴 수 없는 전환 — 나중에 다시 넓어져도 자동으로
   // 복귀하지 않는다. §5 펼치기의 "의도 유지"와 다르다). 싱글은 canGoDual과 무관하므로

@@ -5,7 +5,7 @@ import { FormEvent, Fragment, KeyboardEvent, PointerEvent as ReactPointerEvent, 
 import AppTooltip from "../../../../components/AppTooltip";
 import Collapse from "../../../../components/Collapse";
 import HoverScrollbar from "../../../../components/HoverScrollbar";
-import { useUnsavedChangesBeforeUnload } from "../../../../hooks/useUnsavedChangesBeforeUnload";
+import { useUnsavedChangesBeforeUnload } from "../../../../hooks/browser/useUnsavedChangesBeforeUnload";
 import Card from "../Card";
 import type { KanbanCardDto } from "../../../../api/public/group/KanbanApi";
 import { isCardDimmed, LabelFilterKey } from "../label";

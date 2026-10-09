@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 
 import Collapse from "../../../../../components/Collapse";
 import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
-import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/useUnsavedChangesBeforeUnload";
+import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/browser/useUnsavedChangesBeforeUnload";
 import type { FileWindowContent } from "../../FileWindow/types";
 import { GroupInfo as GroupInfoData } from "../GroupInfo/types";
 import {
@@ -262,6 +262,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
                   colorPalette="brand"
                   disabled={!canSubmit || action.isPending}
                   onClick={handleSubmit}
+                  _disabled={{ color: "gray.500" }}
                   _active={{ transform: "scale(0.97)" }}
                 >
                   {isCancelling ? "취소하기" : currentReport ? "수정하기" : "제출하기"}

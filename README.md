@@ -135,6 +135,8 @@ MOCK_MANAGER=true yarn dev
 - `/playground/tiptap` 경로와 `src/pages/playground/tiptap/`는 개발 도구로서 PR에 포함할지 검토합니다.
 - `BlockEditor/styleDebug.ts`와 Toolbar·HeadingMenu의 스타일 로그 호출을 제거합니다. `runStyleCommand`를 제거할 때는 안에서 실행하던 에디터 명령을 직접 호출하여 서식 동작을 유지합니다.
 - PWA의 `devOptions.enabled`는 목업과 별도 설정입니다. PR에서 개발용 서비스워커를 유지할지 결정합니다.
+- 개발용 서비스워커 설정을 제거하면 `.gitignore`에 추가한 `dev-dist` 항목도 제거합니다. 이 항목은 개발용 PWA 산출물을 제외하기 위한 것으로, PR 브랜치에서는 대상 `main`의 `.gitignore`를 기준으로 개발 전용 변경을 제외합니다. 후속 머지에서도 다시 포함되지 않았는지 확인합니다.
+- 목업 제거 후 `tsconfig.node.json`에 추가한 `"types": ["node", "vite/client"]` 줄도 제거하여 대상 `main`의 설정으로 되돌립니다. 파일 자체는 유지합니다. `tsconfig.app.json`의 `resolveJsonModule`은 이모지 데이터의 JSON import에 필요하므로 유지합니다. 후속 머지에서도 개발용 타입 설정이 다시 포함되지 않았는지 확인합니다.
 
 ### 4. 실제 백엔드 계약 확인
 

@@ -14,7 +14,7 @@ import SimpleMarkdownEditor from "../../../../components/SimpleMarkdownEditor";
 import { VerticalScrollBox } from "../../../../components/ScrollBox";
 import { cn } from "../../../../util/cn";
 import { DateFormats, formatDate } from "../../../../util/date";
-import { useUnsavedChangesBeforeUnload } from "../../../../hooks/useUnsavedChangesBeforeUnload";
+import { useUnsavedChangesBeforeUnload } from "../../../../hooks/browser/useUnsavedChangesBeforeUnload";
 import { LABEL_COLOR_HEX, LABEL_COLOR_NAME, LABEL_COLORS } from "../label";
 import Window from "../Window";
 import { DualWindowActions, SingleWindowActions } from "../Window/HeaderActions";
@@ -326,7 +326,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 className={styles.recordButtonSlot}
                 onPointerDown={editingField ? (event) => event.stopPropagation() : undefined}
               >
-                <Button size="sm" disabled={editingField !== null} onClick={onOpenNewRecord}>
+                <Button size="sm" _disabled={{ color: "gray.500" }} disabled={editingField !== null} onClick={onOpenNewRecord}>
                   <PenBox size={14} />
                   기록하기
                 </Button>

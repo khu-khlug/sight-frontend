@@ -6,7 +6,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import { KanbanApi, KanbanCardDto } from "../../../../api/public/group/KanbanApi";
 import type { BlockEditorHandle } from "../../../../components/BlockEditor";
-import { useUnsavedChangesBeforeUnload } from "../../../../hooks/useUnsavedChangesBeforeUnload";
+import { useUnsavedChangesBeforeUnload } from "../../../../hooks/browser/useUnsavedChangesBeforeUnload";
 import { cn } from "../../../../util/cn";
 import Window from "../Window";
 import { DualWindowActions, SingleWindowActions } from "../Window/HeaderActions";

@@ -180,7 +180,7 @@ export default function GroupArchive({ groupId, lists }: Props) {
                         </Select.Positioner>
                       </Portal>
                     </Select.Root>
-                    <Button size="sm" disabled={!targetListId || action.isPending} onClick={() => targetListId && action.mutate(() => GroupArchiveApi.restoreGroupCard(groupId, card.id, { targetListId }), { onSuccess: () => { setSelectedCardId(null); setTargetListId(null); } })}>
+                    <Button size="sm" _disabled={{ color: "gray.500" }} disabled={!targetListId || action.isPending} onClick={() => targetListId && action.mutate(() => GroupArchiveApi.restoreGroupCard(groupId, card.id, { targetListId }), { onSuccess: () => { setSelectedCardId(null); setTargetListId(null); } })}>
                       복구하기
                     </Button>
                   </Box>

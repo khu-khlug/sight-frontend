@@ -15,7 +15,7 @@
 // 되게, roleData 문자열 값 자체에 "타입:내용" 컨벤션을 쓴다(예: FileWindow/types.ts의
 // "file:<base64>") — 이 파일은 그 컨벤션이 있는지만 보고 "타입=내용" 토큰으로 바꿔주기만
 // 하며, 내용이 실제로 뭘 가리키는지는 모른다(그건 렌더링하는 쪽의 책임 — 모르는 타입이면
-// GroupDetailContainer의 renderContent가 이미 UnimplementedWindow로 조용히 처리한다). value는
+// 호출부가 지원 여부를 판별하고 WindowLayer가 복원 대상에서 제외한다). value는
 // 항상 base64라서 "&"/"="/":" 같은 구분자 문자를 포함하지 않는다 — 그래서 따옴표로 감쌀 필요가
 // 없고(base64 알파벳은 URI fragment에서 그대로 안전해 브라우저가 따로 percent-encode하지도
 // 않는다), 우리가 거는 base64 인코딩 한 번이 전부다.

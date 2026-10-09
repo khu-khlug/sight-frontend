@@ -1,5 +1,5 @@
 // GroupDetailContainer 바깥(KanbanBoard, EditWindow, CardWindow, FileWindow,
-// UnimplementedWindow, Window/* 등)이 창을 열거나 다루기 위해 쓰는 **유일한 공개 인터페이스**
+// Window/* 등)이 창을 열거나 다루기 위해 쓰는 **유일한 공개 인터페이스**
 // 창구다. WindowLayer/windowManager.ts의 실제 구현(상태 전이, 물리 배치 계산 등)은 직접
 // import할 수 없다 — eslint.config.js의 no-restricted-imports가 WindowLayer 디렉토리와 이
 // 파일만 예외로 두고 나머지 전부를 막는다.
