@@ -269,6 +269,9 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       card.disabled = input.disabled; return changed("카드 활성 상태를 변경했습니다.");
     }
     if (route[2] === "cover-image") {
+      if (input.coverImageUrl === null) {
+        card.coverImageUrl = null; return changed("카드 커버 이미지를 삭제했습니다.");
+      }
       // URL 직접 입력/붙여넣기는 coverImageUrl로, 파일 업로드/드래그앤드롭은 업로드 링크로
       // 먼저 받은 fileUploadId로 온다 — 둘 중 하나만 실려 있으면 된다.
       if (typeof input.coverImageUrl === "string" && text(input.coverImageUrl)) {

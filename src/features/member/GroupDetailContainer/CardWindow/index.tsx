@@ -5,7 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { BriefcaseBusiness, CalendarPlus, ChevronDown, Eye, EyeOff, Handshake, Image, LockKeyhole, LockKeyholeOpen, PenBox, PenLine, Plus, SendHorizonal, StretchHorizontal, Trash2, User } from "lucide-react";
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
-import { CardLabelDto, KanbanApi, KanbanCardDto } from "../../../../api/public/group/KanbanApi";
+import { CardLabelDto, KanbanApi, KanbanCardDto, type CardCoverImageInput } from "../../../../api/public/group/KanbanApi";
 import AppTooltip from "../../../../components/AppTooltip";
 import Button from "../../../../components/Button";
 import Collapse from "../../../../components/Collapse";
@@ -53,7 +53,7 @@ type Props = {
   isPortfolioPublished: boolean;
   onUpdateLabels: (cardId: string, labels: CardLabelDto[]) => void;
   onUpdateAssignee: (cardId: string, assigneeUserId: number | null) => void;
-  onUpdateCoverImage: (cardId: string, input: { coverImageUrl: string } | { fileUploadId: string }) => Promise<unknown>;
+  onUpdateCoverImage: (cardId: string, input: CardCoverImageInput) => Promise<unknown>;
   onTogglePortfolio: () => void;
   onToggleDisabled: () => void;
   onDeleteCard: () => void;
@@ -470,6 +470,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
           <CoverImageForm
             groupId={groupId}
             cardId={card.id}
+            hasCoverImage={Boolean(card.coverImageUrl)}
             onSubmit={(input) => onUpdateCoverImage(card.id, input)}
             onClose={() => setIsCoverFormOpen(false)}
           />

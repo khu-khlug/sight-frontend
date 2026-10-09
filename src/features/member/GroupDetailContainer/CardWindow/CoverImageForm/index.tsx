@@ -3,7 +3,7 @@ import { ImagePlus } from "lucide-react";
 import { ChangeEvent, ClipboardEvent, KeyboardEvent, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
-import { KanbanApi } from "../../../../../api/public/group/KanbanApi";
+import { KanbanApi, type CardCoverImageInput } from "../../../../../api/public/group/KanbanApi";
 import Button from "../../../../../components/Button";
 import { useDropTarget } from "../../../../../hooks/dnd/useDropTarget";
 import { cn } from "../../../../../util/cn";
@@ -16,10 +16,11 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 type Props = {
   groupId: number;
   cardId: string;
+  hasCoverImage: boolean;
   // 실제 커밋(KanbanApi.updateGroupCardCoverImage)은 호출부(CardWindow→GroupDetailContainer)가
   // useGroupAction으로 감싸서 토스트/쿼리 무효화까지 책임진다 — 이 폼은 업로드(URL 발급+PUT)
   // 까지만 직접 하고, 마지막 커밋 호출만 위로 넘긴다.
-  onSubmit: (input: { coverImageUrl: string } | { fileUploadId: string }) => Promise<unknown>;
+  onSubmit: (input: CardCoverImageInput) => Promise<unknown>;
   onClose: () => void;
 };
 
@@ -29,10 +30,23 @@ type Props = {
  * 경로)이나 submitUrlValue(문자열 경로) 중 하나로 모인다. 팝업 모달이 아니라 CardWindow가
  * Collapse로 감싸 카드 헤더(.metaLine) 바로 아래에 펼치는 인라인 폼이다.
  */
-export default function CoverImageForm({ groupId, cardId, onSubmit, onClose }: Props) {
+export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmit, onClose }: Props) {
   const [url, setUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const removeCoverImage = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit({ coverImageUrl: null });
+      onClose();
+    } catch {
+      // useGroupAction이 오류를 표시하고 폼은 재시도할 수 있도록 유지한다.
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const submitFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -140,6 +154,11 @@ export default function CoverImageForm({ groupId, cardId, onSubmit, onClose }: P
         <Button size="sm" disabled={!url.trim() || isSubmitting} onClick={() => void submitUrlValue(url)}>
           적용
         </Button>
+        {hasCoverImage && (
+          <Button size="sm" variant="danger-outline" disabled={isSubmitting} onClick={() => void removeCoverImage()}>
+            삭제
+          </Button>
+        )}
       </Box>
     </Box>
   );

@@ -183,17 +183,17 @@ export default function RecordItem({ groupId, cardId, cardTitle, record, disable
                   </AppTooltip>
                   <RecordMoveMenu groupId={groupId} cardId={cardId} disabled={action.isPending} onMove={moveRecord} />
                   {!isSaved && <AppTooltip content="기록 보관" placement="top">
-                    <Box as="button" className={styles.actionButton} aria-label="기록 보관" disabled={action.isPending || !savedRecordsQuery.isSuccess} onClick={saveRecord}>
+                    <button type="button" className={styles.actionButton} aria-label="기록 보관" disabled={action.isPending || !savedRecordsQuery.isSuccess} onClick={saveRecord}>
                       <Archive size={16} />
-                    </Box>
+                    </button>
                   </AppTooltip>}
                 </Box>
               </Box>}
               {isSaved && <AppTooltip content="기록 보관 해제" placement="top">
-                <Box as="button" ref={savedButtonRef} className={cn(styles.actionButton, styles.savedButton)}
+                <button type="button" ref={savedButtonRef} className={cn(styles.actionButton, styles.savedButton)}
                   aria-label="기록 보관 해제" aria-pressed disabled={action.isPending} onClick={saveRecord}>
                   <Archive size={16} />
-                </Box>
+                </button>
               </AppTooltip>}
               {!disabled && record.type !== "legacy" && <AppTooltip content="기록 수정" placement="top">
                 <Box as="button" className={styles.actionButton} aria-label="기록 수정" ref={editButtonRef} onClick={onEdit}>

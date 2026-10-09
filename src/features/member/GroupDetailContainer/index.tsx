@@ -6,7 +6,7 @@ import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useS
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { GroupInfoApi } from "../../../api/public/group/GroupInfoApi";
-import { CardLabelDto, KanbanApi, type RecordPageDto } from "../../../api/public/group/KanbanApi";
+import { CardLabelDto, KanbanApi, type CardCoverImageInput, type RecordPageDto } from "../../../api/public/group/KanbanApi";
 import { useGroupAction } from "../../../hooks/group/useGroupAction";
 import { GroupDetailPageStateProvider } from "./pageState";
 import { groupPagePreferences } from "./groupPagePreferences";
@@ -245,7 +245,7 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
   }, [groupId, mutate]);
   // CoverImageForm이 업로드(URL 발급+PUT)까지 직접 한 뒤 마지막 커밋만 이걸로 넘긴다 — 폼이
   // 성공 여부를 보고 스스로 닫아야 해서 mutate(fire-and-forget) 대신 mutateAsync를 쓴다.
-  const handleUpdateCardCoverImage = useCallback((cardId: string, input: { coverImageUrl: string } | { fileUploadId: string }) => {
+  const handleUpdateCardCoverImage = useCallback((cardId: string, input: CardCoverImageInput) => {
     return mutateAsync(() => KanbanApi.updateGroupCardCoverImage(groupId, cardId, input));
   }, [groupId, mutateAsync]);
   const handleToggleCardDisabled = useCallback((listId: string, cardId: string) => {
