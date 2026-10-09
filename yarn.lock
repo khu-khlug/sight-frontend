@@ -3359,7 +3359,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-link@npm:3.30.2":
+"@tiptap/extension-link@npm:3.30.2, @tiptap/extension-link@npm:^3.30.2":
   version: 3.30.2
   resolution: "@tiptap/extension-link@npm:3.30.2"
   dependencies:
@@ -10716,6 +10716,7 @@ __metadata:
     "@tiptap/extension-image": "npm:^3.30.2"
     "@tiptap/extension-invisible-characters": "npm:^3.30.2"
     "@tiptap/extension-italic": "npm:^3.30.2"
+    "@tiptap/extension-link": "npm:^3.30.2"
     "@tiptap/extension-list": "npm:^3.30.2"
     "@tiptap/extension-mathematics": "npm:^3.30.2"
     "@tiptap/extension-strike": "npm:^3.30.2"

@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 
 import { KanbanApi, type CardCoverImageInput } from "../../../../../api/public/group/KanbanApi";
 import Button from "../../../../../components/Button";
-import { useDropTarget } from "../../../../../hooks/dnd/useDropTarget";
+import { useDropTarget } from "../../../../../hooks/dragAndDrop/useDropTarget";
 import { cn } from "../../../../../util/cn";
 import { isImageUrl } from "../../../../../util/isImageUrl";
 import styles from "./style.module.css";
@@ -151,7 +151,7 @@ export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmi
           onKeyDown={handleUrlKeyDown}
           aria-label="커버 이미지 URL"
         />
-        <Button size="sm" disabled={!url.trim() || isSubmitting} onClick={() => void submitUrlValue(url)}>
+        <Button size="sm" _disabled={{ color: "gray.500" }} disabled={!url.trim() || isSubmitting} onClick={() => void submitUrlValue(url)}>
           적용
         </Button>
         {hasCoverImage && (

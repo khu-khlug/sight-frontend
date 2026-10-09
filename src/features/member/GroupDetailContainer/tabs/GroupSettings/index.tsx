@@ -1,7 +1,7 @@
 import { GroupSettingsApi } from "../../../../../api/public/group/GroupSettingsApi";
 import { UserPublicApi } from "../../../../../api/public/user";
 import { useGroupAction } from "../../../../../hooks/group/useGroupAction";
-import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/useUnsavedChangesBeforeUnload";
+import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/browser/useUnsavedChangesBeforeUnload";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";

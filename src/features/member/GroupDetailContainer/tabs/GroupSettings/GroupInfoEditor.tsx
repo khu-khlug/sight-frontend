@@ -10,7 +10,7 @@ import { GROUP_CATEGORY_ICON } from "../../../../../components/GroupCategoryBadg
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import TechBadge from "../../../../../components/TechBadge";
 import { GroupCategory, GroupCategoryLabel, GroupInterest, GroupInterestLabel, GroupVisibility, GroupVisibilityLabel } from "../../../../../constant";
-import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/useUnsavedChangesBeforeUnload";
+import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/browser/useUnsavedChangesBeforeUnload";
 import { GROUP_INTEREST_ICON, GroupInfo } from "../GroupInfo/types";
 import styles from "./style.module.css";
 

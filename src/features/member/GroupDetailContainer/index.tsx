@@ -22,10 +22,9 @@ import { GroupDetailTabId, GROUP_DETAIL_TABS } from "./groupDetailTabs";
 import KanbanBoard, { CardListData } from "./KanbanBoard";
 import { LABEL_FILTER_KEYS, LabelFilterKey } from "./label";
 import styles from "./style.module.css";
-import UnimplementedWindow from "./UnimplementedWindow";
 import WindowLayer, { HistoryMode, WindowBinding, WindowCoverage, WindowLayerHandle, WindowRole } from "./WindowLayer";
 import type { WindowHistoryState } from "./WindowLayer";
-import { contentKeyType, isCardKey } from "./WindowLayer/contentKey";
+import { isCardKey } from "./WindowLayer/contentKey";
 
 export type { CardListData };
 const DASHBOARD_WIDTH_COLLAPSED = 56;
@@ -303,11 +302,14 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
     return Object.fromEntries(entries);
   }, [lists, groupId, isPortfolioPublished, handleUpdateCardLabels, handleUpdateCardAssignee, handleUpdateCardCoverImage, handleToggleCardPortfolio, handleToggleCardDisabled, handleDeleteCard, handleDeleteRecord, handleRestoreRecord, handleOpenEdit, handleCardClick]);
 
-  // WindowLayer가 넘기는 key는 카드 id, 파일 콘텐츠 키("file:..."), 또는 아직 구현 안 된
-  // 창 종류("git:...", "edit:..." 등 §9.1이 문법만 예약해둔 것)다 — 어느 쪽인지는
-  // WindowLayer는 모르고, 여기서만 판별한다. 알려진 종류가 아니면 조용히 null을 그리는 대신
-  // "구현 중"이라고 알려서, 카드가 아닌데 "존재하지 않는 카드"로 오판되거나 빈 창으로
-  // 보이지 않게 한다.
+  // 콘텐츠 종류의 판별은 페이지가 담당한다. 지원하지 않는 주소는 복원 시 제외한다.
+  const isSupportedContent = useCallback((key: string) => (
+    isCardKey(key) || Boolean(decodeFileContentKey(key)) || Boolean(decodeEditContentKey(key))
+  ), []);
+  const handleUnsupportedContent = useCallback(() => {
+    window.alert("지원하지 않거나 잘못된 창 주소입니다.");
+  }, []);
+
   const renderContent = useCallback((key: string, binding: WindowBinding): ReactNode => {
     const renderCard = cardsForWindowLayer[key];
     if (renderCard) return renderCard(binding);
@@ -337,8 +339,6 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
         />
       );
     }
-    const type = contentKeyType(key);
-    if (type) return <UnimplementedWindow key={key} binding={binding} type={type} />;
     return null;
   }, [cardsForWindowLayer, textFontSize, handleChangeTextFontSize, groupId, allCards, handleCreateRecord, handleUpdateRecord]);
 
@@ -396,6 +396,8 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
         <WindowLayer
           ref={windowLayerRef}
           renderContent={renderContent}
+          isSupportedContent={isSupportedContent}
+          onUnsupportedContent={handleUnsupportedContent}
           isDashboardExpanded={activeId !== null}
           onHashChange={handleHashChange}
           onMainCardChange={setMainCardId}

@@ -8,7 +8,7 @@
 //      데이터(roleData)와 함께 다음 상태에 맞는 정규 라벨로 다시 매긴다.
 //
 // 호출 경로 — 바깥에서는 항상 ../actions를 거친다. 이 파일을 외부(GroupDetailContainer
-// 밖은 물론, WindowLayer 밖의 Window/EditWindow/CardWindow/FileWindow/UnimplementedWindow
+// 밖은 물론, WindowLayer 밖의 Window/EditWindow/CardWindow/FileWindow
 // 등)에서 직접 import하는 건 eslint.config.js의 no-restricted-imports로 막아뒀다 —
 // WindowLayer 디렉토리 내부(이 파일의 형제 파일들)와 ../actions.ts만 예외다. 바깥에 새로
 // 공개해야 할 함수/타입이 생기면, 여기 직접 import하지 말고 actions.ts에 재익스포트를
