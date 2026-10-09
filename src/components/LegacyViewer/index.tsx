@@ -15,6 +15,9 @@ function prepareHtml(content: string): string {
     FORBID_ATTR: ["srcdoc", "srcset"],
     SANITIZE_NAMED_PROPS: true,
   });
+  if (!(body instanceof Element)) {
+    throw new Error("레거시 본문을 HTML 요소로 정리하지 못했습니다.");
+  }
 
   // 레거시 아코디언의 jQuery 동작을 브라우저 기본 접기/펼치기로 대체한다.
   for (const accordion of Array.from(body.querySelectorAll(".accordion-content")).reverse()) {

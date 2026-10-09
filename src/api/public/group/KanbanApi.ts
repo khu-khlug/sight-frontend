@@ -24,6 +24,7 @@ export type KanbanListDto = {
   cards: KanbanCardDto[];
 };
 export type CardCoverImageUploadLinkDto = { url: string; fileUploadId: string };
+export type CardCoverImageInput = { coverImageUrl: string | null } | { fileUploadId: string };
 // fileUrl은 업로드가 끝난 뒤 기록 본문(img/audio src, 파일 다운로드 링크)에 그대로 넣는 주소다.
 export type RecordMediaUploadLinkDto = { url: string; fileUploadId: string; fileUrl: string };
 export type RecordType = "tiptap" | "legacy";
@@ -83,8 +84,8 @@ export const KanbanApi = {
     const response = await fetch(url, { method: "PUT", body: file });
     if (!response.ok) throw new Error("이미지 업로드에 실패했습니다.");
   },
-  // URL 직접 입력/붙여넣기는 coverImageUrl로, 업로드한 파일은 fileUploadId로 커밋한다.
-  async updateGroupCardCoverImage(groupId: number, cardId: string, input: { coverImageUrl: string } | { fileUploadId: string }): Promise<void> {
+  // URL은 coverImageUrl로, 업로드한 파일은 fileUploadId로 설정하고 null로 커버를 제거한다.
+  async updateGroupCardCoverImage(groupId: number, cardId: string, input: CardCoverImageInput): Promise<void> {
     await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/cover-image`, input);
   },
   // 완전 삭제가 아니라 아카이브다 — 보드에서 빠지고 GroupArchiveApi로 복구할 수 있다.
