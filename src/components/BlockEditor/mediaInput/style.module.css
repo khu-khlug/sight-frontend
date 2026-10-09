@@ -1,0 +1,132 @@
+.box {
+  --media-input-gap: 8px;
+  --media-input-control-height: 28px;
+  --media-input-radius: 4px;
+  --media-input-icon-size: 18px;
+  --media-input-border: var(--chakra-colors-gray-300, #d4d4d8);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 var(--block-gap);
+  padding: var(--media-input-gap) 10px;
+  border: 1px dashed var(--media-input-border);
+  border-radius: 6px;
+  background: var(--chakra-colors-gray-50, #fafafa);
+  white-space: normal;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.dragOver {
+  border-color: var(--main-color, #00a0e9);
+  background: var(--chakra-colors-blue-50, #eff6ff);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--media-input-gap);
+}
+
+.kindIcon {
+  flex: none;
+  width: var(--media-input-icon-size);
+  height: var(--media-input-icon-size);
+  color: var(--chakra-colors-gray-500, #71717a);
+}
+
+.urlInput {
+  flex: 1;
+  min-width: 0;
+  height: var(--media-input-control-height);
+  padding: 0 var(--media-input-gap);
+  border: 1px solid var(--media-input-border);
+  border-radius: var(--media-input-radius);
+  background: var(--chakra-colors-white, #ffffff);
+  font-size: var(--chakra-font-sizes-sm, 0.875rem);
+}
+
+.urlInput:focus {
+  outline: none;
+  border-color: var(--main-color, #00a0e9);
+}
+
+.urlInput:disabled {
+  color: var(--chakra-colors-gray-400, #a1a1aa);
+}
+
+.button {
+  flex: none;
+  height: var(--media-input-control-height);
+  padding: 0 10px;
+  border: 1px solid var(--media-input-border);
+  border-radius: var(--media-input-radius);
+  background: var(--chakra-colors-white, #ffffff);
+  font-size: var(--chakra-font-sizes-sm, 0.875rem);
+  color: var(--chakra-colors-gray-700, #3f3f46);
+  transition: background-color 150ms ease;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--chakra-colors-gray-100, #f4f4f5);
+}
+
+.button:disabled {
+  color: var(--chakra-colors-gray-300, #d4d4d8);
+  cursor: not-allowed;
+}
+
+.iconButton {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--media-input-control-height);
+  height: var(--media-input-control-height);
+  border-radius: var(--media-input-radius);
+  color: var(--chakra-colors-gray-500, #71717a);
+  transition: background-color 150ms ease;
+}
+
+.iconButton:hover {
+  background: var(--chakra-colors-gray-100, #f4f4f5);
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+/* 박스 하단 문구(사용법·진행·오류) — 아이콘 칸만큼 들여 입력창과 같은 위치에서 시작하게 한다. */
+.message {
+  margin: 0;
+  padding-left: calc(var(--media-input-icon-size) + var(--media-input-gap));
+  font-size: var(--chakra-font-sizes-xs, 0.75rem);
+  line-height: var(--block-line-height);
+  color: var(--chakra-colors-gray-500, #71717a);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 사용법은 한 줄에 한 주제씩 보인다. */
+.guide {
+  display: flex;
+  flex-direction: column;
+}
+
+.error {
+  color: var(--chakra-colors-red-500, #ef4444);
+}
+
+.spinner {
+  flex: none;
+  animation: media-input-spin 1s linear infinite;
+}
+
+@keyframes media-input-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

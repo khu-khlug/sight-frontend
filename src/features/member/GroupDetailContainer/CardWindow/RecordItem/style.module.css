@@ -1,0 +1,178 @@
+.record {
+  padding: 4px 10px 10px 10px;
+  border: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px 1px var(--chakra-colors-blackAlpha-50);
+}
+
+.record:hover {
+    border-color: var(--chakra-colors-brand-200);
+}
+
+.record + .record {
+  margin-top: 16px;
+}
+
+/* .record의 기본 위 패딩(4px)과 .metaLine의 기본 아래 마진(6px)은 .metaGroup이 한 줄(4열)일
+   때 기준이다 — isCompact로 2열(두 줄)이 되면 헤더 자체가 더 높아져서 그 좁은 간격으로는
+   위 테두리/아래 설명 텍스트에 너무 붙어 보인다. */
+.recordCompactHeader {
+  padding-top: 10px;
+}
+
+.recordCompactHeader .metaLine {
+  margin-bottom: 10px;
+}
+
+.recordDeleted {
+  border-style: dashed;
+  background-color: var(--chakra-colors-gray-50, #fafafa);
+  opacity: 0.7;
+  /* .record의 기본 패딩(4px 10px 10px 10px)은 헤더 아래 설명 텍스트가 있는 걸 전제로 위쪽을
+     좁힌 값이다. 삭제된 기록은 설명 없이 헤더 한 줄만 남아서, 그 비대칭이 그대로 내용물을
+     위로 치우치게 만든다 — 위아래를 10px로 맞춰 가운데 오게 한다. */
+  padding-top: 10px;
+}
+
+.metaLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+/* 삭제된 기록은 설명 텍스트가 없어서 헤더 한 줄만 남는다 — 이 마진은 헤더와 그 아래
+   설명 사이 간격이라 설명이 없으면 그대로 아래쪽 여백만 남아 내용물을 위로 치우치게 한다. */
+.recordDeleted .metaLine {
+  margin-bottom: 0;
+}
+
+.metaGroup {
+  display: grid;
+  /* auto 트랙은 각 칸의 min-content까지만 줄어들고 그 밑으로는 그리드 자체가 넘친다(2열/1열로
+     접히는 @container 전환도 결국 행이 여러 줄로 보이는 또 다른 형태의 "줄바꿈"이라 뺐다) —
+     공간이 모자라면 꺾이지 않고 그냥 가로로 넘치게 고정 4열을 유지한다. */
+  grid-template-columns: repeat(4, auto);
+  column-gap: 14px;
+  row-gap: 4px;
+  align-items: center;
+}
+
+/* .metaGroup(실제 콘텐츠 폭) + 아이콘 묶음이 펼쳐졌을 때의 폭을 합쳐 실제로 들어갈 공간이
+   없을 때만 RecordItem(index.tsx)의 ResizeObserver가 이 클래스를 붙인다 — 고정 폭 기준
+   (예: 520px) 대신 두 요소의 실측값을 기준으로 삼는다. */
+.metaGroupCompact {
+  grid-template-columns: repeat(2, auto);
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--chakra-colors-gray-500, #718096);
+  /* .metaGroup이 min-width:0이라 grid auto 트랙이 각 칸의 min-content까지 줄어들 수 있는데,
+     텍스트의 min-content는 "단어 사이에서 줄바꿈 가능한 가장 좁은 폭"이라 공간이 모자라면
+     이 문구 자체가 단어 단위로 꺾인다. nowrap으로 못박아서 꺾일 수 없게 한다 — 그래도 공간이
+     모자라면 그리드/줄 전체가 넘치는 쪽을 택한다. */
+  white-space: nowrap;
+}
+
+.metaIconGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  /* 버튼들이라 줄어들 수 없다 — .metaLine이 nowrap이라 공간이 모자라면 .metaGroup 쪽이
+     줄어들거나(min-width:0) 넘쳐야 한다. */
+  flex-shrink: 0;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--chakra-colors-gray-500, #718096);
+  transition: background-color 150ms ease;
+}
+
+.actionButton:hover {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+}
+
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--chakra-colors-gray-500, #718096);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.deleteButton:hover {
+  background-color: var(--chakra-colors-red-50, #fef2f2);
+  color: var(--chakra-colors-red-500, #ef4444);
+}
+
+.moreWrapper {
+  display: flex;
+  align-items: center;
+}
+
+.moreTrigger {
+  transition: opacity 100ms ease, width 150ms ease;
+}
+
+.moreWrapper:hover .moreTrigger,
+.moreWrapper:focus-within .moreTrigger,
+.moreWrapper:has([data-state="open"]) .moreTrigger {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.moreActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-width 150ms ease, opacity 150ms ease;
+}
+
+.moreWrapper:hover .moreActions,
+.moreWrapper:focus-within .moreActions,
+.moreWrapper:has([data-state="open"]) .moreActions {
+  max-width: 120px;
+  opacity: 1;
+}
+
+.content {
+  white-space: pre-wrap;
+}
+
+.actionButton.savedButton {
+  color: var(--main-color);
+}
+
+.moveMenu {
+  width: 280px;
+  max-width: calc(100vw - 24px);
+  max-height: min(400px, 60vh);
+  overflow: hidden;
+  padding: 6px;
+}
+
+.moveViewport { width: 100%; max-height: min(356px, calc(60vh - 44px)); overflow-x: hidden; }
+.moveMenuTitle { font-size: 13px; font-weight: 600; padding: 6px 8px; }
+.moveList + .moveList { border-top: 1px solid var(--chakra-colors-gray-200, #e4e4e7); margin-top: 6px; padding-top: 6px; }
+.moveListTitle { padding: 4px 8px; font-size: 12px; color: var(--chakra-colors-gray-500, #71717a); overflow-wrap: anywhere; }
+.moveCard { display: block; width: 100%; padding: 6px 8px; border-radius: 4px; text-align: left; font-size: 13px; overflow-wrap: anywhere; }
+.moveCard:hover { background: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04)); }
+.actionButton:disabled, .moveCard:disabled { opacity: 0.5; cursor: default; }

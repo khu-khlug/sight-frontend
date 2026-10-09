@@ -1,0 +1,125 @@
+.colorPaletteContent {
+  width: 336px;
+  max-width: calc(100vw - 16px);
+  max-height: var(--available-height, calc(100dvh - 24px));
+  padding: 10px;
+  overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  border: 1px solid rgba(90, 103, 119, 0.5);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, backdrop-filter 180ms ease;
+}
+
+.colorPaletteTooltipAnchor {
+  display: inline-flex;
+}
+
+.colorPaletteContent::-webkit-scrollbar {
+  display: none;
+}
+
+.colorPaletteContent:not(:hover):not(.colorPaletteTriggerHovered) {
+  border-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: 0 0 8px 1px rgba(77, 88, 103, 0.28);
+}
+
+.colorPaletteBody {
+  transition: opacity 180ms ease;
+}
+
+.colorPaletteContent:not(:hover):not(.colorPaletteTriggerHovered) .colorPaletteBody {
+  opacity: 0;
+}
+
+.colorPaletteActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.colorPaletteClear {
+  box-sizing: border-box;
+  flex: none;
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 4px;
+  color: var(--chakra-colors-gray-700, #3f3f46);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.colorPaletteClear:hover {
+  background: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+}
+
+.colorPaletteRecent {
+  display: grid;
+  grid-template-columns: repeat(9, 20px);
+  flex: none;
+  min-width: 0;
+  gap: 3px;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.colorPaletteRecent .colorPaletteSwatch,
+.colorPaletteRecentEmpty {
+  width: 20px;
+  height: 20px;
+}
+
+.colorPaletteRecentEmpty {
+  border-radius: 4px;
+}
+
+.colorPaletteRecent .colorPaletteSwatch {
+  border: none;
+}
+
+.colorPaletteGrid {
+  display: grid;
+  grid-template-columns: 52px repeat(11, 20px);
+  gap: 4px;
+  align-items: center;
+  width: max-content;
+}
+
+.colorPaletteRow {
+  display: contents;
+}
+
+.colorPaletteShadeLabel,
+.colorPaletteFamilyLabel {
+  color: var(--chakra-colors-gray-600, #52525b);
+  font-size: 10px;
+}
+
+.colorPaletteShadeLabel {
+  text-align: center;
+}
+
+.colorPaletteSwatch {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+
+.colorPaletteSwatch:hover {
+  outline: 2px solid var(--chakra-colors-gray-500, #71717a);
+  outline-offset: 1px;
+}
+
+.colorPaletteSwatch[aria-pressed="true"] {
+  outline: 2px solid var(--chakra-colors-gray-900, #18181b);
+  outline-offset: 1px;
+}

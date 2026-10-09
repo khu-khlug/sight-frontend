@@ -1,0 +1,24 @@
+.content {
+  width: 120px;
+  padding: 4px;
+}
+
+.option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--chakra-colors-gray-600, #52525b);
+  transition: background-color 150ms ease;
+}
+
+.option:hover {
+  background-color: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04));
+}
+
+.optionActive {
+  color: var(--chakra-colors-blue-500, #3b82f6);
+  font-weight: 600;
+}

@@ -1,0 +1,30 @@
+.content {
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 7px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 6px 20px rgba(25, 35, 50, 0.14);
+  color: var(--chakra-colors-gray-800, #27272a);
+  font-family: inherit;
+  font-size: var(--chakra-font-sizes-xs);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: pre-line;
+}
+
+.errorContent {
+  border-color: var(--chakra-colors-red-200, #fecaca);
+  color: var(--chakra-colors-red-500, #ef4444);
+}
+
+.errorIcon {
+  flex: none;
+  color: var(--chakra-colors-red-500, #ef4444);
+}

@@ -3,12 +3,20 @@ import { IconButton } from "@chakra-ui/react";
 import { Bell, Menu } from "lucide-react";
 import { useUnreadNotificationCount } from "../../hooks/notification/useUnreadNotificationCount";
 import { useIsManager } from "../../hooks/user/useIsManager";
+import { cn } from "../../util/cn";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { DesktopNav } from "./DesktopNav";
 import { MobileNav } from "./MobileNav";
 import styles from "./style.module.css";
 
-export default function NavigationBar() {
+type Props = {
+  /** true이면 최대 너비 제한 없이 로고와 메뉴를 양 끝에 배치한다. */
+  wide?: boolean;
+  /** 내비게이션 컨테이너의 상하 패딩(px). */
+  paddingY?: number;
+};
+
+export default function NavigationBar({ wide = false, paddingY }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(false);
   const { isManager } = useIsManager();
@@ -26,7 +34,10 @@ export default function NavigationBar() {
 
   return (
     <nav className={styles.navigationBar}>
-      <div className={styles.navContainer}>
+      <div
+        className={cn(styles.navContainer, wide && styles.wideNavContainer)}
+        style={paddingY === undefined ? undefined : { paddingBlock: paddingY }}
+      >
         <a href="https://app.khlug.org">
           <img
             src="https://cdn.khlug.org/images/khlug-long-logo.png"

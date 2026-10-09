@@ -1,0 +1,195 @@
+.container {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding-inline: 15px;
+}
+
+.refreshNotice {
+  margin-bottom: 12px;
+}
+
+.repoSelectorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.repoSelector {
+  flex: 1;
+  min-width: 0;
+}
+
+.repoSelectorRow > button {
+  flex: none;
+}
+
+.treeScrollArea {
+  flex: 1;
+  width: calc(100% + 15px);
+  min-width: 0;
+  min-height: 0;
+  margin-top: 16px;
+  margin-inline-end: -15px;
+}
+
+.treeScrollContent {
+  box-sizing: border-box;
+  padding-inline-end: 15px;
+}
+
+.revisionControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+.revisionControls > * {
+  min-width: 0;
+}
+
+.revisionLabel {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--chakra-colors-gray-500);
+  font-size: var(--chakra-font-sizes-xs);
+}
+
+.revisionTrigger {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.branchValue,
+.commitValue {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.branchMenu {
+  max-width: min(300px, calc(100vw - 24px));
+  overflow: hidden;
+}
+
+.commitMenu {
+  width: min(300px, calc(100vw - 24px));
+  overflow: hidden;
+}
+
+.commitOption {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.selectedOption[data-current="true"],
+.commitOption[data-current="true"] {
+  background: var(--chakra-colors-blue-100);
+  color: var(--chakra-colors-blue-800);
+  font-weight: 600;
+}
+
+.commitSource {
+  overflow: hidden;
+  padding: 8px 10px;
+  border-top: 1px solid var(--chakra-colors-gray-200);
+  color: var(--chakra-colors-gray-500);
+  font-size: var(--chakra-font-sizes-xs);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.tooltipTarget {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.commitRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.commitSha {
+  flex: none;
+  width: 7ch;
+  font-family: monospace;
+}
+
+.commitClip {
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.commitText {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 두 레이어는 같은 세로 ScrollArea 안에 있다. 가로 이동은 트리에만 적용한다. */
+.treeRegion {
+  --repo-row-height: 28px;
+
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.highlightLayer {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  pointer-events: none;
+}
+
+.highlightRow {
+  width: 100%;
+  height: var(--repo-row-height);
+}
+
+.highlightRow[data-active="true"] {
+  background: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04));
+}
+
+.horizontalViewport {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.horizontalViewport::-webkit-scrollbar {
+  display: none;
+}
+
+.treeContent {
+  width: max-content;
+  min-width: 100%;
+}

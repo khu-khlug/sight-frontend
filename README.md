@@ -19,6 +19,10 @@ $ yarn
 $ yarn run dev
 ```
 
+개발 서버에는 `dev/mockApi/`의 목업 API가 함께 실행됩니다. 별도의 백엔드 프로세스는 필요하지 않습니다. `.env.development`의 API 주소는 `/__mock-api`이며, 현재 사용자·알림·그룹 이모지 요청을 처리합니다. 구현되지 않은 목업 경로는 JSON 404를 반환합니다. 그룹 상세 화면의 임시 데이터는 `src/pages/member/group/detail/mockData.ts`에 있습니다.
+
+목업의 현재 사용자를 운영진으로 확인하려면 `MOCK_MANAGER=true` 환경변수를 설정한 뒤 개발 서버를 실행하세요. 개발용 목업 API는 프로덕션 빌드에 포함되지 않으며, PWA 서비스워커 설정은 그대로 유지됩니다.
+
 ## Build
 
 ```sh

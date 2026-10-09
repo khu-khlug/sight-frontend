@@ -15,6 +15,7 @@ const buttonRecipe = defineRecipe({
         },
         _disabled: {
           bg: "gray.300",
+          color: "gray.500",
           cursor: "not-allowed",
           opacity: 1,
           _hover: {

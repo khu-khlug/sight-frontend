@@ -1,0 +1,55 @@
+/*
+ * 배경은 이제 페이지 공유 배경(pages/member/group/detail/style.module.css의 .backdrop)이
+ * 담당한다. 탭바 자신은 배경을 그리지 않는 순수 레이아웃이라, 선택된 탭을 물방울 모양으로
+ * 부풀리던 효과는 없앴다 — 선택 여부는 아이콘 색(.active)만으로 구분한다.
+ */
+.tabBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tab-gap);
+  height: 100%;
+  min-height: 0;
+  width: calc(var(--tab-size) + var(--tab-padding) * 2);
+  padding: var(--tab-padding);
+  box-sizing: border-box;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--tab-size) - 4px);
+  height: calc(var(--tab-size) - 4px);
+  padding: 0px;
+  margin: 2px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 20%;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease;
+}
+
+.tab:hover {
+  border-color: var(--main-color);
+}
+
+.active,
+.active:hover {
+  color: var(--main-color);
+}
+
+.bottomGroup {
+  margin-top: auto;
+}
+
+.revealOnHover svg {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.revealOnHover:hover svg,
+.revealOnHover.active svg,
+.revealOnHover:focus-visible svg {
+  opacity: 1;
+}

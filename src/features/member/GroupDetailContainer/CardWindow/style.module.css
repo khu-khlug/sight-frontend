@@ -1,0 +1,371 @@
+/*
+ * 카드 창 전용 콘텐츠. 창 자체(오버레이·딤 배경·내리기/올리기·닫기 애니메이션 등)는
+ * Window(../Window)가 맡는다 — 여기 있는 건 카드 헤더 표시와 카드 본문뿐이다.
+ */
+.cardContent {
+  /* .metaGroup/RecordItem의 @container 규칙이 기준으로 삼는 컨테이너. */
+  container-type: inline-size;
+  /* 기록 목차로 제목에 이동할 때, 위에 붙는 제목 줄 높이(--card-title-height, index.tsx가 잰다)에 여유를 더한 만큼 띄운다. */
+  --heading-scroll-gap: 8px;
+  --heading-scroll-margin: calc(var(--card-title-height, 0px) + var(--heading-scroll-gap));
+}
+
+.minimizedTitle {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * 라벨 필터 줄 ↔ 제목 텍스트가 서로 자리를 주고받는 크로스페이드. 현재 상태(내려감 여부)에
+ * 맞는 쪽만 보통 흐름으로 남아 헤더 높이를 정하고, 반대쪽은 절대 위치로 겹쳐서 위/아래로
+ * 살짝 밀려나며 사라진다.
+ */
+.headerLeftStack {
+  position: relative;
+  /* Window의 .headerLeft가 높이 100%·왼쪽 끝 고정만 맡고 안쪽 여백은 안 주므로, 본문
+     (.contentInner, 16px)과 기준을 맞추는 왼쪽 여백을 여기서 패딩으로 준다. */
+  height: 100%;
+  padding-left: 10px;
+}
+
+.headerLeftLayer {
+  /* 라벨 점(18px)·제목 텍스트 모두 이 패딩으로 세로 중앙에 맞춘다(--window-header-height
+     38px 기준 (38-18)/2=10px) — 부모(.headerLeftStack)의 align-items 같은 flex 정렬에
+     기대지 않고, 들어오는 콘텐츠 쪽에서 직접 맞춘다. */
+  padding: 10px 0;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.headerLeftLayerOut {
+  position: absolute;
+  left: 0;
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.labelFilterRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.labelFilterDot {
+  width: 18px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+}
+
+/*
+ * --scrollbox-gutter는 이 카드를 감싸는 VerticalScrollBox(ScrollBox/VerticalScrollBox.tsx)의
+ * Viewport가 선언하는 실제 gutter 값이다 — 여기서 16px/32px을 따로 하드코딩하면 gutter prop이
+ * 바뀔 때 어긋나므로, 그 값을 그대로 읽어 풀블리드 폭/마진을 계산한다.
+ */
+.coverImage {
+  width: calc(100% + var(--scrollbox-gutter, 16px) * 2);
+  height: 200px;
+  margin: calc(var(--scrollbox-gutter, 16px) * -1) calc(var(--scrollbox-gutter, 16px) * -1) var(--scrollbox-gutter, 16px) calc(var(--scrollbox-gutter, 16px) * -1);
+  background-color: var(--chakra-colors-gray-100, #f4f4f5);
+  background-size: cover;
+  background-position: center;
+}
+
+/*
+ * 좌우로 bleed하지 않는다(margin 없음) — 기록 리스트(.records/RecordItem)도 좌우 bleed가
+ * 없어서 박스 폭이 본문 기준선에 딱 맞는데, 여기도 같은 폭으로 맞추기 위해서다. 예전엔
+ * margin:0 -8px로 좌우 8px씩 삐져나와 호버 영역을 넓혔었는데, titleSection만 스크롤바를
+ * 가리지 않으려고 오른쪽 bleed를 상쇄해놔서 줄마다 박스 폭이 서로 달라지는 문제가 있었다.
+ */
+.section {
+  padding: 8px;
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+}
+
+.section:hover {
+  background-color: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04));
+}
+
+.titleSection {
+  margin-top: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  /* top:0은 스크롤 컨테이너(Viewport)의 padding-box 안쪽 기준이다 — Viewport 자체에
+     --scrollbox-gutter만큼 padding이 생겨서(VerticalScrollBox.tsx), 0으로 두면 그 패딩만큼
+     창 가장자리에서 떨어진 채로 붙는다. 그만큼 끌어올려야 진짜 가장자리에 딱 붙는다. */
+  top: calc(var(--scrollbox-gutter, 16px) * -1);
+  z-index: 1;
+  background-color: white;
+}
+
+.titleSection:hover {
+  background-color: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04));
+}
+
+.titleStuck {
+  border-radius: 0;
+  background-color: var(--chakra-colors-whiteAlpha-900, rgba(255, 255, 255, 0.92));
+}
+
+.titleStuck:hover {
+  background-color: white;
+}
+
+.titleDisabled,
+.titleDisabled:hover {
+  background-color: var(--chakra-colors-gray-100, #f4f4f5);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--chakra-colors-gray-200, #e2e8f0);
+  cursor: text;
+}
+
+.titleReadOnly {
+  cursor: default;
+}
+
+.titleStuck .title {
+  border-bottom-color: transparent;
+}
+
+.titleInput {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--chakra-font-sizes-xl, 1.25rem);
+  font-weight: 700;
+}
+
+.editBox {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+  border: 1px solid var(--chakra-colors-gray-300, #d4d4d8);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.editSendButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--main-color, #00a0e9);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.editSendButton:hover {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+  color: var(--main-color-hover, #0077b6);
+}
+
+.metaLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.metaGroup {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  column-gap: 14px;
+  row-gap: 4px;
+  align-items: center;
+}
+
+@container (max-width: 520px) {
+  .metaGroup {
+    grid-template-columns: repeat(2, auto);
+  }
+}
+
+@container (max-width: 320px) {
+  .metaGroup {
+    grid-template-columns: repeat(1, auto);
+  }
+}
+
+.metaIconGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--chakra-colors-gray-500, #718096);
+}
+
+.descriptionSection {
+  padding: 8px;
+  white-space: pre-wrap;
+  margin-bottom: 10px;
+}
+
+.descriptionText {
+  display: block;
+  min-height: 1.4em;
+  cursor: text;
+}
+
+/* .descriptionSection의 white-space: pre-wrap은 일반 텍스트용이다 — MarkdownViewer는 자기
+   태그(p, li 등)로 줄바꿈을 표현하므로, 그 pre-wrap이 그대로 적용되면 마크다운 소스의 줄바꿈
+   문자까지 같이 보존돼 의도치 않은 빈 줄이 생긴다. */
+.descriptionMarkdown {
+  white-space: normal;
+}
+
+.assigneeAddButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px dashed var(--chakra-colors-gray-300, #d4d4d8);
+  color: var(--chakra-colors-gray-400, #a1a1aa);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.assigneeAddButton:hover {
+  background-color: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04));
+  border-color: var(--chakra-colors-gray-400, #a1a1aa);
+}
+
+.assigneeTrigger {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 4px;
+  transition: background-color 150ms ease;
+}
+
+.assigneeTrigger:hover {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+}
+
+.secondaryActionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--chakra-colors-gray-500, #718096);
+  transition: background-color 150ms ease;
+}
+
+.secondaryActionButton:hover {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+}
+
+.deleteIconButton:hover {
+  background-color: var(--chakra-colors-red-50, #fef2f2);
+  color: var(--chakra-colors-red-500, #ef4444);
+}
+
+.portfolioActive {
+  color: var(--chakra-colors-blue-500, #3b82f6);
+}
+
+.noRecords {
+  padding: 8px;
+  color: var(--chakra-colors-gray-500, #718096);
+  font-size: 13px;
+  text-align: center;
+}
+
+.records {
+  margin-top: 12px;
+  margin-bottom: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+}
+
+.recordButtonSlot {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.recordButtonSlot:has(button:disabled) {
+  cursor: not-allowed;
+}
+
+.recordButtonSlot button:disabled {
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.recordsFooter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  font-size: 13px;
+}
+
+.moreRecords {
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: var(--chakra-colors-gray-600, #52525b);
+  cursor: pointer;
+}
+
+.moreRecords:hover:not(:disabled) {
+  background: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04));
+}
+
+.moreRecords:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.lastRecord {
+  color: var(--chakra-colors-gray-500, #71717a);
+}
+
+.activateButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--chakra-colors-gray-600, #52525b);
+  transition: background-color 150ms ease;
+}
+
+.activateButton:hover {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+}

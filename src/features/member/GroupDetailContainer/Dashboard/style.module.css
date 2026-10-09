@@ -1,0 +1,156 @@
+/*
+ * 높이는 부모 .dashboardOverlay(GroupDetailContainer/style.module.css, .section과 같은 높이)를
+ * 그대로 채운다. .dashboardOverlay는 자체 배경이 없어서, 흰색 알파(0.6)와 backdrop-filter가
+ * 뒤의 탭바 배경·칸반 배경과 카드를 비춘다. 그라데이션은 칸반 마진과 같은 변수를 쓴다.
+ */
+.dashboard {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  height: 100%;
+  background-color: var(--dashboard-surface);
+  background-image: var(--dashboard-glow);
+  /* 밑에 비치는 KanbanBoard 카드가 또렷한 글자로 겹쳐 보이지 않도록 흐리게 간다 */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* 탭바가 대시보드 높이 전체를 채운다 */
+.tabBar {
+  display: flex;
+  flex: none;
+  align-self: stretch;
+}
+
+/*
+ * 탭바와 콘텐츠 사이 구분선. 양 끝이 흰색으로 흐려지는 그라데이션 자체가 여백처럼 보여서,
+ * 별도 margin 없이 대시보드 높이 전체를 쓴다.
+ */
+.divider {
+  align-self: stretch;
+  flex: none;
+  width: 1px;
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(0, 0, 0, 0.08) 10%,
+    rgba(0, 0, 0, 0.08) 90%,
+    rgba(255, 255, 255, 0.5) 100%
+  );
+  opacity: 1;
+  transition: opacity 160ms ease-in, width 160ms ease-in;
+}
+
+/* 너비도 같이 0으로 줄여야 한다 — opacity만 0으로 두면 이 1px짜리 구분선 자리로 .dashboard의
+   흰 알파 배경이 얇은 선처럼 비쳐 보인다 */
+.divider.collapsed {
+  opacity: 0;
+  width: 0;
+}
+
+/*
+ * 폭을 고정해서 탭별 텍스트 길이에 따라 대시보드 전체 너비가 흔들리지 않게 한다.
+ * 그룹명 제목은 탭을 바꿔도 다시 그려지지 않는다 — key로 다시 마운트되는 건 .tabContent뿐이다.
+ * align-self: stretch로 대시보드 높이 전체(.dashboard → .dashboardOverlay → .section의
+ * calc(100vh - 80px))를 그대로 물려받는다. display: flex column으로 바꿔서, 뱃지·제목
+ * 헤더(flex: none)와 그 아래 탭 콘텐츠(flex: 1)가 "vh 계산 없이" 정확히 남는 공간을 나눠
+ * 갖는다 — 채팅 탭처럼 자기만의 높이가 필요한 탭도 이 flex: 1 칸 안에서 100%만 쓰면 된다.
+ * 좌우 padding은 헤더와 ScrollArea.Content 양쪽에서 각각 준다.
+ */
+.content {
+  box-sizing: border-box;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 280px;
+  padding: 8px 0;
+  overflow: hidden;
+  opacity: 1;
+  transition: width 160ms ease-in, padding 160ms ease-in, opacity 160ms ease-in;
+}
+
+/* 뱃지·제목 헤더. 탭이 바뀌어도 안 움직이는 고정 영역이라 flex: none */
+.header {
+  flex: none;
+}
+
+.headingInput {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 1.2em;
+  padding: 4px 6px;
+  border: 1px solid var(--chakra-colors-gray-300);
+  border-radius: 6px;
+  outline: none;
+  overflow: hidden;
+  resize: none;
+  background: var(--chakra-colors-whiteAlpha-900, rgba(255, 255, 255, 0.92));
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  overflow-wrap: anywhere;
+  caret-color: var(--main-color);
+  transition: background-color 150ms ease;
+}
+
+.headingInput:focus {
+  background: var(--chakra-colors-whiteAlpha-900, rgba(255, 255, 255, 0.92));
+}
+
+.badgeButton {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 -8px;
+  padding: 0 8px;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.badgeButton:focus-visible {
+  outline: 2px solid var(--main-color);
+  outline-offset: 2px;
+}
+
+/* 탭 콘텐츠 영역. 헤더가 쓰고 남은 공간을 전부 차지한다 */
+.tabArea {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 탭을 다시 선택해 해제하면 대시보드 콘텐츠 영역이 접힌다 */
+.content.collapsed {
+  width: 0;
+  padding: 8px 0;
+  opacity: 0;
+}
+
+/* 탭을 바꾸면 key가 바뀌어 다시 마운트되면서 나타나는 애니메이션이 실행된다 */
+.tabContent {
+  animation: content-in 250ms ease-out;
+}
+
+@keyframes content-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabContent {
+    animation: none;
+  }
+}
