@@ -35,6 +35,17 @@ export default function GroupDevelopment({ info, isPending, onInfoChange, openCo
     <Box className={styles.container}>
       <Text fontSize="sm" color="gray.500">일반 그룹 화면에서 직접 변경할 수 없는 목업 상태</Text>
       <div className={styles.row}>
+        <span>그룹 진행</span>
+        <button
+          type="button"
+          className={styles.actionButton}
+          disabled={isPending || info.status === GroupStatus.PROGRESS}
+          onClick={() => onInfoChange({ status: GroupStatus.PROGRESS })}
+        >
+          {info.status === GroupStatus.PROGRESS ? "진행 상태" : "진행 상태로 변경"}
+        </button>
+      </div>
+      <div className={styles.row}>
         <span>그룹 중단</span>
         <button
           type="button"

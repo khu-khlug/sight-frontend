@@ -120,7 +120,7 @@ export function mockApi(): Plugin {
             response.end(content); return;
           }
           const body: unknown = raw.length ? JSON.parse(raw.toString("utf8")) : undefined;
-          const result = handleGroupRequest(request.method, url, body) ?? handleRepositoryRequest(request.method, url, body) ?? handleAutosaveRequest(request.method, url, body);
+          const result = handleGroupRequest(request.method, url, body, mockManager) ?? handleRepositoryRequest(request.method, url, body) ?? handleAutosaveRequest(request.method, url, body);
           if (result) { sendJson(response, result.status, result.body); return; }
         // 그룹 쪽(groups.ts의 "mock-scenario" PATCH)과 같은 패턴 — 현재 사용자는 그룹에 속하지
         // 않는 전역 상태라 groups.ts가 아니라 여기서 직접 들고 있는다. 개발 탭(GroupDevelopment)

@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { GroupStatus } from "../../src/constant";
 import type { OpenSeminarCohortDto } from "../../src/api/public/group/GroupExposureApi";
+import { getGroupRepositoryUrlError, GROUP_REPOSITORY_SEPARATOR, MAX_GROUP_REPOSITORIES } from "../../src/util/groupRepositoryUrls";
+import { getGroupDelimitedValuesError } from "../../src/util/groupDelimitedValues";
 import { createGroupFixture, type MockCard } from "./groupFixtures";
 
 type Result = { status: number; body?: unknown };
@@ -38,7 +40,7 @@ function newCard(title: string): MockCard {
     createdAt: now(), records: [] };
 }
 
-export function handleGroupRequest(method: string | undefined, url: URL, body: unknown): Result | null {
+export function handleGroupRequest(method: string | undefined, url: URL, body: unknown, isManager = process.env.MOCK_MANAGER === "true"): Result | null {
   const match = url.pathname.match(/^\/(manager\/)?groups\/(\d+)(?:\/(.*))?$/);
   if (!match) return null;
   if (Number(match[2]) !== state.groupInfo.id) return fail("그룹을 찾을 수 없습니다.", 404);
@@ -85,13 +87,18 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       const keyword = text(url.searchParams.get("keyword")).toLocaleLowerCase();
       const target = url.searchParams.get("searchTarget");
       if (!["title", "author", "record"].includes(target ?? "")) return fail("검색 대상을 확인해주세요.");
-      if (!keyword) return ok([]);
-      return ok(state.lists.flatMap((list) => list.cards.flatMap((card) => {
+      const pageSize = 50;
+      const page = Number(url.searchParams.get("page") ?? 1);
+      if (!Number.isSafeInteger(page) || page < 1) return fail("검색 페이지를 확인해주세요.");
+      const offset = (page - 1) * pageSize;
+      if (!keyword) return ok({ results: [], totalPages: 0 });
+      const results = state.lists.flatMap((list) => list.cards.flatMap((card) => {
         const base = { listTitle: list.title, cardId: card.id, cardTitle: card.title };
         if (target === "record") return card.records.filter((r) => r.content.toLocaleLowerCase().includes(keyword)).map((r) => ({ ...base, id: r.id, matchedText: r.content }));
         const value = target === "author" ? card.authorName : card.title;
         return value.toLocaleLowerCase().includes(keyword) ? [{ ...base, id: card.id, matchedText: target === "author" ? card.authorName : null }] : [];
-      })));
+      }));
+      return ok({ results: results.slice(offset, offset + pageSize), totalPages: Math.ceil(results.length / pageSize) });
     }
     if (route[0] === "cards" && route[2] === "records" && route.length === 3) {
       const card = cards().find((c) => c.id === route[1]);
@@ -130,7 +137,28 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     if (!state.members.some((m) => m.userId === 1)) state.members.push({ userId: 1, name: "테스트 회원", college: "소프트웨어융합대학", isLeader: false, cardCount: 0, recordCount: 0 });
     return changed("그룹에 참여했습니다.");
   }
-  if (match[1] && !(process.env.MOCK_MANAGER === "true")) return fail("운영진 권한이 필요합니다.", 403);
+  if (route[0] === "status" && route.length === 2 && method === "PUT" && !match[1]) {
+    if (route[1] === "stop") {
+      if (!isManager) return fail("운영진만 그룹을 중단할 수 있습니다.", 403);
+      if (info.status !== GroupStatus.PROGRESS) return fail("진행 중인 그룹만 중단할 수 있습니다.");
+      info.status = GroupStatus.STOP;
+      return changed("그룹 활동을 중단했습니다.", false);
+    }
+    if (!leader && !isManager) return fail("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.", 403);
+    if (route[1] === "end") {
+      if (input.status !== GroupStatus.SUCCESS && input.status !== GroupStatus.FAIL) return fail("종료 상태를 확인해주세요.");
+      if (info.status !== GroupStatus.PROGRESS && info.status !== GroupStatus.STOP) return fail("진행 중이거나 중단된 그룹만 종료할 수 있습니다.");
+      info.status = input.status;
+      return changed(input.status === GroupStatus.SUCCESS ? "그룹 활동을 성공으로 종료했습니다." : "그룹 활동을 실패로 종료했습니다.", false);
+    }
+    if (route[1] === "progress") {
+      if (info.status !== GroupStatus.STOP && info.status !== GroupStatus.SUCCESS && info.status !== GroupStatus.FAIL) return fail("중단되거나 종료된 그룹만 진행중으로 변경할 수 있습니다.");
+      info.status = GroupStatus.PROGRESS;
+      return changed("그룹을 진행중으로 변경했습니다.");
+    }
+    return fail("지원하지 않는 상태 변경입니다.", 404);
+  }
+  if (match[1] && !isManager) return fail("운영진 권한이 필요합니다.", 403);
   if (!member && !match[1]) return fail("그룹 참여가 필요합니다.", 403);
   if (path === "members/@me" && method === "DELETE") {
     if (leader) return fail("그룹장을 위임한 뒤 탈퇴해주세요.", 409);
@@ -140,15 +168,28 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     if (!leader) return fail("그룹장만 설정을 변경할 수 있습니다.", 403);
     if (info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL) return fail("종료된 그룹은 수정할 수 없습니다.", 409);
     if (!text(input.title)) return fail("그룹 이름을 입력해주세요.");
-    const allowed = ["title", "category", "description", "interests", "techStack", "repositoryUrls", "allowJoin", "visibility"];
+    if (typeof input.techStack !== "string") return fail("사용 기술은 쉼표로 구분한 문자열이어야 합니다.");
+    const technologies = input.techStack === "" ? [] : input.techStack.split(",");
+    const technologyLengthError = getGroupDelimitedValuesError(technologies, "사용 기술");
+    if (technologyLengthError) return fail(technologyLengthError);
+    if (technologies.some((technology) => !technology.trim())) return fail("사용 기술 이름이 비어 있습니다.");
+    if (new Set(technologies).size !== technologies.length) return fail("사용 기술에 중복 값이 있습니다.");
+    if (typeof input.repositoryUrls !== "string") return fail("저장소 URL은 줄바꿈으로 구분한 문자열이어야 합니다.");
+    const repositories = input.repositoryUrls === "" ? [] : input.repositoryUrls.split(GROUP_REPOSITORY_SEPARATOR);
+    if (repositories.length > MAX_GROUP_REPOSITORIES) return fail("저장소는 최대 5개까지 추가할 수 있습니다.");
+    const repositoryLengthError = getGroupDelimitedValuesError(repositories, "저장소 URL", GROUP_REPOSITORY_SEPARATOR);
+    if (repositoryLengthError) return fail(repositoryLengthError);
+    for (const repository of repositories) {
+      if (!repository.trim()) return fail("저장소 URL을 입력해주세요.");
+      const error = getGroupRepositoryUrlError(repository);
+      if (error) return fail(error);
+    }
+    if (new Set(repositories).size !== repositories.length) return fail("저장소 URL에 중복 값이 있습니다.");
+    const allowed = ["title", "category", "description", "interests", "allowJoin", "visibility"];
     Object.assign(info, Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))));
+    info.techStack = technologies;
+    info.repositoryUrls = repositories;
     return changed("그룹 설정을 변경했습니다.", false);
-  }
-  if (path === "state" && method === "PATCH") {
-    if (!leader && !match[1]) return fail("그룹장 권한이 필요합니다.", 403);
-    if (!Object.values(GroupStatus).includes(input.status as GroupStatus)) return fail("그룹 상태를 확인해주세요.");
-    if ((input.status === GroupStatus.SUCCESS || input.status === GroupStatus.FAIL) && info.status !== GroupStatus.PROGRESS) return fail("진행 중인 그룹만 종료할 수 있습니다.", 409);
-    info.status = input.status as GroupStatus; return changed("그룹 상태를 변경했습니다.", false);
   }
   if (path === "master" && method === "PATCH") {
     if (!leader) return fail("그룹장 권한이 필요합니다.", 403);

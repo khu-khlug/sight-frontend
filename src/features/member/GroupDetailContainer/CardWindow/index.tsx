@@ -63,11 +63,14 @@ type Props = {
   onOpenEditRecord: (recordId: string) => void;
   // 기록 본문의 카드 링크(#카드id)로 같은 그룹의 카드 창을 연다.
   onOpenCard: (cardId: string) => void;
+  // 이 기록 위치로 스크롤해야 할 때만 값이 있다. 스크롤했거나 찾지 못하면 onRecordFocused로 알린다.
+  focusRecordId: string | null;
+  onRecordFocused: () => void;
 };
 
 type EditingField = "title" | "description" | null;
 
-export default function CardWindow({ binding, groupId, card, listTitle, isPortfolioPublished, onUpdateLabels, onUpdateAssignee, onUpdateCoverImage, onTogglePortfolio, onToggleDisabled, onDeleteCard, onDeleteRecord, onRestoreRecord, onOpenNewRecord, onOpenEditRecord, onOpenCard }: Props) {
+export default function CardWindow({ binding, groupId, card, listTitle, isPortfolioPublished, onUpdateLabels, onUpdateAssignee, onUpdateCoverImage, onTogglePortfolio, onToggleDisabled, onDeleteCard, onDeleteRecord, onRestoreRecord, onOpenNewRecord, onOpenEditRecord, onOpenCard, focusRecordId, onRecordFocused }: Props) {
   const { role, minimized, isClosing, canGoDual, onToggleMinimize, onClose, onSwitchSide, onExpand, onSendToSide, registerCloseGuard } = binding;
   const isDualLayer = role !== "single";
   const [isTitleStuck, setIsTitleStuck] = useState(false);
@@ -101,6 +104,34 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     },
   });
   const records = useMemo(() => recordsQuery.data?.pages.flatMap((page) => page.records) ?? [], [recordsQuery.data]);
+  // 대상 기록이 아직 불러오지 않은 페이지에 있으면 찾을 때까지 다음 페이지를 이어서 불러온다.
+  // 찾으면 스크롤한 뒤 잠깐 강조 표시한다(강조 애니메이션이 끝나면 RecordItem이 알려 해제).
+  const [highlightedRecordId, setHighlightedRecordId] = useState<string | null>(null);
+  const { hasNextPage, isFetching, isFetchingNextPage, isFetchNextPageError, isError, fetchNextPage } = recordsQuery;
+  useEffect(() => {
+    if (!focusRecordId) return;
+    // 내려간 창이면 먼저 펼친다. 펼쳐져 minimized가 바뀌면 이 effect가 다시 돌며 스크롤한다.
+    if (minimized) {
+      onToggleMinimize();
+      return;
+    }
+    if (records.some((record) => record.id === focusRecordId)) {
+      contentRef.current
+        ?.querySelector<HTMLElement>(`[data-record-id="${CSS.escape(focusRecordId)}"]`)
+        ?.scrollIntoView({ block: "start", behavior: "smooth" });
+      setHighlightedRecordId(focusRecordId);
+      onRecordFocused();
+      return;
+    }
+    if (isFetching) return;
+    if (hasNextPage && !isFetchNextPageError) {
+      void fetchNextPage();
+      return;
+    }
+    if (isError || isFetchNextPageError) window.alert("기록을 불러오지 못했습니다.");
+    else window.alert("기록을 찾을 수 없습니다.");
+    onRecordFocused();
+  }, [focusRecordId, minimized, onToggleMinimize, records, hasNextPage, isFetching, isFetchingNextPage, isFetchNextPageError, isError, fetchNextPage, onRecordFocused]);
   const handleToggleRecordDeleted = (recordId: string) => {
     const record = records.find((item) => item.id === recordId);
     if (!record) return;
@@ -497,6 +528,8 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 onToggleDeleted={handleToggleRecordDeleted}
                 onEdit={() => onOpenEditRecord(record.id)}
                 onOpenCard={onOpenCard}
+                highlighted={record.id === highlightedRecordId}
+                onHighlightEnd={() => setHighlightedRecordId(null)}
               />
             ))
           )}

@@ -1,9 +1,9 @@
 import ContentSkeleton from "../../../../../components/ContentSkeleton";
 import { GroupSearchApi } from "../../../../../api/public/group/GroupSearchApi";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Input, RadioGroup, ScrollArea, Text } from "@chakra-ui/react";
-import { X } from "lucide-react";
-import { useState } from "react";
+import { Box, Button, IconButton, Input, RadioGroup, ScrollArea, Text } from "@chakra-ui/react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import AppTooltip from "../../../../../components/AppTooltip";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
@@ -23,6 +23,7 @@ type Props = {
 };
 
 const SEARCH_TARGETS = ["title", "record", "author"] as const;
+const PAGE_BUTTON_COUNT = 5;
 type SearchTarget = (typeof SEARCH_TARGETS)[number];
 const SEARCH_TARGET_LABEL: Record<SearchTarget, string> = {
   title: "카드명",
@@ -42,16 +43,50 @@ const SEARCH_TARGET_LABEL: Record<SearchTarget, string> = {
 export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }: Props) {
   const [searchTarget, setSearchTarget] = useState<SearchTarget>("title");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [firstPage, setFirstPage] = useState(1);
+  const [knownTotalPages, setKnownTotalPages] = useState(0);
+  const resultsViewportRef = useRef<HTMLDivElement>(null);
 
   const normalizedQuery = query.trim().toLowerCase();
   const searchQuery = useQuery({
-    queryKey: ["group-detail", groupId, "search", searchTarget, normalizedQuery],
-    queryFn: () => searchTarget === "record"
-      ? GroupSearchApi.searchGroupRecords(groupId, { keyword: normalizedQuery })
-      : GroupSearchApi.searchGroupCards(groupId, { keyword: normalizedQuery, searchTarget }),
+    queryKey: ["group-detail", groupId, "search", searchTarget, normalizedQuery, page],
+    queryFn: ({ signal }) => {
+      const request = { keyword: normalizedQuery, page };
+      return searchTarget === "record"
+        ? GroupSearchApi.searchGroupRecords(groupId, request, signal)
+        : GroupSearchApi.searchGroupCards(groupId, { ...request, searchTarget }, signal);
+    },
     enabled: Boolean(normalizedQuery),
   });
-  const results = searchQuery.data ?? [];
+  const results = searchQuery.data?.results ?? [];
+  // 다음 페이지를 불러오는 동안에도 페이지 버튼이 유지되도록 마지막으로 받은 페이지 수를 쓴다.
+  const resultPages = searchQuery.data?.totalPages ?? knownTotalPages;
+  const totalPages = Math.max(1, resultPages);
+  const lastFirstPage = Math.max(1, totalPages - PAGE_BUTTON_COUNT + 1);
+  const visibleFirstPage = Math.min(firstPage, lastFirstPage);
+  const pages = Array.from(
+    { length: Math.min(PAGE_BUTTON_COUNT, totalPages) },
+    (_, index) => visibleFirstPage + index,
+  );
+
+  useEffect(() => {
+    if (!searchQuery.data) return;
+    setKnownTotalPages(searchQuery.data.totalPages);
+    const updatedTotalPages = Math.max(1, searchQuery.data.totalPages);
+    setPage((current) => Math.min(current, updatedTotalPages));
+    setFirstPage((current) => Math.min(current, Math.max(1, updatedTotalPages - PAGE_BUTTON_COUNT + 1)));
+  }, [searchQuery.data]);
+
+  useEffect(() => {
+    resultsViewportRef.current?.scrollTo({ top: 0 });
+  }, [page, normalizedQuery, searchTarget]);
+
+  function resetPagination() {
+    setPage(1);
+    setFirstPage(1);
+    setKnownTotalPages(0);
+  }
 
   return (
     <Box className={styles.container}>
@@ -106,7 +141,10 @@ export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }:
         </Text>
         <RadioGroup.Root
           value={searchTarget}
-          onValueChange={(details) => setSearchTarget((details.value as SearchTarget) ?? "title")}
+          onValueChange={(details) => {
+            setSearchTarget((details.value as SearchTarget) ?? "title");
+            resetPagination();
+          }}
           mb={4}
         >
           <Box display="flex" gap="8px">
@@ -123,7 +161,11 @@ export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }:
           size="sm"
           placeholder={`${SEARCH_TARGET_LABEL[searchTarget]}으로 검색`}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            const nextQuery = e.target.value;
+            setQuery(nextQuery);
+            if (nextQuery.trim().toLowerCase() !== normalizedQuery) resetPagination();
+          }}
           mb={2}
         />
       </Box>
@@ -132,13 +174,18 @@ export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }:
         검색결과
       </Text>
       <ScrollArea.Root className={styles.resultsArea} size="sm" variant="hover">
-        <ScrollArea.Viewport h="100%" style={{ overflowX: "hidden" }}>
+        <ScrollArea.Viewport ref={resultsViewportRef} h="100%" style={{ overflowX: "hidden" }}>
           <ScrollArea.Content w="100%" className={styles.results}>
             {!normalizedQuery ? (
               <Text fontSize="sm" color="gray.400">
                 검색어를 입력해주세요.
               </Text>
-            ) : searchQuery.isPending ? (<ContentSkeleton />) : searchQuery.isError ? (<Text role="alert">검색하지 못했습니다.</Text>) : results.length === 0 ? (
+            ) : searchQuery.isPending ? (<ContentSkeleton />) : searchQuery.isError ? (
+              <Box>
+                <Text role="alert">검색하지 못했습니다.</Text>
+                <Button size="xs" mt={2} onClick={() => void searchQuery.refetch()}>다시 시도</Button>
+              </Box>
+            ) : results.length === 0 ? (
               <Text fontSize="sm" color="gray.400">
                 결과가 없습니다.
               </Text>
@@ -163,6 +210,41 @@ export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }:
         </ScrollArea.Viewport>
         <HoverScrollbar />
       </ScrollArea.Root>
+      <Box as="nav" aria-label="검색 결과 페이지" className={styles.pagination}>
+        {totalPages > PAGE_BUTTON_COUNT && <IconButton
+          aria-label="이전 페이지 번호 보기"
+          size="xs"
+          variant="ghost"
+          disabled={!normalizedQuery || visibleFirstPage === 1}
+          onClick={() => setFirstPage(visibleFirstPage - 1)}
+        >
+          <ChevronLeft size={16} />
+        </IconButton>}
+        {pages.map((number) => (
+          <Button
+            key={number}
+            size="xs"
+            minW="28px"
+            px={1}
+            variant={number === page ? "solid" : "ghost"}
+            aria-label={`${number}페이지`}
+            aria-current={number === page ? "page" : undefined}
+            disabled={!normalizedQuery || resultPages === 0}
+            onClick={() => setPage(number)}
+          >
+            {number}
+          </Button>
+        ))}
+        {totalPages > PAGE_BUTTON_COUNT && <IconButton
+          aria-label="다음 페이지 번호 보기"
+          size="xs"
+          variant="ghost"
+          disabled={!normalizedQuery || visibleFirstPage >= lastFirstPage}
+          onClick={() => setFirstPage(visibleFirstPage + 1)}
+        >
+          <ChevronRight size={16} />
+        </IconButton>}
+      </Box>
     </Box>
   );
 }

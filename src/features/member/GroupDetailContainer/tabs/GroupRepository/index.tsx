@@ -11,7 +11,6 @@ import AppTooltip from "../../../../../components/AppTooltip";
 import SimpleIcon from "../../../../../components/SimpleIcon";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import { useRepoBranches } from "../../../../../hooks/repo/useRepoBranches";
-import { useRepoBranchSource } from "../../../../../hooks/repo/useRepoBranchSource";
 import { useRepoCommits } from "../../../../../hooks/repo/useRepoCommits";
 import { useRepoTree } from "../../../../../hooks/repo/useRepoTree";
 import type { FileWindowContent } from "../../FileWindow/types";
@@ -107,25 +106,16 @@ export default function GroupRepository({
       ? revision.commitSha
       : activeBranch.headSha
     : null;
-  const sourceQuery = useRepoBranchSource(activeUrl, activeBranch ?? null, branches);
-  const sourceLookupPending = Boolean(activeBranch && !activeBranch.isDefault && branches.length > 1 && sourceQuery.isPending);
-  const baseBranch = sourceLookupPending
-    ? null
-    : activeBranch?.isDefault
-      ? defaultBranch
-      : sourceQuery.data ?? defaultBranch;
-  const commitsQuery = useRepoCommits(activeUrl, activeBranch ?? null, baseBranch ?? null);
+  const commitsQuery = useRepoCommits(activeUrl, activeBranch ?? null);
   const commits = useMemo(
     () =>
-      (commitsQuery.data?.pages.flatMap((page) => page.items) ?? []).sort(
-        (a, b) => a.isForkPoint ? 1 : b.isForkPoint ? -1 : Date.parse(b.committedAt) - Date.parse(a.committedAt),
-      ),
+      commitsQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [commitsQuery.data],
   );
   const commitsBySha = useMemo(() => new Map(commits.map((commit) => [commit.sha, commit])), [commits]);
   const selectedCommit = activeCommitSha ? commitsBySha.get(activeCommitSha) : undefined;
   const treeQuery = useRepoTree(activeUrl, activeCommitSha);
-  const isFetching = branchesQuery.isFetching || sourceQuery.isFetching || commitsQuery.isFetching || treeQuery.isFetching;
+  const isFetching = branchesQuery.isFetching || commitsQuery.isFetching || treeQuery.isFetching;
 
   async function refreshRepository() {
     if (!activeUrl || isRefreshing || isFetching) return;
@@ -136,7 +126,7 @@ export default function GroupRepository({
       await queryClient.invalidateQueries({
         predicate: (query) =>
           query.queryKey[1] === activeUrl &&
-          ["repo-branches", "repo-branch-source", "repo-commits", "repo-tree"].includes(String(query.queryKey[0])),
+          ["repo-branches", "repo-commits", "repo-tree"].includes(String(query.queryKey[0])),
         refetchType: "active",
       }, { throwOnError: true });
     } catch {
@@ -249,17 +239,7 @@ export default function GroupRepository({
                   menuClassName={styles.commitMenu}
                   itemClassName={styles.commitOption}
                   scrollable
-                  disabled={sourceLookupPending || commitsQuery.isLoading || (commitsQuery.isError && commits.length === 0)}
-                  onMenuScroll={(event) => {
-                    const menu = event.currentTarget;
-                    if (
-                      menu.scrollTop + menu.clientHeight >= menu.scrollHeight - 32 &&
-                      commitsQuery.hasNextPage &&
-                      !commitsQuery.isFetchingNextPage
-                    ) {
-                      void commitsQuery.fetchNextPage();
-                    }
-                  }}
+                  disabled={commitsQuery.isLoading || (commitsQuery.isError && commits.length === 0)}
                   renderValue={
                     <AppTooltip content={commitLabel(selectedCommit, activeCommitSha ?? "")}>
                       <span className={styles.tooltipTarget}>
@@ -276,21 +256,24 @@ export default function GroupRepository({
                   )}
                   footer={
                     <>
-                      {commitsQuery.isFetchingNextPage && (
-                        <ContentSkeleton />
-                      )}
                       {commitsQuery.isFetchNextPageError && (
-                        <Text fontSize="xs" px={2} py={1} color="gray.500">이전 커밋을 불러올 수 없습니다.</Text>
+                        <Text role="alert" fontSize="xs" px={2} py={1} color="gray.500">이전 커밋을 불러올 수 없습니다.</Text>
                       )}
-                      <div className={styles.commitSource} role="note">
-                        {activeBranch.isDefault
-                          ? "기본 브랜치"
-                          : sourceLookupPending
-                            ? "분기 기준 확인 중..."
-                            : sourceQuery.data
-                              ? `${sourceQuery.data.name}에서 분기됨`
-                              : "분기 기준 확인 불가"}
-                      </div>
+                      {(commitsQuery.hasNextPage || commitsQuery.isFetchNextPageError) && (
+                        <Button
+                          type="button"
+                          size="xs"
+                          variant="ghost"
+                          w="100%"
+                          disabled={commitsQuery.isFetching}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (!commitsQuery.isFetching) void commitsQuery.fetchNextPage();
+                          }}
+                        >
+                          {commitsQuery.isFetchingNextPage ? "불러오는 중…" : commitsQuery.isFetchNextPageError ? "다시 시도" : "더보기"}
+                        </Button>
+                      )}
                     </>
                   }
                 />

@@ -221,23 +221,55 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
     setShowStatus((value) => !value);
   };
 
-  // 진행 → 종료(성공/실패)는 그룹장 또는 운영진이 변경할 수 있다(진행 → 중단과 달리 운영진
-  // 전용이 아니다) — tasks/group/GROUP_BUSINESS_RULES.md §3 상태 전이 규칙. 그래서 "그룹 상태
-  // 변경"(그룹장용)과 "운영진 전용" 두 패널에 같은 버튼이 중복해서 있다.
+  const canEndGroup = info.status === GroupStatus.PROGRESS || info.status === GroupStatus.STOP;
+  const canProgressGroup = info.status === GroupStatus.STOP || info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL;
+  const closeStatusPanels = () => { setShowStatus(false); setShowManagerSettings(false); };
+
   const endGroup = (status: typeof GroupStatus.SUCCESS | typeof GroupStatus.FAIL) => {
     if (!isLeader && !isManager) {
       window.alert("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.");
       return;
     }
-    if (action.isPending || info.status !== GroupStatus.PROGRESS) return;
+    if (action.isPending || !canEndGroup) return;
     const result = status === GroupStatus.SUCCESS ? "성공" : "실패";
     if (!window.confirm(`"${info.title}" 그룹의 활동을 ${result}으로 종료하시겠습니까?`)) return;
-    action.mutate(() => GroupSettingsApi.updateGroupState(info.id, { status }), {
-      // 그룹장용/운영진용 두 패널 어느 쪽에서 눌렀는지 모르니 둘 다 접는다 — 이미 닫혀 있던
-      // 쪽은 아무 효과 없다.
-      onSuccess: () => { setShowStatus(false); setShowManagerSettings(false); },
+    action.mutate(() => GroupSettingsApi.endGroup(info.id, { status }), {
+      onSuccess: closeStatusPanels,
     });
   };
+
+  const progressGroup = () => {
+    if (!isLeader && !isManager) {
+      window.alert("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.");
+      return;
+    }
+    if (action.isPending || !canProgressGroup) return;
+    const recoveredPoints = info.status === GroupStatus.SUCCESS ? 50 : info.status === GroupStatus.FAIL ? 30 : 0;
+    const pointNotice = recoveredPoints ? `\n현재 멤버 전체에게서 종료 시 지급한 경험치 ${recoveredPoints}점을 회수합니다.` : "";
+    if (!window.confirm(`"${info.title}" 그룹을 진행중으로 변경하시겠습니까?${pointNotice}`)) return;
+    action.mutate(() => GroupSettingsApi.progressGroup(info.id), { onSuccess: closeStatusPanels });
+  };
+
+  const stopGroup = () => {
+    if (!isManager) {
+      window.alert("운영진만 그룹을 중단할 수 있습니다.");
+      return;
+    }
+    if (action.isPending || info.status !== GroupStatus.PROGRESS) return;
+    if (!window.confirm(`"${info.title}" 그룹의 활동을 중단하시겠습니까?`)) return;
+    action.mutate(() => GroupSettingsApi.stopGroup(info.id), { onSuccess: closeStatusPanels });
+  };
+
+  const renderStatusActions = (isOpen: boolean, managerActions = false) => (
+    <>
+      {canEndGroup && <>
+        <button type="button" className={`${styles.statusAction} ${styles.successAction}`} disabled={!isOpen || action.isPending} onClick={() => endGroup(GroupStatus.SUCCESS)}>성공으로 활동 종료</button>
+        <button type="button" className={`${styles.statusAction} ${styles.failAction}`} disabled={!isOpen || action.isPending} onClick={() => endGroup(GroupStatus.FAIL)}>실패로 활동 종료</button>
+      </>}
+      {canProgressGroup && <button type="button" className={`${styles.statusAction} ${styles.progressAction}`} disabled={!isOpen || action.isPending} onClick={progressGroup}>진행중으로 변경</button>}
+      {managerActions && info.status === GroupStatus.PROGRESS && <button type="button" className={`${styles.statusAction} ${styles.failAction}`} disabled={!isOpen || action.isPending} onClick={stopGroup}>그룹 중단</button>}
+    </>
+  );
 
   const leaveGroup = () => {
     if (action.isPending) return;
@@ -252,9 +284,7 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
         <button type="button" className={styles.menuButton} onClick={toggleStatusActions} aria-expanded={isLeader && showStatus}><RefreshCw size={20} aria-hidden="true" />그룹 상태 변경</button>
         {isLeader && <div className={styles.statusActions} data-open={showStatus} aria-hidden={!showStatus}>
           <div className={styles.statusActionContent}>
-            {info.status !== GroupStatus.PROGRESS && <p className={styles.statusHint}>진행 중인 그룹만 활동을 종료할 수 있습니다.</p>}
-            <button type="button" className={`${styles.statusAction} ${styles.successAction}`} disabled={!showStatus || action.isPending || info.status !== GroupStatus.PROGRESS} onClick={() => endGroup(GroupStatus.SUCCESS)}>성공으로 활동 종료</button>
-            <button type="button" className={`${styles.statusAction} ${styles.failAction}`} disabled={!showStatus || action.isPending || info.status !== GroupStatus.PROGRESS} onClick={() => endGroup(GroupStatus.FAIL)}>실패로 활동 종료</button>
+            {renderStatusActions(showStatus)}
           </div>
         </div>}
         <button type="button" className={styles.menuButton} onClick={handleTogglePersonalSettings} aria-expanded={showPersonalSettings}><Settings2 size={20} aria-hidden="true" />개인 설정</button>
@@ -280,11 +310,7 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
           <button type="button" className={styles.menuButton} onClick={() => setShowManagerSettings((value) => !value)} aria-expanded={showManagerSettings}><ShieldAlert size={20} aria-hidden="true" />운영진 전용</button>
           <div className={styles.statusActions} data-open={showManagerSettings} aria-hidden={!showManagerSettings}>
             <div className={styles.statusActionContent}>
-              {/* 진행 → 종료(성공/실패)는 그룹장용 패널과 동일하게 운영진도 가능 — 버튼을 그대로 복사했다. */}
-              {info.status !== GroupStatus.PROGRESS && <p className={styles.statusHint}>진행 중인 그룹만 활동을 종료할 수 있습니다.</p>}
-              <button type="button" className={`${styles.statusAction} ${styles.successAction}`} disabled={!showManagerSettings || action.isPending || info.status !== GroupStatus.PROGRESS} onClick={() => endGroup(GroupStatus.SUCCESS)}>성공으로 활동 종료</button>
-              <button type="button" className={`${styles.statusAction} ${styles.failAction}`} disabled={!showManagerSettings || action.isPending || info.status !== GroupStatus.PROGRESS} onClick={() => endGroup(GroupStatus.FAIL)}>실패로 활동 종료</button>
-              <button type="button" className={`${styles.statusAction} ${styles.failAction}`}>그룹 정지</button>
+              {renderStatusActions(showManagerSettings, true)}
             </div>
           </div>
         </>}

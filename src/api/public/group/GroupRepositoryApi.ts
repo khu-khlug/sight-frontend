@@ -8,8 +8,6 @@ export type RepoBranch = { name: string; headSha: string; isDefault: boolean };
 export type RepoCommit = {
   sha: string;
   message: string;
-  committedAt: string;
-  isForkPoint?: boolean;
 };
 export type RepoCommitPage = { items: RepoCommit[]; nextPage: number | null };
 
@@ -19,23 +17,14 @@ const getBranches = async (url: string): Promise<RepoBranch[]> => {
   return response.data;
 };
 
-/** 서버가 판별한 분기 기준 브랜치를 조회한다. */
-const getBranchSource = async (url: string, branch: RepoBranch): Promise<RepoBranch | null> => {
-  const response = await apiV2Client.get<RepoBranch | null>("/repositories/branch-source", {
-    params: { url, branch: branch.name },
-  });
-  return response.data;
-};
-
-/** 서버의 커밋 페이지와 분기점 표시를 그대로 받는다. page는 0부터 시작한다. */
+/** 브랜치의 전체 이력을 30개씩 받는다. page는 0부터 시작한다. */
 const getCommits = async (
   url: string,
   branch: RepoBranch,
-  baseBranch: RepoBranch,
   page: number,
 ): Promise<RepoCommitPage> => {
   const response = await apiV2Client.get<RepoCommitPage>("/repositories/commits", {
-    params: { url, branch: branch.name, baseBranch: baseBranch.name, page },
+    params: { url, branch: branch.name, page },
   });
   return response.data;
 };
@@ -53,4 +42,4 @@ const refreshRepository = async (url: string): Promise<void> => {
   await apiV2Client.post("/repositories/refresh", { url });
 };
 
-export const GroupRepositoryApi = { getBranches, getBranchSource, getCommits, getFileTree, refreshRepository };
+export const GroupRepositoryApi = { getBranches, getCommits, getFileTree, refreshRepository };

@@ -4,7 +4,8 @@ import type {
   RepoTreeEntry,
 } from "../../src/api/public/group/GroupRepositoryApi";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 30;
+const COMMIT_COUNT = 74;
 const snapshots = new Map<string, number>();
 
 function sha(index: number, branch: string): string {
@@ -12,17 +13,16 @@ function sha(index: number, branch: string): string {
 }
 
 function commits(branch: string, revision: number): RepoCommit[] {
-  return Array.from({ length: 24 + revision }, (_, index) => ({
-    sha: sha(24 + revision - index, branch),
-    message: index === 0 ? "그룹 화면 개선" : `저장소 변경 ${24 + revision - index}`,
-    committedAt: new Date(Date.UTC(2026, 8, 28 - index, 9)).toISOString(),
+  return Array.from({ length: COMMIT_COUNT + revision }, (_, index) => ({
+    sha: sha(COMMIT_COUNT + revision - index, branch),
+    message: index === 0 ? "그룹 화면 개선" : `저장소 변경 ${COMMIT_COUNT + revision - index}`,
   }));
 }
 
 function branches(revision: number): RepoBranch[] {
   return [
-    { name: "main", headSha: sha(24 + revision, "main"), isDefault: true },
-    { name: "feat/group-detail", headSha: sha(24 + revision, "feat/group-detail"), isDefault: false },
+    { name: "main", headSha: sha(COMMIT_COUNT + revision, "main"), isDefault: true },
+    { name: "feat/group-detail", headSha: sha(COMMIT_COUNT + revision, "feat/group-detail"), isDefault: false },
   ];
 }
 
@@ -51,12 +51,6 @@ export function handleRepositoryRequest(
   if (url.pathname === "/repositories/branches") {
     return { status: 200, body: repositoryBranches };
   }
-  if (url.pathname === "/repositories/branch-source") {
-    if (!repositoryBranches.some((entry) => entry.name === branch)) {
-      return { status: 404, body: { message: "브랜치를 찾을 수 없습니다." } };
-    }
-    return { status: 200, body: branch === "main" ? null : repositoryBranches[0] };
-  }
   if (url.pathname === "/repositories/commits") {
     const page = Number(url.searchParams.get("page") ?? 0);
     if (!Number.isInteger(page) || page < 0) {
@@ -66,9 +60,6 @@ export function handleRepositoryRequest(
       return { status: 404, body: { message: "브랜치를 찾을 수 없습니다." } };
     }
     const items = commits(branch, revision);
-    if (branch !== "main") {
-      items.push({ ...commits("main", revision)[12], isForkPoint: true });
-    }
     const start = page * PAGE_SIZE;
     return {
       status: 200,

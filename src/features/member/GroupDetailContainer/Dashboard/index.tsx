@@ -45,6 +45,7 @@ type Props = {
   enabledFilters: Set<LabelFilterKey>;
   onToggleFilter: (key: LabelFilterKey) => void;
   onOpenFile: (content: FileWindowContent) => void;
+  onOpenRecord: (cardId: string, recordId: string) => void;
   // GroupSettings(개인설정 탭)에 그대로 전달한다 — 실제 싱글/듀얼 강제는 WindowLayer가 하고,
   // 여기서는 그 설정의 공통 조상으로서 체크박스 상태만 전달한다.
   dualWindowEnabled: boolean;
@@ -69,6 +70,7 @@ export default function Dashboard({
   enabledFilters,
   onToggleFilter,
   onOpenFile,
+  onOpenRecord,
   dualWindowEnabled,
   onDualWindowEnabledChange,
 }: Props) {
@@ -229,7 +231,7 @@ export default function Dashboard({
                   />
                 ) : activeId === "archive" ? (
                   // 아카이브 전환 버튼은 고정하고, 두 목록만 각자 스크롤한다.
-                  <GroupArchive groupId={groupInfo.id} lists={lists} />
+                  <GroupArchive groupId={groupInfo.id} lists={lists} onOpenRecord={onOpenRecord} />
                 ) : activeId === "exposure" ? (
                   // 활동공개 탭도 마찬가지 — 포트폴리오/활동보고 폼은 고정, 이전 활동보고
                   // 내역만 스크롤돼야 해서 공용 ScrollArea 대신 .tabArea 높이를 그대로 넘긴다.

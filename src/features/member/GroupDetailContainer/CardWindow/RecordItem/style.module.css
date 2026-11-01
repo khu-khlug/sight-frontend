@@ -1,8 +1,28 @@
 .record {
+  /* 기록 위치로 스크롤할 때 위에 붙는 카드 제목 줄에 가리지 않게 한다(--heading-scroll-margin은 CardWindow의 .cardContent가 정의). */
+  scroll-margin-top: var(--heading-scroll-margin);
   padding: 4px 10px 10px 10px;
   border: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
   border-radius: 8px;
   box-shadow: 0px 0px 10px 1px var(--chakra-colors-blackAlpha-50);
+}
+
+/*
+ * 다른 곳에서 이 기록으로 이동해 왔을 때의 강조 — 두 번 깜빡인다. 부드러운 스크롤이 도착한 뒤에
+ * 보이도록 잠깐 기다렸다 시작한다. 한 주기 동안 원래 모습 → 강조(절반 지점) → 원래 모습으로 서서히 바뀐다.
+ */
+.recordHighlighted {
+  --record-highlight-delay: 300ms;
+  --record-highlight-blink: 600ms;
+  --record-highlight-count: 2;
+  animation: recordHighlight var(--record-highlight-blink) ease-in-out var(--record-highlight-delay) var(--record-highlight-count);
+}
+
+/* 기존 1px 테두리의 색만 바꾼다 — 호버(brand-200)보다 한 단계 진한 정도. */
+@keyframes recordHighlight {
+  50% {
+    border-color: var(--chakra-colors-brand-300);
+  }
 }
 
 .record:hover {

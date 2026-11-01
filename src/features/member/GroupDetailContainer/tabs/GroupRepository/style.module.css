@@ -102,17 +102,6 @@
   font-weight: 600;
 }
 
-.commitSource {
-  overflow: hidden;
-  padding: 8px 10px;
-  border-top: 1px solid var(--chakra-colors-gray-200);
-  color: var(--chakra-colors-gray-500);
-  font-size: var(--chakra-font-sizes-xs);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  cursor: default;
-}
-
 .tooltipTarget {
   display: block;
   width: 100%;

@@ -27,6 +27,9 @@ type Props = {
   onEdit?: () => void;
   // 본문의 카드 링크(#카드id)를 누르면 그 카드 창을 연다.
   onOpenCard?: (cardId: string) => void;
+  // 다른 곳(보관한 기록의 "더보기" 등)에서 이 기록으로 이동해 왔을 때 잠깐 강조한다.
+  highlighted?: boolean;
+  onHighlightEnd?: () => void;
 };
 
 // .metaLine의 gap(14px)/.metaIconGroup의 gap(2px)과 같은 값 — JS로 "들어갈 공간이 있는지"
@@ -34,7 +37,7 @@ type Props = {
 const META_LINE_GAP = 14;
 const ICON_GROUP_GAP = 2;
 
-export default function RecordItem({ groupId, cardId, cardTitle, record, disabled = false, onToggleDeleted, onEdit, onOpenCard }: Props) {
+export default function RecordItem({ groupId, cardId, cardTitle, record, disabled = false, onToggleDeleted, onEdit, onOpenCard, highlighted = false, onHighlightEnd }: Props) {
   const queryClient = useQueryClient();
   const savedRecordsQuery = useQuery(groupSavedRecords.queryOptions(groupId));
   const isSaved = savedRecordsQuery.data?.some((saved) => saved.id === record.id) ?? false;
@@ -133,7 +136,14 @@ export default function RecordItem({ groupId, cardId, cardTitle, record, disable
     </>
   );
   return (
-    <SkeletonWrapper className={cn(styles.record, record.deleted ? styles.recordDeleted : undefined, isCompact ? styles.recordCompactHeader : undefined)}>
+    <SkeletonWrapper
+      data-record-id={record.id}
+      className={cn(styles.record, record.deleted ? styles.recordDeleted : undefined, isCompact ? styles.recordCompactHeader : undefined, highlighted ? styles.recordHighlighted : undefined)}
+      onAnimationEnd={(event) => {
+        // 자식 요소의 애니메이션 종료도 버블링되므로 이 요소 자신의 강조 애니메이션만 본다.
+        if (highlighted && event.target === event.currentTarget) onHighlightEnd?.();
+      }}
+    >
       <Box className={styles.metaLine} ref={metaLineRef} style={{ position: "relative" }}>
         {/* position:absolute로 .metaLine의 실제 flex 레이아웃에서 완전히 빠지고, top/left:0 +
             부모의 position:relative로 바로 그 자리에만 국한된다 — 그냥 flex 흐름에 두면 안

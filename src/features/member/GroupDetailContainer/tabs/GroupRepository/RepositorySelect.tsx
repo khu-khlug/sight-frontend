@@ -1,6 +1,6 @@
 import { createListCollection, Portal, ScrollArea, Select } from "@chakra-ui/react";
 import { ChevronDown } from "lucide-react";
-import type { ReactNode, UIEventHandler } from "react";
+import type { ReactNode } from "react";
 
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import styles from "./style.module.css";
@@ -18,7 +18,6 @@ type Props = {
   menuClassName?: string;
   itemClassName?: string;
   scrollable?: boolean;
-  onMenuScroll?: UIEventHandler<HTMLDivElement>;
   footer?: ReactNode;
   disabled?: boolean;
   fullWidth?: boolean;
@@ -28,7 +27,7 @@ type Props = {
 export default function RepositorySelect({
   items, value, onChange, renderValue, renderItem, triggerClassName,
   valueClassName, menuClassName, itemClassName = styles.selectedOption,
-  scrollable = false, onMenuScroll, footer, disabled, fullWidth = false,
+  scrollable = false, footer, disabled, fullWidth = false,
 }: Props) {
   const collection = createListCollection({ items });
   const options = (
@@ -64,7 +63,7 @@ export default function RepositorySelect({
           <Select.Content className={menuClassName}>
             {scrollable ? (
               <ScrollArea.Root maxH="280px" size="sm" variant="hover">
-                <ScrollArea.Viewport maxH="280px" style={{ overflowX: "hidden" }} onScroll={onMenuScroll}>
+                <ScrollArea.Viewport maxH="280px" style={{ overflowX: "hidden" }}>
                   <ScrollArea.Content w="100%" style={{ minWidth: 0 }}>{options}</ScrollArea.Content>
                 </ScrollArea.Viewport>
                 <HoverScrollbar />

@@ -26,6 +26,8 @@ type ListOption = { id: string; title: string };
 type Props = {
   groupId: number;
   lists: ListOption[];
+  // 보관한 기록의 "더보기" — 기록이 속한 카드 창을 열고 그 기록 위치로 스크롤한다.
+  onOpenRecord: (cardId: string, recordId: string) => void;
 };
 
 type ArchiveView = "cards" | "records";
@@ -37,7 +39,7 @@ const sortByNewest = (cards: ArchivedCard[]) =>
  * 삭제된 카드와 개인이 보관한 기록을 전환해 보여준다. 삭제된 카드를 선택하면 그 밑에
  * 복구 폼(리스트 선택 + 복구하기 버튼)이 펼쳐진다.
  */
-export default function GroupArchive({ groupId, lists }: Props) {
+export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
   const { pageState } = useGroupDetailPageState();
   const queryClient = useQueryClient();
   const cardsQuery = useQuery({ queryKey: ["group-detail", groupId, "archived-cards"], queryFn: () => GroupArchiveApi.listArchivedGroupCards(groupId) });
@@ -212,9 +214,7 @@ export default function GroupArchive({ groupId, lists }: Props) {
                   <button
                     type="button"
                     className={styles.moreButton}
-                    onClick={() => {
-                      // TODO: 기록 상세 팝업이 구현되면 record.id를 전달해 팝업을 여는 이벤트를 연결한다.
-                    }}
+                    onClick={() => onOpenRecord(record.cardId, record.id)}
                   >
                     더보기
                   </button>
