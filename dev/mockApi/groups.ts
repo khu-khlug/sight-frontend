@@ -3,7 +3,7 @@ import { GroupStatus } from "../../src/constant";
 import type { OpenSeminarCohortDto } from "../../src/api/public/group/GroupExposureApi";
 import { getGroupRepositoryUrlError, GROUP_REPOSITORY_SEPARATOR, MAX_GROUP_REPOSITORIES } from "../../src/util/groupRepositoryUrls";
 import { getGroupDelimitedValuesError } from "../../src/util/groupDelimitedValues";
-import { createGroupFixture, type MockCard } from "./groupFixtures";
+import { createGroupFixture, MOCK_UPLOADED_RECORD_FILES, nextMockRecordId, type MockCard, type MockRecordFile } from "./groupFixtures";
 
 type Result = { status: number; body?: unknown };
 type Input = Record<string, unknown>;
@@ -11,6 +11,9 @@ const state = createGroupFixture();
 let openCohort: OpenSeminarCohortDto | null = state.openSeminarCohort;
 // inline: 기록 본문의 <img>/<audio>가 바로 재생할 수 있게 다운로드(attachment) 대신 원래 형식으로 내려준다.
 export const uploads = new Map<string, { fileName: string; contentType: string; data?: Buffer; used: boolean; inline?: boolean }>();
+for (const file of MOCK_UPLOADED_RECORD_FILES) {
+  uploads.set(file.fileId, { fileName: file.name, contentType: file.contentType, data: Buffer.from(file.data), used: true, inline: true });
+}
 const ok = (body?: unknown): Result => ({ status: body === undefined ? 204 : 200, body });
 const fail = (message: string, status = 400): Result => ({ status, body: { message } });
 const id = () => randomUUID();
@@ -34,13 +37,61 @@ function changed(message: string, countsAsActivity = true) {
   state.activityLogs.unshift({ id: id(), memberName: "테스트 회원", message, createdAt: now() });
   return ok();
 }
+// 화면에 내려주는 카드 요약·기록 형태. 목업 내부 저장 형태(portfolio·disabled·deleted)를 API 필드명으로 바꾼다.
+function cardSummary(card: MockCard) {
+  return { id: card.id, title: card.title, authorName: card.authorName, assigneeName: card.assigneeName,
+    assigneeUserId: card.assigneeUserId, coverImageUrl: card.coverImageUrl, labels: card.labels,
+    isDisabled: card.disabled, isInPortfolio: card.portfolio, recordCount: card.records.filter((r) => !r.deleted).length,
+    hasDescription: !!card.description, createdAt: card.createdAt };
+}
+function recordView(record: MockCard["records"][number]) {
+  const { deleted, authorUserId: _authorUserId, ...rest } = record;
+  return { ...rest, isDeleted: deleted, isInPortfolio: record.isInPortfolio ?? true,
+    isInUserArchive: state.savedRecords.some((saved) => saved.id === record.id), files: (record.files ?? []).map(recordFileView) };
+}
+// 요청의 files 배열을 검사해 새 파일은 업로드 기록을 만들고 업로드 주소를 돌려준다. 잘못된 항목이 있으면 null이다.
+export function registerRecordFiles(input: unknown): { files: MockRecordFile[]; uploads: { id: string; fileId: string; uploadUrl: string }[] } | null {
+  if (!Array.isArray(input)) return null;
+  const files: MockRecordFile[] = [];
+  const created: { id: string; fileId: string; uploadUrl: string }[] = [];
+  const ids = new Set<string>();
+  for (const entry of input) {
+    if (!entry || typeof entry !== "object") return null;
+    const item = entry as Record<string, unknown>;
+    if (typeof item.id !== "string" || ids.has(item.id) || typeof item.name !== "string" || typeof item.size !== "number"
+      || typeof item.contentType !== "string" || item.size < 0 || item.size > 20 * 1024 * 1024) return null;
+    ids.add(item.id);
+    let fileId = item.fileId;
+    if (fileId === null) {
+      fileId = id();
+      uploads.set(fileId as string, { fileName: item.name, contentType: item.contentType, used: false, inline: true });
+      created.push({ id: item.id, fileId: fileId as string, uploadUrl: `/__mock-api/uploads/${fileId}` });
+    } else if (typeof fileId !== "string" || !uploads.has(fileId)) {
+      return null;
+    }
+    files.push({ id: item.id, fileId: fileId as string, name: item.name, size: item.size, contentType: item.contentType });
+  }
+  return { files, uploads: created };
+}
+// 업로드가 끝난 파일만 읽기 링크를 준다.
+export function recordFileView(file: MockRecordFile) {
+  return { ...file, url: uploads.get(file.fileId)?.data ? `/__mock-api/uploads/${file.fileId}` : null };
+}
+function page<T>(items: T[], skip: number, size: number) {
+  const slice = items.slice(skip, skip + size);
+  return { skip, totalCount: items.length, receivedCount: slice.length, items: slice };
+}
 function newCard(title: string): MockCard {
   return { id: id(), title, description: "", portfolio: false, authorName: "테스트 회원", authorUserId: 1,
     assigneeName: null, assigneeUserId: null, inheritedFrom: null, coverImageUrl: null, labels: [], disabled: false,
     createdAt: now(), records: [] };
 }
 
-export function handleGroupRequest(method: string | undefined, url: URL, body: unknown, isManager = process.env.MOCK_MANAGER === "true"): Result | null {
+// 임시저장 목업이 카드 이름을 채울 때 쓴다.
+export function findMockCardTitle(cardId: string): string | null {
+  return cards().find((card) => card.id === cardId)?.title ?? null;
+}
+export function handleGroupRequest(method: string | undefined, url: URL, body: unknown, isManager = process.env.MOCK_MANAGER !== "false"): Result | null {
   const match = url.pathname.match(/^\/(manager\/)?groups\/(\d+)(?:\/(.*))?$/);
   if (!match) return null;
   if (Number(match[2]) !== state.groupInfo.id) return fail("그룹을 찾을 수 없습니다.", 404);
@@ -63,51 +114,107 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     return ok();
   }
   if (method === "GET") {
-    if (!path) return ok(summary());
-    if (path === "kanban") return ok(state.lists.map((list) => ({ ...list, cards: list.cards.map((card) => ({
-      id: card.id, title: card.title, authorName: card.authorName, assigneeName: card.assigneeName,
-      assigneeUserId: card.assigneeUserId,
-      inheritedFrom: card.inheritedFrom, coverImageUrl: card.coverImageUrl, labels: card.labels,
-      disabled: card.disabled, portfolio: card.portfolio, recordCount: card.records.length,
-      hasDescription: !!card.description, createdAt: card.createdAt,
-    })) })));
-    if (path === "members") return ok(state.members.map((m) => {
+    if (path === "info") {
+      const s = summary();
+      return ok({
+        id: s.id, title: s.title, description: s.description, category: s.category, status: s.status,
+        requesterInfo: {
+          userRole: !s.isMember ? "NONE" : s.leaderUserId === 1 ? "LEADER" : "MEMBER",
+          isBookmarked: s.isBookmarked, isInChatRoom: s.isMember && s.hasChatRoom && s.isChatParticipant,
+        },
+        specialOrganization: s.specialOrganizations[0] ?? null, interests: s.interests, techStack: s.techStack,
+        repositoryUrls: s.repositoryUrls, memberCount: s.memberCount,
+        activity: { listCount: s.listCount, cardCount: s.cardCount, recordCount: s.recordCount },
+        createdAt: s.createdAt, lastActivityAt: s.lastActivityAt, allowJoin: s.allowJoin, visibility: s.visibility,
+        exposure: { isPortfolioPublished: s.hasPublishedPortfolio, portfolioListCount: s.portfolioListCount,
+          portfolioCardCount: s.portfolioCardCount, seminarCount: s.seminarCount, reportCount: s.reportCount },
+        hasChatRoom: s.hasChatRoom,
+      });
+    }
+    if (path === "lists") {
+      const skip = Number(url.searchParams.get("skip") ?? 0);
+      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
+      const { items, ...meta } = page(state.lists, skip, 10);
+      return ok({ ...meta, lists: items.map((list) => ({ id: list.id, title: list.title, description: list.description,
+        cardCount: list.cards.length, cards: list.cards.slice(0, 15).map(cardSummary) })) });
+    }
+    if (route[0] === "lists" && route[2] === "cards" && route.length === 3) {
+      const list = state.lists.find((l) => l.id === route[1]);
+      if (!list) return fail("리스트를 찾을 수 없습니다.", 404);
+      const skip = Number(url.searchParams.get("skip") ?? 0);
+      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
+      const { items, ...meta } = page(list.cards, skip, 15);
+      return ok({ ...meta, cards: items.map(cardSummary) });
+    }
+    if (route[0] === "cards" && route.length === 2) {
+      const list = state.lists.find((l) => l.cards.some((c) => c.id === route[1]));
+      const card = list?.cards.find((c) => c.id === route[1]);
+      if (!list || !card) return fail("카드를 찾을 수 없습니다.", 404);
+      return ok({ ...cardSummary(card), listId: list.id, listTitle: list.title, description: card.description, recordSort: card.recordSort ?? "NEWEST" });
+    }
+    if (path === "members") return ok({ leaderUserId: info.leaderUserId, members: [...state.members].sort((a, b) => Number(b.userId === info.leaderUserId) - Number(a.userId === info.leaderUserId) || a.name.localeCompare(b.name)).map((m) => {
       const owned = cards().filter((card) => card.authorUserId === m.userId);
-      return { ...m, isLeader: m.userId === info.leaderUserId, cardCount: owned.length,
-        recordCount: cards().reduce((sum, card) => sum + card.records.filter((record) => record.authorUserId === m.userId).length, 0) };
-    }));
-    if (path === "logs") return ok(state.activityLogs);
-    if (path === "archived-cards") return ok(state.archivedCards);
-    if (path === "saved-records") return ok(state.savedRecords);
+      return { userId: m.userId, name: m.name, college: m.college, cardCount: owned.length,
+        recordCount: cards().reduce((sum, card) => sum + card.records.filter((record) => record.authorUserId === m.userId && !record.deleted).length, 0) };
+    }) });
+    if (path === "logs") {
+      const skip = Number(url.searchParams.get("skip") ?? 0);
+      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
+      const { items, ...meta } = page(state.activityLogs, skip, 50);
+      return ok({ ...meta, logs: items.map((log, index) => ({
+        id: skip + index + 1, actor: { userId: 1, name: log.memberName },
+        logType: "LEGACY", logData: { html: log.message }, createdAt: log.createdAt,
+      })) });
+    }
+    if (path === "deleted-cards" || path === "saved-records") {
+      const skip = Number(url.searchParams.get("skip") ?? 0);
+      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
+      if (path === "deleted-cards") {
+        const { items, ...meta } = page(state.archivedCards, skip, 20);
+        return ok({ ...meta, cards: items });
+      }
+      const { items, ...meta } = page(state.savedRecords, skip, 10);
+      return ok({ ...meta, records: items.map(({ id: recordId, ...record }) => ({ ...record, recordId, files: [] })) });
+    }
     if (path === "activity-report-context") return ok(openCohort);
-    if (path === "activity-report") return ok(state.activityReports);
-    if (path === "discord-channel") return ok({ hasChatRoom: info.hasChatRoom, isChatParticipant: info.isChatParticipant });
-    if (path === "discord-messages") return member && info.hasChatRoom ? ok(state.chatMessages) : fail("그룹 채팅방을 볼 수 없습니다.", 403);
+    if (path === "activity-reports") return ok(state.activityReports);
+    if (path === "chat-messages") {
+      if (!member) return fail("그룹원만 채팅을 볼 수 있습니다.", 403);
+      if (!info.hasChatRoom) return fail("그룹 채팅방이 없습니다.");
+      const skip = Number(url.searchParams.get("skip") ?? 0);
+      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
+      // 최신 메시지부터 skip개를 건너뛴 50개를 오래된 순으로 돌려준다.
+      const end = Math.max(0, state.chatMessages.length - skip);
+      const messages = state.chatMessages.slice(Math.max(0, end - 50), end);
+      return ok({ skip, receivedCount: messages.length, hasMore: end - messages.length > 0, messages });
+    }
     if (path === "search") {
       const keyword = text(url.searchParams.get("keyword")).toLocaleLowerCase();
-      const target = url.searchParams.get("searchTarget");
+      const target = (url.searchParams.get("target") ?? "").toLowerCase();
       if (!["title", "author", "record"].includes(target ?? "")) return fail("검색 대상을 확인해주세요.");
       const pageSize = 50;
       const page = Number(url.searchParams.get("page") ?? 1);
       if (!Number.isSafeInteger(page) || page < 1) return fail("검색 페이지를 확인해주세요.");
       const offset = (page - 1) * pageSize;
-      if (!keyword) return ok({ results: [], totalPages: 0 });
-      const results = state.lists.flatMap((list) => list.cards.flatMap((card) => {
-        const base = { listTitle: list.title, cardId: card.id, cardTitle: card.title };
-        if (target === "record") return card.records.filter((r) => r.content.toLocaleLowerCase().includes(keyword)).map((r) => ({ ...base, id: r.id, matchedText: r.content }));
+      if (!keyword) return ok({ page, totalPages: 0, receivedCount: 0, results: [] });
+      type SearchRow = { listId: string; listTitle: string; cardId: string; cardTitle: string; recordId: number | null; matchedText: string | null };
+      const results = state.lists.flatMap((list) => list.cards.flatMap((card): SearchRow[] => {
+        const base = { listId: list.id, listTitle: list.title, cardId: card.id, cardTitle: card.title };
+        if (target === "record") return card.records.filter((r) => r.content.toLocaleLowerCase().includes(keyword)).map((r) => ({ ...base, recordId: r.id, matchedText: r.content }));
         const value = target === "author" ? card.authorName : card.title;
-        return value.toLocaleLowerCase().includes(keyword) ? [{ ...base, id: card.id, matchedText: target === "author" ? card.authorName : null }] : [];
+        return value.toLocaleLowerCase().includes(keyword) ? [{ ...base, recordId: null, matchedText: target === "author" ? card.authorName : null }] : [];
       }));
-      return ok({ results: results.slice(offset, offset + pageSize), totalPages: Math.ceil(results.length / pageSize) });
+      const pageResults = results.slice(offset, offset + pageSize);
+      return ok({ page, totalPages: Math.ceil(results.length / pageSize), receivedCount: pageResults.length, results: pageResults });
     }
     if (route[0] === "cards" && route[2] === "records" && route.length === 3) {
       const card = cards().find((c) => c.id === route[1]);
       if (!card) return fail("카드를 찾을 수 없습니다.", 404);
       // 단건 조회의 기존 역방향 탐색은 전체 배열을 사용한다. 카드 창은 명시적으로 페이지를 요청한다.
       if (!url.searchParams.has("limit")) return ok(card.records);
-      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const offset = Number(url.searchParams.get("skip") ?? 0);
       const limit = Number(url.searchParams.get("limit"));
-      const sortOrder = url.searchParams.get("sortOrder") ?? "newest";
+      const sortOrder = { NEWEST: "newest", OLDEST: "oldest", RECENTLY_UPDATED: "recentlyUpdated" }[card.recordSort ?? "NEWEST"];
       const includeDeleted = url.searchParams.get("includeDeleted") ?? "true";
       if (!Number.isInteger(offset) || offset < 0 || !Number.isInteger(limit) || limit < 1 || limit > 100) {
         return fail("기록 조회 범위를 확인해주세요.");
@@ -122,9 +229,17 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
           : sortOrder === "recentlyUpdated"
             ? right.updatedAt.localeCompare(left.updatedAt)
             : right.createdAt.localeCompare(left.createdAt);
-        return order || left.id.localeCompare(right.id);
+        return order || left.id - right.id;
       });
-      return ok({ records: records.slice(offset, offset + limit), count: records.length });
+      const { items, ...meta } = page(records, offset, limit);
+      return ok({ ...meta, records: items.map(recordView) });
+    }
+    if (route[0] === "records" && route.length === 2) {
+      const card = cards().find((c) => c.records.some((r) => String(r.id) === route[1]));
+      const record = card?.records.find((r) => String(r.id) === route[1]);
+      if (!card || !record) return fail("기록을 찾을 수 없습니다.", 404);
+      const list = state.lists.find((l) => l.cards.includes(card))!;
+      return ok({ ...recordView(record), cardId: card.id, cardTitle: card.title, listId: list.id, listTitle: list.title });
     }
     return fail("지원하지 않는 그룹 조회입니다.", 404);
   }
@@ -147,7 +262,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     if (!leader && !isManager) return fail("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.", 403);
     if (route[1] === "end") {
       if (input.status !== GroupStatus.SUCCESS && input.status !== GroupStatus.FAIL) return fail("종료 상태를 확인해주세요.");
-      if (info.status !== GroupStatus.PROGRESS && info.status !== GroupStatus.STOP) return fail("진행 중이거나 중단된 그룹만 종료할 수 있습니다.");
+      if (info.status !== GroupStatus.PROGRESS) return fail("진행 중인 그룹만 종료할 수 있습니다.");
       info.status = input.status;
       return changed(input.status === GroupStatus.SUCCESS ? "그룹 활동을 성공으로 종료했습니다." : "그룹 활동을 실패로 종료했습니다.", false);
     }
@@ -191,9 +306,9 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     info.repositoryUrls = repositories;
     return changed("그룹 설정을 변경했습니다.", false);
   }
-  if (path === "master" && method === "PATCH") {
+  if (path === "leader" && method === "PUT") {
     if (!leader) return fail("그룹장 권한이 필요합니다.", 403);
-    const target = state.members.find((m) => m.userId === input.memberId);
+    const target = state.members.find((m) => m.userId === input.userId);
     if (!target) return fail("회원을 찾을 수 없습니다.", 404);
     info.leaderUserId = target.userId; return changed("그룹장을 위임했습니다.");
   }
@@ -204,19 +319,19 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     if (state.members[index].userId === info.leaderUserId) return fail("그룹장은 내보낼 수 없습니다.");
     state.members.splice(index, 1); return changed("회원을 내보냈습니다.");
   }
-  if (path === "discord-channel" && method === "POST") {
+  if (path === "chat-room" && method === "POST") {
     if (!leader) return fail("그룹장 권한이 필요합니다.", 403);
     info.hasChatRoom = true; info.isChatParticipant = true; return changed("채팅방을 만들었습니다.");
   }
-  if (path === "discord-channel/members" && method === "POST") {
-    if (!info.hasChatRoom || input.memberId !== 1) return fail("채팅방 참여 정보를 확인해주세요.");
+  if (path === "chat-room/join" && method === "POST") {
+    if (!info.hasChatRoom || info.isChatParticipant) return fail("채팅방 참여 정보를 확인해주세요.");
     info.isChatParticipant = true; return ok();
   }
-  if (path === "discord-messages" && method === "POST") {
+  if (path === "chat-messages" && method === "POST") {
     if (!info.hasChatRoom) return fail("채팅방이 아직 없습니다.", 409);
     const attachments = Array.isArray(input.attachments) ? input.attachments : [];
     if (!text(input.content) && !attachments.length) return fail("메시지를 입력해주세요.");
-    if (attachments.some((a) => !a || typeof a.name !== "string" || typeof a.type !== "string" || typeof a.data !== "string")) return fail("첨부파일을 확인해주세요.");
+    if (attachments.some((a) => !a || typeof a.name !== "string" || typeof a.url !== "string")) return fail("첨부파일을 확인해주세요.");
     const message = { id: id(), authorName: "테스트 회원", content: text(input.content), createdAt: now(), attachments };
     state.chatMessages.push(message); return ok(message);
   }
@@ -224,13 +339,8 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     if (!leader) return fail("그룹장 권한이 필요합니다.", 403);
     info.hasPublishedPortfolio = method === "POST"; return changed("포트폴리오 공개 상태를 변경했습니다.");
   }
-  if (route[0] === "activity-report") return reportRequest(method, route, input, leader);
-  if (route[0] === "saved-records" && method === "DELETE") {
-    const index = state.savedRecords.findIndex((r) => r.id === route[1]);
-    if (index < 0) return fail("기록을 찾을 수 없습니다.", 404);
-    state.savedRecords.splice(index, 1); return ok();
-  }
-  if (route[0] === "archived-cards" && route[2] === "restoration" && method === "POST") {
+  if (route[0] === "activity-reports") return reportRequest(method, route, input, leader);
+  if (route[0] === "deleted-cards" && route[2] === "restore" && method === "POST") {
     const index = state.archivedCards.findIndex((c) => c.id === route[1]);
     const list = state.lists.find((l) => l.id === input.targetListId);
     if (index < 0 || !list) return fail("카드 또는 리스트를 찾을 수 없습니다.", 404);
@@ -238,9 +348,9 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     const card = newCard(archived.title);
     const archivedAuthorUserId = state.members.find((m) => m.name === archived.authorName)?.userId ?? 1;
     Object.assign(card, { id: archived.id, authorName: archived.authorName, authorUserId: archivedAuthorUserId, createdAt: archived.createdAt,
-      records: Array.from({ length: archived.recordCount }, (_, i) => ({
+      records: Array.from({ length: archived.recordCount }, () => ({
         type: "tiptap" as const,
-        id: `${archived.id}-r${i}`, authorName: archived.authorName, authorUserId: archivedAuthorUserId,
+        id: nextMockRecordId(), authorName: archived.authorName, authorUserId: archivedAuthorUserId,
         content: "보관된 기록입니다.", createdAt: now(), updatedAt: now(), deleted: false,
       })) });
     list.cards.push(card); return changed("카드를 복원했습니다.");
@@ -255,11 +365,16 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     if (index < 0) return fail("리스트를 찾을 수 없습니다.", 404);
     const list = state.lists[index];
     if (route[2] === "position" && method === "PATCH") {
-      if (input.beforeListId === list.id) return ok();
-      if (input.beforeListId !== null && !state.lists.some((l) => l.id === input.beforeListId)) return fail("이동 위치를 찾을 수 없습니다.");
+      const before = input.insertBeforeListId ?? null;
+      if (before === list.id) return ok();
+      if (before !== null && !state.lists.some((l) => l.id === before)) return fail("이동 위치를 찾을 수 없습니다.");
       state.lists.splice(index, 1);
-      const target = input.beforeListId === null ? state.lists.length : state.lists.findIndex((l) => l.id === input.beforeListId);
+      const target = before === null ? state.lists.length : state.lists.findIndex((l) => l.id === before);
       state.lists.splice(target, 0, list); return changed("리스트를 이동했습니다.");
+    }
+    if (route[2] === "cards" && method === "POST" && route.length === 3) {
+      if (!text(input.title)) return fail("카드 이름을 확인해주세요.");
+      list.cards.push(newCard(text(input.title))); return changed("카드를 추가했습니다.");
     }
     if (method === "PATCH" && route.length === 2) {
       if (!text(input.title) || typeof input.description !== "string") return fail("리스트 정보를 확인해주세요.");
@@ -269,11 +384,6 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       if (list.cards.length) return fail("빈 리스트만 삭제할 수 있습니다.", 409);
       state.lists.splice(index, 1); return changed("리스트를 삭제했습니다.");
     }
-  }
-  if (path === "cards" && method === "POST") {
-    const list = state.lists.find((l) => l.id === input.listId);
-    if (!list || !text(input.title)) return fail("카드 이름과 리스트를 확인해주세요.");
-    list.cards.push(newCard(text(input.title))); return changed("카드를 추가했습니다.");
   }
   if (route[0] === "cards" && route[2] === "cover-image" && route[3] === "upload-link" && method === "POST") {
     const card = cards().find((c) => c.id === route[1]);
@@ -285,19 +395,19 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     uploads.set(fileUploadId, { fileName: text(input.fileName), contentType: text(input.contentType), used: false });
     return ok({ fileUploadId, url: `/__mock-api/uploads/${fileUploadId}` });
   }
-  if (route[0] === "cards" && method === "PATCH") {
+  if (route[0] === "cards" && route.length === 3 && ["PUT", "PATCH", "POST", "DELETE"].includes(method ?? "") && route[2] !== "records") {
     const source = state.lists.find((l) => l.cards.some((c) => c.id === route[1]));
     const card = source?.cards.find((c) => c.id === route[1]);
     if (!source || !card) return fail("카드를 찾을 수 없습니다.", 404);
-    if (route[2] === "portfolio") {
-      if (typeof input.portfolio !== "boolean") return fail("선택 값을 확인해주세요.");
-      card.portfolio = input.portfolio; return changed("포트폴리오 카드를 변경했습니다.");
+    if (route[2] === "portfolio" && method === "PUT") {
+      if (typeof input.isInPortfolio !== "boolean") return fail("선택 값을 확인해주세요.");
+      card.portfolio = input.isInPortfolio; return changed("포트폴리오 카드를 변경했습니다.");
     }
-    if (route[2] === "labels") {
+    if (route[2] === "labels" && method === "PUT") {
       if (!Array.isArray(input.labels)) return fail("라벨 값을 확인해주세요.");
       card.labels = input.labels as MockCard["labels"]; return changed("카드 라벨을 변경했습니다.");
     }
-    if (route[2] === "assignee") {
+    if (route[2] === "assignee" && method === "PUT") {
       if (input.assigneeUserId !== null && typeof input.assigneeUserId !== "number") return fail("담당자 값을 확인해주세요.");
       const assignee = input.assigneeUserId === null ? null : state.members.find((m) => m.userId === input.assigneeUserId);
       if (input.assigneeUserId !== null && !assignee) return fail("그룹 멤버만 담당자로 지정할 수 있습니다.", 409);
@@ -305,12 +415,12 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       card.assigneeName = assignee?.name ?? null;
       return changed("카드 담당자를 변경했습니다.");
     }
-    if (route[2] === "disabled") {
-      if (typeof input.disabled !== "boolean") return fail("선택 값을 확인해주세요.");
-      card.disabled = input.disabled; return changed("카드 활성 상태를 변경했습니다.");
+    if (route[2] === "disabled" && method === "PUT") {
+      if (typeof input.isDisabled !== "boolean") return fail("선택 값을 확인해주세요.");
+      card.disabled = input.isDisabled; return changed("카드 활성 상태를 변경했습니다.");
     }
-    if (route[2] === "cover-image") {
-      if (input.coverImageUrl === null) {
+    if (route[2] === "cover-image" && (method === "POST" || method === "DELETE")) {
+      if (method === "DELETE") {
         card.coverImageUrl = null; return changed("카드 커버 이미지를 삭제했습니다.");
       }
       // URL 직접 입력/붙여넣기는 coverImageUrl로, 파일 업로드/드래그앤드롭은 업로드 링크로
@@ -325,15 +435,31 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       }
       return fail("이미지 정보를 확인해주세요.");
     }
-    if (route[2] === "position") {
-      const target = state.lists.find((l) => l.id === input.targetListId);
-      if (!target) return fail("대상 리스트를 찾을 수 없습니다.", 404);
-      if (input.beforeCardId === card.id && source === target) return ok();
-      if (input.beforeCardId !== null && !target.cards.some((c) => c.id === input.beforeCardId && c.id !== card.id)) return fail("이동 위치를 찾을 수 없습니다.");
+    if (route[2] === "position" && method === "PATCH") {
+      const target = state.lists.find((l) => l.id === input.listId);
+      if (!target) return fail("대상 리스트를 찾을 수 없습니다.");
+      const before = input.insertBeforeCardId ?? null;
+      if (before === card.id && source === target) return ok();
+      if (before !== null && !target.cards.some((c) => c.id === before && c.id !== card.id)) return fail("이동 위치를 찾을 수 없습니다.");
       source.cards.splice(source.cards.indexOf(card), 1);
-      target.cards.splice(input.beforeCardId === null ? target.cards.length : target.cards.findIndex((c) => c.id === input.beforeCardId), 0, card);
+      target.cards.splice(before === null ? target.cards.length : target.cards.findIndex((c) => c.id === before), 0, card);
       return changed("카드를 이동했습니다.");
     }
+  }
+  if (route[0] === "cards" && method === "PATCH" && route.length === 2) {
+    const card = cards().find((c) => c.id === route[1]);
+    if (!card) return fail("카드를 찾을 수 없습니다.", 404);
+    if (input.recordSort !== undefined) {
+      if (input.recordSort !== "NEWEST" && input.recordSort !== "OLDEST" && input.recordSort !== "RECENTLY_UPDATED") return fail("정렬 값을 확인해주세요.");
+      card.recordSort = input.recordSort;
+    }
+    if (input.title !== undefined || input.description !== undefined) {
+      if (card.disabled) return fail("비활성 카드는 수정할 수 없습니다.");
+      if (input.title !== undefined) { if (!text(input.title)) return fail("카드 이름을 확인해주세요."); card.title = text(input.title); }
+      if (typeof input.description === "string") card.description = input.description;
+      return changed("카드를 수정했습니다.");
+    }
+    return ok();
   }
   if (route[0] === "cards" && method === "DELETE" && route.length === 2) {
     const source = state.lists.find((l) => l.cards.some((c) => c.id === route[1]));
@@ -343,45 +469,56 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     state.archivedCards.unshift({ id: card.id, title: card.title, authorName: card.authorName, recordCount: card.records.length, createdAt: card.createdAt, deletedAt: now() });
     return changed("카드를 삭제했습니다.");
   }
-  if (route[0] === "cards" && route[2] === "records" && route[3] === "media" && route[4] === "upload-link" && method === "POST") {
-    const card = cards().find((c) => c.id === route[1]);
-    if (!card) return fail("카드를 찾을 수 없습니다.", 404);
-    if (!text(input.fileName) || !text(input.contentType)) return fail("파일 정보를 확인해주세요.");
-    // 업로드한 파일은 커밋 단계 없이 기록 본문이 fileUrl로 바로 참조한다.
-    const fileUploadId = id();
-    uploads.set(fileUploadId, { fileName: text(input.fileName), contentType: text(input.contentType), used: false, inline: true });
-    const fileUrl = `/__mock-api/uploads/${fileUploadId}`;
-    return ok({ fileUploadId, url: fileUrl, fileUrl });
-  }
+
   if (route[0] === "cards" && route[2] === "records" && route.length === 3 && method === "POST") {
     const card = cards().find((c) => c.id === route[1]);
     if (!card) return fail("카드를 찾을 수 없습니다.", 404);
     if (card.disabled) return fail("읽기 전용 카드에는 기록할 수 없습니다.", 403);
     if (typeof input.content !== "string" || !input.content.trim()) return fail("기록 내용을 입력해주세요.");
+    const registered = registerRecordFiles(input.files);
+    if (!registered) return fail("첨부 파일 정보를 확인해주세요.");
     const timestamp = now();
-    const record = { type: "tiptap" as const, id: id(), authorName: "테스트 회원", authorUserId: 1, content: input.content, createdAt: timestamp, updatedAt: timestamp, deleted: false };
+    const record: MockCard["records"][number] = { type: "tiptap" as const, id: nextMockRecordId(), authorName: "테스트 회원", authorUserId: 1, content: input.content, createdAt: timestamp, updatedAt: timestamp, deleted: false };
     card.records.push(record);
     changed("기록을 작성했습니다.");
-    return ok(record);
+    record.files = registered.files;
+    return { status: 201, body: { ...recordView(record), uploads: registered.uploads } };
   }
-  if (route[0] === "cards" && route[2] === "records" && route.length >= 4) {
-    const card = cards().find((c) => c.id === route[1]);
-    const record = card?.records.find((r) => r.id === route[3]);
+  if (path === "records/files/uploaded" && method === "POST") {
+    const fileIds = Array.isArray(input.fileIds) ? [...new Set(input.fileIds)] : [];
+    if (!fileIds.length || fileIds.some((fileId) => typeof fileId !== "string")) return fail("파일 아이디를 확인해주세요.");
+    const results = fileIds.map((fileId) => ({ fileId, isSuccess: uploads.has(fileId as string), reason: uploads.has(fileId as string) ? null : "NOT_FOUND" }));
+    const successCount = results.filter((result) => result.isSuccess).length;
+    return { status: successCount === results.length ? 200 : successCount ? 206 : 400, body: { results } };
+  }
+  if (route[0] === "records" && route.length >= 2) {
+    const card = cards().find((c) => c.records.some((r) => String(r.id) === route[1]));
+    const record = card?.records.find((r) => String(r.id) === route[1]);
     if (!card || !record) return fail("기록을 찾을 수 없습니다.", 404);
-    if (method === "POST" && route.length === 5 && route[4] === "saving") {
-      if (record.deleted) return fail("삭제된 기록은 보관할 수 없습니다.", 403);
+    if (method === "PUT" && route.length === 3 && route[2] === "archive") {
+      if (typeof input.isInUserArchive !== "boolean") return fail("보관 여부를 확인해주세요.");
+      if (!input.isInUserArchive) {
+        state.savedRecords = state.savedRecords.filter((saved) => saved.id !== record.id);
+        return ok();
+      }
+      if (record.deleted) return fail("삭제된 기록은 보관할 수 없습니다.");
       if (!state.savedRecords.some((saved) => saved.id === record.id)) {
         state.savedRecords.unshift({ type: record.type, id: record.id, content: record.content,
           cardId: card.id, cardTitle: card.title, authorName: record.authorName, createdAt: record.createdAt, savedAt: now() });
       }
-      return ok(state.savedRecords.find((saved) => saved.id === record.id));
+      return ok();
     }
-    if (method === "PATCH" && route.length === 5 && route[4] === "card") {
+    if (method === "PUT" && route.length === 3 && route[2] === "portfolio") {
+      if (typeof input.isInPortfolio !== "boolean") return fail("선택 값을 확인해주세요.");
+      if (card.disabled || record.deleted) return fail("이 기록은 바꿀 수 없습니다.");
+      record.isInPortfolio = input.isInPortfolio; return changed("기록 포트폴리오 포함 여부를 변경했습니다.", false);
+    }
+    if (method === "PUT" && route.length === 3 && route[2] === "position") {
       if (card.disabled || record.deleted) return fail("이 기록을 이동할 수 없습니다.", 403);
       const target = cards().find((item) => item.id === input.targetCardId);
       if (!target) return fail("대상 카드를 찾을 수 없습니다.", 404);
       if (target.disabled) return fail("비활성 카드로 이동할 수 없습니다.", 403);
-      if (target.id === card.id) return fail("현재 카드로 이동할 수 없습니다.");
+      if (target.id === card.id) return ok();
       card.records.splice(card.records.indexOf(record), 1);
       target.records.push(record);
       for (const saved of state.savedRecords.filter((item) => item.id === record.id)) {
@@ -390,18 +527,22 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       }
       return changed("기록을 이동했습니다.");
     }
-    if (method === "PATCH" && route.length === 4) {
+    if (method === "PATCH" && route.length === 2) {
       if (record.type === "legacy") return fail("레거시 기록은 아직 수정할 수 없습니다.", 403);
       if (card.disabled || record.deleted) return fail("이 기록을 수정할 수 없습니다.", 403);
       if (typeof input.content !== "string" || !input.content.trim()) return fail("기록 내용을 입력해주세요.");
+      const registered = registerRecordFiles(input.files);
+      if (!registered) return fail("첨부 파일 정보를 확인해주세요.");
       record.content = input.content;
+      record.files = registered.files;
       record.updatedAt = now();
-      return changed("기록을 수정했습니다.");
+      changed("기록을 수정했습니다.");
+      return ok({ uploads: registered.uploads });
     }
-    if (method === "DELETE" && route.length === 4) {
+    if (method === "DELETE" && route.length === 2) {
       record.deleted = true; record.updatedAt = now(); return changed("기록을 삭제했습니다.");
     }
-    if (method === "POST" && route[4] === "restoration") {
+    if (method === "POST" && route.length === 3 && route[2] === "restore") {
       record.deleted = false; record.updatedAt = now(); return changed("기록을 복구했습니다.");
     }
   }
@@ -417,7 +558,7 @@ function reportRequest(method: string | undefined, route: string[], input: Input
     const fileUploadId = id(); uploads.set(fileUploadId, { fileName: text(input.fileName), contentType: text(input.contentType), used: false });
     return ok({ fileUploadId, url: `/__mock-api/uploads/${fileUploadId}` });
   }
-  const report = state.activityReports.find((r) => r.id === route[1]);
+  const report = state.activityReports.find((r) => String(r.id) === route[1]);
   if (route.length === 2 && !report) return fail("활동보고서를 찾을 수 없습니다.", 404);
   if (report && report.seminarId !== cohort.id) return fail("현재 회차의 활동보고서만 변경할 수 있습니다.", 409);
   if (method === "DELETE" && report) { state.activityReports.splice(state.activityReports.indexOf(report), 1); return changed("활동보고서를 취소했습니다."); }

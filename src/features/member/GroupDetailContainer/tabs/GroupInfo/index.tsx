@@ -20,7 +20,7 @@ import {
 import GitRepoBadge from "../../../../../components/GitRepoBadge";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
 import TechBadge from "../../../../../components/TechBadge";
-import { GroupInterestLabel, GroupVisibilityLabel } from "../../../../../constant";
+import { GroupInterestLabel, GroupVisibilityLabel, GroupStatus } from "../../../../../constant";
 import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
 import { GROUP_INTEREST_ICON, GroupInfo as GroupInfoData } from "./types";
 
@@ -37,7 +37,7 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
   const queryClient = useQueryClient();
   const isBookmarked = info.isBookmarked;
   const currentUserQuery = useCurrentUser();
-  const isLeader = currentUserQuery.data?.id === info.leaderUserId;
+  const isLeader = info.isLeader;
   const showCreateChatRoom = isLeader && !info.hasChatRoom;
   const handleJoinChat = () => {
     const memberId = currentUserQuery.data?.id;
@@ -172,7 +172,7 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
               flex="1"
               size="sm"
               variant="outline"
-              disabled={action.isPending}
+              disabled={action.isPending || info.status !== GroupStatus.PROGRESS}
               onClick={handleCreateChatRoom}
               transition="background-color 150ms ease, transform 100ms ease"
               _hover={{ bg: "var(--main-color)", color: "white", borderColor: "var(--main-color)" }}
@@ -185,7 +185,7 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
               flex="1"
               size="sm"
               variant="outline"
-              disabled={action.isPending || !info.hasChatRoom || info.isChatParticipant}
+              disabled={action.isPending || !info.hasChatRoom || info.isChatParticipant || info.status !== GroupStatus.PROGRESS}
               onClick={info.hasChatRoom && !info.isChatParticipant ? handleJoinChat : undefined}
               transition="background-color 150ms ease, transform 100ms ease"
               _hover={{ bg: "var(--main-color)", color: "white", borderColor: "var(--main-color)" }}
@@ -199,7 +199,7 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
             flex="1"
             size="sm"
             variant="outline"
-            disabled={action.isPending || !info.allowJoin}
+            disabled={action.isPending || !info.allowJoin || info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL}
             onClick={handleJoinGroup}
             transition="background-color 150ms ease, transform 100ms ease"
             _hover={{ bg: "var(--main-color)", color: "white", borderColor: "var(--main-color)" }}
@@ -212,7 +212,7 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
           flex="1"
           size="sm"
           variant="outline"
-          disabled={action.isPending}
+          disabled={action.isPending || info.status === GroupStatus.STOP}
           onClick={() => action.mutate(() => isBookmarked ? GroupInfoApi.removeGroupBookmark(info.id) : GroupInfoApi.addGroupBookmark(info.id))}
           aria-pressed={isBookmarked}
           bg="transparent"

@@ -159,6 +159,8 @@ export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }:
 
         <Input
           size="sm"
+          // 서버는 검색어를 20자까지 받는다.
+          maxLength={20}
           placeholder={`${SEARCH_TARGET_LABEL[searchTarget]}으로 검색`}
           value={query}
           onChange={(e) => {

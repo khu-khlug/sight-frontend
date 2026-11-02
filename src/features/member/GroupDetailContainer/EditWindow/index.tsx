@@ -1,4 +1,9 @@
 import ContentSkeleton from "../../../../components/ContentSkeleton";
+import { GroupStatus } from "../../../../constant";
+import type { RecordFileInput, RecordUploadDto } from "../../../../api/public/group/KanbanApi";
+import { findSiteFile, RecordFileTracker } from "./recordFiles";
+import type { DraggedFile } from "../../../../util/draggableFile";
+import { toast } from "react-toastify";
 import SkeletonWrapper from "../../../../components/SkeletonWrapper";
 import { Box, Button, Text } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +19,7 @@ import { WindowBinding } from "../WindowLayer";
 import { fileApi, sideForRole } from "../actions";
 import { useGroupDetailPageState } from "../pageState";
 import styles from "./style.module.css";
-import { encodeEditContentKey, EditWindowTarget } from "./types";
+import { EditWindowTarget } from "./types";
 import { useRecordDraft } from "./useRecordDraft";
 
 // 에디터 계열(tiptap, prosemirror, katex, highlight.js)이 첫 화면 번들에 들어가지 않도록
@@ -27,12 +32,18 @@ type Props = {
   target: EditWindowTarget;
   // "new" 케이스는 cardId를 이미 알고 있어서, 추가 API 호출 없이 이미 로드된 카드 목록에서
   // 카드명만 찾으면 된다(§기존 설계: 전체 lists는 GroupDetailContainer가 이미 들고 있다).
+  // 중단·종료 그룹에서는 서버 임시저장을 쓰지 않는다.
+  groupStatus: GroupStatus;
   cards: KanbanCardDto[];
-  onCreateRecord: (cardId: string, content: string) => Promise<void>;
-  onUpdateRecord: (cardId: string, recordId: string, content: string) => Promise<void>;
+  // 저장 응답의 새 파일 업로드 정보를 돌려준다.
+  onCreateRecord: (cardId: string, content: string, files: RecordFileInput[]) => Promise<RecordUploadDto[]>;
+  onUpdateRecord: (cardId: string, recordId: string, content: string, files: RecordFileInput[]) => Promise<RecordUploadDto[]>;
 };
 
-export default function EditWindow({ binding, groupId, target, cards, onCreateRecord, onUpdateRecord }: Props) {
+// 기록 본문 최대 크기(UTF-8 바이트).
+const MAX_RECORD_CONTENT_BYTES = 1024 * 1024;
+
+export default function EditWindow({ binding, groupId, groupStatus, target, cards, onCreateRecord, onUpdateRecord }: Props) {
   const { role, minimized, isClosing, canGoDual, onToggleMinimize, onClose, onSwitchSide, onExpand, onSendToSide, registerCloseGuard } = binding;
   const isDualLayer = role !== "single";
   const { pageState } = useGroupDetailPageState();
@@ -42,7 +53,7 @@ export default function EditWindow({ binding, groupId, target, cards, onCreateRe
   // 카드명·본문을 한 번에 돌려준다.
   const recordQuery = useQuery({
     queryKey: ["group-detail", groupId, "kanban-record", target.kind === "record" ? target.recordId : null],
-    queryFn: () => KanbanApi.getGroupRecord(groupId, (target as { kind: "record"; recordId: string }).recordId),
+    queryFn: () => KanbanApi.getGroupRecord(groupId, Number((target as { kind: "record"; recordId: string }).recordId)),
     enabled: target.kind === "record",
   });
 
@@ -54,15 +65,21 @@ export default function EditWindow({ binding, groupId, target, cards, onCreateRe
 
   // 에디터에 넣어 줄 시작 본문이다. 입력할 때마다 바뀌지 않는다 — 입력 중인 본문은 에디터가 들고 있고,
   // 저장이 필요한 순간에만 editorHandle로 직렬화해서 가져온다.
-  const [initialContent, setInitialContent] = useState(() => recordQuery.data?.content ?? "");
+  // 첨부 파일 식별자와 읽기 링크·업로드 대기 파일을 편집기 밖에서 관리한다.
+  const [fileTracker] = useState(() => new RecordFileTracker());
+  const [initialContent, setInitialContent] = useState(() => {
+    fileTracker.reset(recordQuery.data?.files);
+    return fileTracker.fromServer(recordQuery.data?.content ?? "");
+  });
   const [recordInitialized, setRecordInitialized] = useState(() => target.kind === "new" || !!recordQuery.data);
   // 직접 진입은 원문 조회 후 한 번만 초기화한다. 재조회로 작성 중인 내용을 덮어쓰지 않는다.
   useEffect(() => {
     if (!recordInitialized && target.kind === "record" && recordQuery.data) {
-      setInitialContent(recordQuery.data.content);
+      fileTracker.reset(recordQuery.data.files);
+      setInitialContent(fileTracker.fromServer(recordQuery.data.content));
       setRecordInitialized(true);
     }
-  }, [recordInitialized, target.kind, recordQuery.data]);
+  }, [fileTracker, recordInitialized, target.kind, recordQuery.data]);
 
   // 새 기록이든 기존 기록 수정이든 입력이 한 번이라도 있었으면 수정 중으로 본다(되돌려도 유지).
   const [hasInput, setHasInput] = useState(false);
@@ -85,14 +102,21 @@ export default function EditWindow({ binding, groupId, target, cards, onCreateRe
   }, []);
 
   const draft = useRecordDraft({
-    location: encodeEditContentKey(target),
-    extra: JSON.stringify({ groupId, cardId, recordId, cardTitle }),
-    getContent,
+    groupId,
+    // 중단 그룹에서도 기록을 작성·수정할 수 있으므로 임시저장 API를 쓴다. 종료 그룹은 서버가 거부한다.
+    serverEnabled: groupStatus !== GroupStatus.SUCCESS && groupStatus !== GroupStatus.FAIL,
+    cardId,
+    recordId: recordId === null ? null : Number(recordId),
+    // 임시저장에는 서버 형식(식별자 토큰)의 본문과 파일 배열을 보낸다.
+    getContent: () => fileTracker.toServer(getContent()).content,
+    getFiles: () => fileTracker.toServer(getContent()).files,
+    onUploads: (uploads) => { void fileTracker.applyUploads(groupId, uploads).catch((error: Error) => toast.error(error.message)); },
     isDirty,
     ready: recordInitialized,
     autoload: target.autoloadDraft ?? false,
-    onRestore: (content) => {
-      setInitialContent(content);
+    onRestore: (content, files) => {
+      fileTracker.merge(files);
+      setInitialContent(fileTracker.fromServer(content));
       setHasInput(true);
     },
     // 입력이 잠잠해지면 그동안 바뀐 제목을 목차에 반영한다.
@@ -132,11 +156,20 @@ export default function EditWindow({ binding, groupId, target, cards, onCreateRe
   const handleSubmit = async (html: string) => {
     if (!cardId) return;
     if (isSaving || isClosing) return;
+    const { content, files } = fileTracker.toServer(html);
+    // 서버는 UTF-8 기준 1 MiB를 넘는 기록 본문을 받지 않는다. 보내기 전에 막고 입력은 그대로 둔다.
+    if (new TextEncoder().encode(content).length > MAX_RECORD_CONTENT_BYTES) {
+      toast.error("기록 본문이 너무 깁니다. 1MB 이하로 줄여 주세요.");
+      return;
+    }
     setIsSaving(true);
     draft.pause();
     try {
-      if (recordId) await onUpdateRecord(cardId, recordId, html);
-      else await onCreateRecord(cardId, html);
+      const uploads = recordId
+        ? await onUpdateRecord(cardId, recordId, content, files)
+        : await onCreateRecord(cardId, content, files);
+      // 기록은 이미 저장됐으므로, 파일 업로드가 일부 실패해도 알리기만 하고 창은 닫는다.
+      await fileTracker.applyUploads(groupId, uploads).catch((error: Error) => toast.error(error.message));
       // 삭제 실패 때문에 이미 제출한 기록을 다시 제출하지 않도록 한다.
       await draft.clear().catch(() => undefined);
       setHasInput(false);
@@ -154,16 +187,20 @@ export default function EditWindow({ binding, groupId, target, cards, onCreateRe
   submitRef.current = handleSubmit;
   const stableSubmit = useCallback((html: string) => submitRef.current(html), []);
 
-  // 본문에 넣는 이미지·오디오·파일은 이 기록이 속한 카드 아래로 올린다.
-  const uploadRecordMedia = useCallback(async (file: File, signal: AbortSignal) => {
-    if (!cardId) throw new Error("카드를 찾을 수 없습니다.");
-    const link = await KanbanApi.issueRecordMediaUploadLink(groupId, cardId, {
-      fileName: file.name,
-      contentType: file.type || "application/octet-stream",
-    });
-    await KanbanApi.uploadRecordMediaFile(link.url, file, signal);
-    return link.fileUrl;
-  }, [groupId, cardId]);
+  // 본문에 넣는 파일은 바로 올리지 않는다. 편집기에는 blob 주소로 보여 주고, 저장 응답의 업로드 정보로 올린다.
+  const uploadRecordMedia = useCallback(async (file: File) => fileTracker.addLocal(file), [fileTracker]);
+  // 같은 그룹의 업로드된 파일은 다시 올리지 않고 백엔드 파일 아이디로 참조한다. 다른 그룹 파일은 서버가 참조를 거부한다.
+  const referenceRecordFile = useCallback((url: string) => {
+    const found = findSiteFile(url);
+    if (!found || found.groupId !== groupId || !found.file.url) return null;
+    return { src: fileTracker.addExisting({ ...found.file, url: found.file.url }), size: found.file.size, contentType: found.file.contentType };
+  }, [fileTracker, groupId]);
+  // 그 밖의 앱 안 파일(다른 그룹 파일, 채팅·저장소·활동보고서 파일)은 링크가 만료되거나 이 기록과 연결되지 않으므로
+  // 내려받아 이 기록의 새 파일로 올린다.
+  const fetchRemoteFile = useCallback(async (file: DraggedFile) => {
+    const { blob } = await fileApi.get(file.url);
+    return new File([blob], file.name, { type: file.contentType || blob.type });
+  }, []);
 
   const middleActions = !isDualLayer
     ? <SingleWindowActions canGoDual={canGoDual} onSendToSide={onSendToSide} />
@@ -220,6 +257,8 @@ export default function EditWindow({ binding, groupId, target, cards, onCreateRe
               defaultCodeWrap={pageState.textWrap}
               uploadFile={uploadRecordMedia}
               resolveFileMetadata={fileApi.getMetadata}
+              referenceFile={referenceRecordFile}
+              fetchFile={fetchRemoteFile}
               linkCards={cards}
             />
           </Suspense>

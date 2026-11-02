@@ -7,15 +7,29 @@ import type { Plugin } from "vite";
 
 import { handleAutosaveRequest } from "./autosave";
 import { currentUser, emptyGuildEmojis, emptyNotifications } from "./fixtures";
-import { handleGroupRequest, uploads } from "./groups";
+import { findMockCardTitle, handleGroupRequest, uploads } from "./groups";
 import { handleRepositoryRequest } from "./repository";
 
 const API_PREFIX = "/__mock-api";
 const ASSETS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "assets");
 // 칸반 카드 커버 미리보기 목업 이미지 — groupFixtures.ts가 coverImageUrl로 이 경로를 가리킨다.
 const KANBAN_COVER_DEMO_SVG = readFileSync(path.join(ASSETS_DIR, "kanban-cover-demo.svg"));
-// 서버 시작 시 env로 초기값을 주되, 개발 탭에서 런타임에 토글할 수 있게 let로 둔다.
-let mockManager = process.env.MOCK_MANAGER === "true";
+// 운영진 페이지(/manage/...)를 바로 볼 수 있게 기본은 운영진이다. MOCK_MANAGER=false로 시작하면 일반 회원이고,
+// 개발 탭에서 런타임에 토글할 수 있게 let로 둔다.
+let mockManager = process.env.MOCK_MANAGER !== "false";
+
+// 채팅 전송처럼 multipart로 오는 요청을 { content, attachments } 객체로 바꾼다. 첨부 파일은 data URL로 둔다.
+async function parseMultipart(raw: Buffer, contentType: string) {
+  const form = await new Request("http://mock.local", { method: "POST", headers: { "content-type": contentType }, body: raw }).formData();
+  const attachments = await Promise.all((form.getAll("files").filter((part) => typeof part !== "string") as unknown as (Blob & { name: string })[]).map(async (file) => ({
+    name: file.name,
+    contentType: file.type || null,
+    size: file.size,
+    url: `data:${file.type || "application/octet-stream"};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`,
+  })));
+  const content = form.get("content");
+  return { content: typeof content === "string" ? content : "", attachments };
+}
 
 function sendJson(response: ServerResponse, status: number, body: unknown) {
   if (status === 204) {
@@ -119,8 +133,11 @@ export function mockApi(): Plugin {
             response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Content-Length": Buffer.byteLength(content), "Cache-Control": "no-store" });
             response.end(content); return;
           }
-          const body: unknown = raw.length ? JSON.parse(raw.toString("utf8")) : undefined;
-          const result = handleGroupRequest(request.method, url, body, mockManager) ?? handleRepositoryRequest(request.method, url, body) ?? handleAutosaveRequest(request.method, url, body);
+          const contentType = request.headers["content-type"] ?? "";
+          const body: unknown = contentType.startsWith("multipart/form-data")
+            ? await parseMultipart(raw, contentType)
+            : raw.length ? JSON.parse(raw.toString("utf8")) : undefined;
+          const result = handleRepositoryRequest(request.method, url, body) ?? handleAutosaveRequest(request.method, url, body, findMockCardTitle) ?? handleGroupRequest(request.method, url, body, mockManager);
           if (result) { sendJson(response, result.status, result.body); return; }
         // 그룹 쪽(groups.ts의 "mock-scenario" PATCH)과 같은 패턴 — 현재 사용자는 그룹에 속하지
         // 않는 전역 상태라 groups.ts가 아니라 여기서 직접 들고 있는다. 개발 탭(GroupDevelopment)

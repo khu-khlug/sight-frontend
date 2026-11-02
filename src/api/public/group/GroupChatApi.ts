@@ -1,22 +1,25 @@
 import apiV2Client from "../../client/v2";
 
-export type ChatAttachmentDto = { name: string; type: string; data: string };
-export type ChatMessageDto = { id: string; authorName: string; content: string; createdAt: string; attachments?: ChatAttachmentDto[] };
-export type GroupDiscordChannelDto = { hasChatRoom: boolean; isChatParticipant: boolean };
+export type ChatAttachmentDto = { name: string; contentType: string | null; size: number; url: string };
+export type ChatMessageDto = { id: string; authorName: string; content: string; createdAt: string; attachments: ChatAttachmentDto[] };
+export type ChatMessagePageDto = { skip: number; receivedCount: number; hasMore: boolean; messages: ChatMessageDto[] };
 export const GroupChatApi = {
-  async getGroupDiscordChannel(groupId: number): Promise<GroupDiscordChannelDto> {
-    return (await apiV2Client.get<GroupDiscordChannelDto>(`/groups/${groupId}/discord-channel`)).data;
-  },
   async createGroupDiscordChannel(groupId: number): Promise<void> {
-    await apiV2Client.post(`/groups/${groupId}/discord-channel`);
+    await apiV2Client.post(`/groups/${groupId}/chat-room`);
   },
-  async joinGroupDiscordChannel(groupId: number, memberId: number): Promise<void> {
-    await apiV2Client.post(`/groups/${groupId}/discord-channel/members`, { memberId });
+  // 참여 대상은 서버가 요청자로 정하므로 memberId는 보내지 않는다.
+  async joinGroupDiscordChannel(groupId: number, _memberId: number): Promise<void> {
+    await apiV2Client.post(`/groups/${groupId}/chat-room/join`);
   },
-  async listGroupDiscordMessages(groupId: number): Promise<ChatMessageDto[]> {
-    return (await apiV2Client.get<ChatMessageDto[]>(`/groups/${groupId}/discord-messages`)).data;
+  // skip은 최신 메시지부터 건너뛸 개수다. 각 페이지의 messages는 오래된 메시지가 앞이다.
+  async listGroupDiscordMessagesPage(groupId: number, skip: number, signal?: AbortSignal): Promise<ChatMessagePageDto> {
+    return (await apiV2Client.get<ChatMessagePageDto>(`/groups/${groupId}/chat-messages`, { params: { skip }, signal })).data;
   },
-  async sendGroupDiscordMessage(groupId: number, input: { content: string; attachments: ChatAttachmentDto[] }): Promise<ChatMessageDto> {
-    return (await apiV2Client.post<ChatMessageDto>(`/groups/${groupId}/discord-messages`, input)).data;
+  // 본문은 content 텍스트 파트로, 첨부 파일은 파일마다 같은 이름(files)의 파트로 보낸다.
+  async sendGroupDiscordMessage(groupId: number, input: { content: string; files: File[] }): Promise<ChatMessageDto> {
+    const form = new FormData();
+    form.append("content", input.content);
+    input.files.forEach((file) => form.append("files", file, file.name));
+    return (await apiV2Client.post<ChatMessageDto>(`/groups/${groupId}/chat-messages`, form)).data;
   },
 };

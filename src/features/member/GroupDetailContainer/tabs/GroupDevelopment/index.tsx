@@ -2,6 +2,7 @@ import { Box, Text } from "@chakra-ui/react";
 
 import { GroupStatus, GroupStatusLabel } from "../../../../../constant";
 import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
+import type { GroupScenarioInfo } from "../../../../../api/public/group/types";
 import type { GroupInfo } from "../GroupInfo/types";
 import type { OpenSeminarCohort } from "../GroupExposure/types";
 import styles from "./style.module.css";
@@ -9,7 +10,7 @@ import styles from "./style.module.css";
 type Props = {
   info: GroupInfo;
   isPending: boolean;
-  onInfoChange: (changes: Partial<GroupInfo>) => void;
+  onInfoChange: (changes: GroupScenarioInfo) => void;
   openCohort: OpenSeminarCohort | null;
   onOpenCohortChange: (cohort: OpenSeminarCohort | null) => void;
   // 그룹에 속한 값이 아니라 현재 사용자(전역) 값이라 info가 아닌 별도 prop으로 받는다.
@@ -29,7 +30,7 @@ const DEFAULT_COHORT: OpenSeminarCohort = {
 export default function GroupDevelopment({ info, isPending, onInfoChange, openCohort, onOpenCohortChange, isManager, isManagerPending, onManagerChange }: Props) {
   const currentUserQuery = useCurrentUser();
   const currentUserId = currentUserQuery.data?.id;
-  const isLeader = currentUserId === info.leaderUserId;
+  const isLeader = info.isLeader;
 
   return (
     <Box className={styles.container}>

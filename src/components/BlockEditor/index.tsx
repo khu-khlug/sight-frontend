@@ -51,6 +51,9 @@ type Props = {
   uploadFile?: (file: File, signal: AbortSignal) => Promise<string>;
   // 앱 안 파일(저장소 등)을 끌어다 넣을 때 용량·형식을 확인한다. 없으면 용량 없이 넣는다.
   resolveFileMetadata?: (url: string) => Promise<FileMetadata>;
+  // 끌어온 앱 안 파일을 참조하거나 내려받는다. 없으면 끌어온 주소를 그대로 넣는다(MediaServices 참고).
+  referenceFile?: MediaServices["referenceFile"];
+  fetchFile?: MediaServices["fetchFile"];
   // 링크 주소 입력 상자에서 "#"로 찾을 카드 목록이다. 없으면 카드 자동완성이 나오지 않는다.
   linkCards?: LinkCard[];
 };
@@ -74,7 +77,7 @@ type Props = {
  * 글자를 칠 때 React가 다시 그리는 범위를 줄이려고 이 컴포넌트는 본문 상태를 들고 있지 않다.
  * 툴바·상태바는 각자 useEditorState로 필요한 값만 구독하는 별도 컴포넌트다.
  */
-function BlockEditor({ initialValue, onInput, onSubmit, placeholder, disabled = false, defaultCodeWrap, handleRef, uploadFile, resolveFileMetadata, linkCards }: Props) {
+function BlockEditor({ initialValue, onInput, onSubmit, placeholder, disabled = false, defaultCodeWrap, handleRef, uploadFile, resolveFileMetadata, referenceFile, fetchFile, linkCards }: Props) {
   // onUpdate는 에디터가 만들어질 때 한 번 등록되므로, 최신 콜백은 ref로 읽는다.
   const onInputRef = useRef(onInput);
   onInputRef.current = onInput;
@@ -82,7 +85,7 @@ function BlockEditor({ initialValue, onInput, onSubmit, placeholder, disabled = 
   onSubmitRef.current = onSubmit;
   // 확장은 에디터가 만들어질 때 한 번 등록되므로, 입력 박스는 이 ref로 최신 기능을 읽는다.
   const mediaServices = useRef<MediaServices>({});
-  mediaServices.current = { uploadFile, resolveFileMetadata };
+  mediaServices.current = { uploadFile, resolveFileMetadata, referenceFile, fetchFile };
   const linkServices = useRef<LinkServices>({});
   linkServices.current = { cards: linkCards };
   const [paletteOpen, setPaletteOpen] = useState(false);

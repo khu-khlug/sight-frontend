@@ -11,7 +11,9 @@ import { isImageUrl } from "../../../../../util/isImageUrl";
 import styles from "./style.module.css";
 
 // 다른 업로드(활동보고서, GroupExposureApi) 20MB보다 커버이미지는 더 작게 잡는다.
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+// 백엔드 업로드 링크 기준: 파일 하나 20 MiB, 커버 허용 형식은 아래 다섯 가지다.
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+const COVER_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
 
 type Props = {
   groupId: number;
@@ -49,12 +51,12 @@ export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmi
   };
 
   const submitFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("이미지 파일만 커버로 설정할 수 있습니다.", { autoClose: 2500, hideProgressBar: true });
+    if (!COVER_IMAGE_TYPES.has(file.type)) {
+      toast.error("커버로 쓸 수 있는 형식은 JPEG·PNG·WebP·GIF·AVIF입니다.", { autoClose: 2500, hideProgressBar: true });
       return;
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      toast.error("이미지 용량이 너무 커서 설정할 수 없습니다 (최대 10MB).", { autoClose: 2500, hideProgressBar: true });
+      toast.error("이미지 용량이 너무 커서 설정할 수 없습니다 (최대 20MB).", { autoClose: 2500, hideProgressBar: true });
       return;
     }
     setIsSubmitting(true);
@@ -76,6 +78,11 @@ export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmi
     if (!trimmed || isSubmitting) return;
     setIsSubmitting(true);
     try {
+      // 서버는 http·https 주소만 커버로 받는다.
+      if (!/^https?:\/\//i.test(trimmed)) {
+        toast.error("http 또는 https 주소만 커버로 쓸 수 있습니다.", { autoClose: 2500, hideProgressBar: true });
+        return;
+      }
       // 파일 업로드(submitFile)는 File.type으로 바로 검증되지만, URL은 실제로 불러와
       // 보기 전엔 이미지인지 알 수 없다 — <img> 로딩 성공 여부로 확인한다.
       if (!(await isImageUrl(trimmed))) {

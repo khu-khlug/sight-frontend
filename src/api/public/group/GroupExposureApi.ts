@@ -11,7 +11,7 @@ export const GroupExposureApi = {
     return (await apiV2Client.get<OpenSeminarCohortDto | null>(`/groups/${groupId}/activity-report-context`)).data;
   },
   async listActivityReports(groupId: number): Promise<ActivityReportDto[]> {
-    return (await apiV2Client.get<ActivityReportDto[]>(`/groups/${groupId}/activity-report`)).data;
+    return (await apiV2Client.get<ActivityReportDto[]>(`/groups/${groupId}/activity-reports`)).data;
   },
   async publishGroupPortfolio(groupId: number): Promise<void> {
     await apiV2Client.post(`/groups/${groupId}/portfolio`);
@@ -20,19 +20,19 @@ export const GroupExposureApi = {
     await apiV2Client.delete(`/groups/${groupId}/portfolio`);
   },
   async issueActivityReportUploadLink(groupId: number, input: { fileName: string; contentType: string }): Promise<ActivityReportUploadLinkDto> {
-    return (await apiV2Client.post<ActivityReportUploadLinkDto>(`/groups/${groupId}/activity-report/upload-link`, input)).data;
+    return (await apiV2Client.post<ActivityReportUploadLinkDto>(`/groups/${groupId}/activity-reports/upload-link`, input)).data;
   },
   async uploadActivityReportFile(url: string, file: File): Promise<void> {
     const response = await fetch(url, { method: "PUT", body: file });
     if (!response.ok) throw new Error("파일 업로드에 실패했습니다.");
   },
   async submitActivityReport(groupId: number, input: { isPresentation: boolean; fileUploadId: string; seminarId: string }): Promise<void> {
-    await apiV2Client.post(`/groups/${groupId}/activity-report`, input);
+    await apiV2Client.post(`/groups/${groupId}/activity-reports`, input);
   },
   async updateActivityReport(groupId: number, reportId: string, input: { isPresentation?: boolean; fileUploadId?: string }): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/activity-report/${encodeURIComponent(reportId)}`, input);
+    await apiV2Client.patch(`/groups/${groupId}/activity-reports/${encodeURIComponent(reportId)}`, input);
   },
   async cancelActivityReport(groupId: number, reportId: string): Promise<void> {
-    await apiV2Client.delete(`/groups/${groupId}/activity-report/${encodeURIComponent(reportId)}`);
+    await apiV2Client.delete(`/groups/${groupId}/activity-reports/${encodeURIComponent(reportId)}`);
   },
 };

@@ -19,10 +19,10 @@ function commits(branch: string, revision: number): RepoCommit[] {
   }));
 }
 
-function branches(revision: number): RepoBranch[] {
+function branches(): RepoBranch[] {
   return [
-    { name: "main", headSha: sha(COMMIT_COUNT + revision, "main"), isDefault: true },
-    { name: "feat/group-detail", headSha: sha(COMMIT_COUNT + revision, "feat/group-detail"), isDefault: false },
+    { name: "main", isDefault: true },
+    { name: "feat/group-detail", isDefault: false },
   ];
 }
 
@@ -30,28 +30,26 @@ function branches(revision: number): RepoBranch[] {
 export function handleRepositoryRequest(
   method: string | undefined,
   url: URL,
-  body?: unknown,
+  _body?: unknown,
 ): { status: number; body?: unknown } | null {
-  if (!url.pathname.startsWith("/repositories/")) return null;
-  const repositoryUrl = method === "POST" && body && typeof body === "object" && "url" in body
-    ? body.url
-    : url.searchParams.get("url");
+  const match = url.pathname.match(/^\/groups\/\d+\/repository\/(branches|commits|file-tree)$/);
+  if (!match) return null;
+  const resource = match[1];
+  const repositoryUrl = url.searchParams.get("url");
   if (typeof repositoryUrl !== "string" || !repositoryUrl) {
     return { status: 400, body: { message: "저장소 URL이 필요합니다." } };
   }
+  // refresh=true는 저장소에 새 변경이 생긴 것처럼 리비전을 올린다.
+  if (url.searchParams.get("refresh") === "true") snapshots.set(repositoryUrl, (snapshots.get(repositoryUrl) ?? 0) + 1);
   const revision = snapshots.get(repositoryUrl) ?? 0;
-  const repositoryBranches = branches(revision);
+  const repositoryBranches = branches();
   const branch = url.searchParams.get("branch") ?? "main";
 
-  if (method === "POST" && url.pathname === "/repositories/refresh") {
-    snapshots.set(repositoryUrl, revision + 1);
-    return { status: 204 };
-  }
   if (method !== "GET") return null;
-  if (url.pathname === "/repositories/branches") {
-    return { status: 200, body: repositoryBranches };
+  if (resource === "branches") {
+    return { status: 200, body: { branches: repositoryBranches } };
   }
-  if (url.pathname === "/repositories/commits") {
+  if (resource === "commits") {
     const page = Number(url.searchParams.get("page") ?? 0);
     if (!Number.isInteger(page) || page < 0) {
       return { status: 400, body: { message: "page는 0 이상의 정수여야 합니다." } };
@@ -63,11 +61,13 @@ export function handleRepositoryRequest(
     const start = page * PAGE_SIZE;
     return {
       status: 200,
-      body: { items: items.slice(start, start + PAGE_SIZE), nextPage: start + PAGE_SIZE < items.length ? page + 1 : null },
+      body: { page, receivedCount: items.slice(start, start + PAGE_SIZE).length, hasMore: start + PAGE_SIZE < items.length, commits: items.slice(start, start + PAGE_SIZE) },
     };
   }
-  if (url.pathname === "/repositories/tree") {
-    const commitSha = url.searchParams.get("commitSha");
+  if (resource === "file-tree") {
+    const requestedBranch = url.searchParams.get("branch");
+    const commitSha = requestedBranch ? commits(requestedBranch, revision)[0]?.sha : url.searchParams.get("commitSha");
+    if (requestedBranch && !repositoryBranches.some((entry) => entry.name === requestedBranch)) return { status: 404, body: { message: "브랜치를 찾을 수 없습니다." } };
     const known = repositoryBranches.some((entry) => commits(entry.name, revision).some((commit) => commit.sha === commitSha));
     if (!known) return { status: 404, body: { message: "커밋을 찾을 수 없습니다." } };
     // 실제로는 GitHub 등이 주는 raw 도메인 주소가 내려오지만(백엔드 책임), 지금은 API 요청
@@ -96,7 +96,7 @@ export function handleRepositoryRequest(
       externalBlob("assets/sample-audio.ogg", "https://upload.wikimedia.org/wikipedia/commons/9/9a/Music_Box_Sound_Effect.ogg"),
     ];
     if (commitSha?.startsWith("b")) entries.push(blob("src/components/Kanban.tsx"));
-    return { status: 200, body: entries };
+    return { status: 200, body: { commitSha, truncated: false, entries: entries.map((entry) => ({ path: entry.path, type: entry.type === "tree" ? "dir" : "file", rawUrl: entry.rawUrl ?? null })) } };
   }
   return null;
 }

@@ -52,9 +52,12 @@ type BoardListProps = {
   onListHandleKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>, id: string, index: number) => void;
   onCardHandlePointerDown: (event: ReactPointerEvent<HTMLButtonElement>, listId: string, cardId: string, cardIndex: number) => void;
   onCardHandleKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>, listId: string, cardId: string, cardIndex: number) => void;
+  isLoadingMoreCards: boolean;
+  onLoadMoreCards: (listId: string) => void;
+  isReadOnly: boolean;
 };
 
-export const BoardList = memo(function BoardList({ list, index, offset, isListDragActive, isDraggedList, isNew, isDeleting, isPlaced, sourceCardId, dropIndex, dropHeight, placedCardId, isPortfolioPublished, enabledFilters, onAddCard, onDeleteStart, onDeleteList, onToggleCardPortfolio, onCardClick, onUpdateList, onListHandlePointerDown, onListHandleKeyDown, onCardHandlePointerDown, onCardHandleKeyDown }: BoardListProps) {
+export const BoardList = memo(function BoardList({ list, index, offset, isListDragActive, isDraggedList, isNew, isDeleting, isPlaced, sourceCardId, dropIndex, dropHeight, placedCardId, isPortfolioPublished, enabledFilters, onAddCard, onDeleteStart, onDeleteList, onToggleCardPortfolio, onCardClick, onUpdateList, onListHandlePointerDown, onListHandleKeyDown, onCardHandlePointerDown, onCardHandleKeyDown, isLoadingMoreCards, onLoadMoreCards, isReadOnly }: BoardListProps) {
   const cards = useMemo(() => sourceCardId ? list.cards.filter((card) => card.id !== sourceCardId) : list.cards, [list.cards, sourceCardId]);
   const dropPlaceholder = useMemo(() => dropIndex === undefined || dropHeight === undefined
     ? undefined : { index: dropIndex, height: dropHeight }, [dropIndex, dropHeight]);
@@ -67,6 +70,7 @@ export const BoardList = memo(function BoardList({ list, index, offset, isListDr
   const handleCardKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>, cardId: string, cardIndex: number) => onCardHandleKeyDown(event, list.id, cardId, cardIndex), [list.id, onCardHandleKeyDown]);
   const handleListPointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => onListHandlePointerDown(event, list.id, index), [index, list.id, onListHandlePointerDown]);
   const handleListKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => onListHandleKeyDown(event, list.id, index), [index, list.id, onListHandleKeyDown]);
+  const handleLoadMoreCards = useCallback(() => onLoadMoreCards(list.id), [list.id, onLoadMoreCards]);
 
   return (
     <div
@@ -100,6 +104,10 @@ export const BoardList = memo(function BoardList({ list, index, offset, isListDr
         onUpdateList={handleUpdateList}
         onCardHandlePointerDown={handleCardPointerDown}
         onCardHandleKeyDown={handleCardKeyDown}
+        hasMoreCards={list.cards.length < list.cardCount}
+        isLoadingMoreCards={isLoadingMoreCards}
+        onLoadMoreCards={handleLoadMoreCards}
+        isReadOnly={isReadOnly}
       />
     </div>
   );

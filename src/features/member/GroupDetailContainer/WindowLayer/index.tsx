@@ -684,7 +684,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
   // 내용을 DOM 트리 밖(보통 body 근처)에 그린다 — React는 synthetic event를 리액트 트리
   // 기준으로 버블시켜 이 핸들러까지 올라오지만, windowsGroupRef.contains()는 실제 DOM 트리
   // 기준이라 포털 안 클릭은 "창 바깥"으로 오판된다. Popover의 role="dialog"와
-  // 언어 선택 등 Menu의 role="menu"를 따로 걸러낸다. Dialog의 배경·Positioner도 제외해서
+  // 언어 선택 등 Menu의 role="menu", 내용을 복사할 수 있는 툴팁의 role="tooltip"을 따로 걸러낸다. Dialog의 배경·Positioner도 제외해서
   // 모달을 닫는 바깥 클릭이 창 최소화까지 이어지지 않게 한다. 리사이즈 핸들(두 창 사이)도
   // windowsGroup 바깥의 형제 엘리먼트라 따로 걸러줘야 한다 — 안 그러면 드래그 없이 그냥
   // 클릭(또는 드래그 종료의 click 이벤트)만 해도 "바깥 클릭"으로 오인돼 둘 다 내려간다.
@@ -692,7 +692,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
     if (!(target instanceof Element)) return false;
     if (windowsGroupRef.current?.contains(target)) return false;
     if (resizeHandleRef.current?.contains(target)) return false;
-    if (target.closest('[role="dialog"], [role="menu"], button')) return false;
+    if (target.closest('[role="dialog"], [role="menu"], [role="tooltip"], button')) return false;
     if (target.closest('[data-scope="dialog"][data-part="backdrop"], [data-scope="dialog"][data-part="positioner"]')) return false;
     return true;
   };

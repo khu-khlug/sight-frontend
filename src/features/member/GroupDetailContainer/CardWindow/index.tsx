@@ -1,9 +1,12 @@
 import ContentSkeleton from "../../../../components/ContentSkeleton";
+import { GroupStatus } from "../../../../constant";
+import { useLoadMoreOnScroll } from "../../../../hooks/useLoadMoreOnScroll";
 import SkeletonWrapper from "../../../../components/SkeletonWrapper";
 import { Box, Text } from "@chakra-ui/react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 import { BriefcaseBusiness, CalendarPlus, ChevronDown, Eye, EyeOff, Handshake, Image, LockKeyhole, LockKeyholeOpen, PenBox, PenLine, Plus, SendHorizonal, StretchHorizontal, Trash2, User } from "lucide-react";
-import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardEvent, useEffect, useMemo, useRef, useState, useCallback } from "react";
 
 import { CardLabelDto, KanbanApi, KanbanCardDto, type CardCoverImageInput } from "../../../../api/public/group/KanbanApi";
 import AppTooltip from "../../../../components/AppTooltip";
@@ -51,6 +54,7 @@ type Props = {
   card: KanbanCardDto;
   listTitle: string;
   isPortfolioPublished: boolean;
+  groupStatus: GroupStatus;
   onUpdateLabels: (cardId: string, labels: CardLabelDto[]) => void;
   onUpdateAssignee: (cardId: string, assigneeUserId: number | null) => void;
   onUpdateCoverImage: (cardId: string, input: CardCoverImageInput) => Promise<unknown>;
@@ -70,7 +74,7 @@ type Props = {
 
 type EditingField = "title" | "description" | null;
 
-export default function CardWindow({ binding, groupId, card, listTitle, isPortfolioPublished, onUpdateLabels, onUpdateAssignee, onUpdateCoverImage, onTogglePortfolio, onToggleDisabled, onDeleteCard, onDeleteRecord, onRestoreRecord, onOpenNewRecord, onOpenEditRecord, onOpenCard, focusRecordId, onRecordFocused }: Props) {
+export default function CardWindow({ binding, groupId, card, listTitle, isPortfolioPublished, groupStatus, onUpdateLabels, onUpdateAssignee, onUpdateCoverImage, onTogglePortfolio, onToggleDisabled, onDeleteCard, onDeleteRecord, onRestoreRecord, onOpenNewRecord, onOpenEditRecord, onOpenCard, focusRecordId, onRecordFocused }: Props) {
   const { role, minimized, isClosing, canGoDual, onToggleMinimize, onClose, onSwitchSide, onExpand, onSendToSide, registerCloseGuard } = binding;
   const isDualLayer = role !== "single";
   const [isTitleStuck, setIsTitleStuck] = useState(false);
@@ -90,17 +94,32 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     return () => observer.disconnect();
   }, []);
   const [isCoverFormOpen, setIsCoverFormOpen] = useState(false);
-  const [sortOrder, setSortOrder] = useState<RecordSortOrder>("newest");
+  // 기록 정렬은 카드에 저장된 설정이라 카드 단건 조회로 시작 값을 받고, 바꾸면 카드 정보 변경으로 저장한다.
+  const cardDetailQuery = useQuery({
+    queryKey: ["group-detail", groupId, "card", card.id],
+    queryFn: () => KanbanApi.getGroupCard(groupId, card.id),
+  });
+  const sortOrder: RecordSortOrder = cardDetailQuery.data?.recordSort ?? "NEWEST";
+  const queryClient = useQueryClient();
+  const setSortOrder = (next: RecordSortOrder) => {
+    if (next === sortOrder) return;
+    queryClient.setQueryData(["group-detail", groupId, "card", card.id], (previous: typeof cardDetailQuery.data) => previous && { ...previous, recordSort: next });
+    KanbanApi.updateGroupCard(groupId, card.id, { recordSort: next })
+      .catch(() => {
+        toast.error("기록 정렬을 저장하지 못했습니다.");
+        void cardDetailQuery.refetch();
+      });
+  };
   const [showDeleted, setShowDeleted] = useState(true);
   const recordsQuery = useInfiniteQuery({
     queryKey: ["group-detail", groupId, "kanban", card.id, "records", sortOrder, showDeleted],
     queryFn: ({ pageParam, signal }) => KanbanApi.listGroupRecordsPage(groupId, card.id, {
-      offset: pageParam, limit: 10, sortOrder, includeDeleted: showDeleted,
+      skip: pageParam, limit: 10, includeDeleted: showDeleted,
     }, signal),
     initialPageParam: 0,
     getNextPageParam: (lastPage, _pages, lastOffset) => {
       const nextOffset = lastOffset + lastPage.records.length;
-      return lastPage.records.length > 0 && nextOffset < lastPage.count ? nextOffset : undefined;
+      return lastPage.records.length > 0 && nextOffset < lastPage.totalCount ? nextOffset : undefined;
     },
   });
   const records = useMemo(() => recordsQuery.data?.pages.flatMap((page) => page.records) ?? [], [recordsQuery.data]);
@@ -108,6 +127,10 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
   // 찾으면 스크롤한 뒤 잠깐 강조 표시한다(강조 애니메이션이 끝나면 RecordItem이 알려 해제).
   const [highlightedRecordId, setHighlightedRecordId] = useState<string | null>(null);
   const { hasNextPage, isFetching, isFetchingNextPage, isFetchNextPageError, isError, fetchNextPage } = recordsQuery;
+  // 기록 목록 끝의 스켈레톤이 보이거나 목록이 짧아 빈 공간이 남으면 다음 기록을 이어서 불러온다.
+  const recordsSentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreRecords = useCallback(() => { void fetchNextPage(); }, [fetchNextPage]);
+  useLoadMoreOnScroll({ sentinelRef: recordsSentinelRef, hasMore: Boolean(hasNextPage) && !isFetchNextPageError, isLoading: isFetching, loadMore: loadMoreRecords });
   useEffect(() => {
     if (!focusRecordId) return;
     // 내려간 창이면 먼저 펼친다. 펼쳐져 minimized가 바뀌면 이 effect가 다시 돌며 스크롤한다.
@@ -115,7 +138,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
       onToggleMinimize();
       return;
     }
-    if (records.some((record) => record.id === focusRecordId)) {
+    if (records.some((record) => String(record.id) === focusRecordId)) {
       contentRef.current
         ?.querySelector<HTMLElement>(`[data-record-id="${CSS.escape(focusRecordId)}"]`)
         ?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -133,18 +156,23 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     onRecordFocused();
   }, [focusRecordId, minimized, onToggleMinimize, records, hasNextPage, isFetching, isFetchingNextPage, isFetchNextPageError, isError, fetchNextPage, onRecordFocused]);
   const handleToggleRecordDeleted = (recordId: string) => {
-    const record = records.find((item) => item.id === recordId);
+    const record = records.find((item) => String(item.id) === recordId);
     if (!record) return;
-    if (record.deleted) onRestoreRecord(recordId); else onDeleteRecord(recordId);
+    if (record.isDeleted) onRestoreRecord(recordId); else onDeleteRecord(recordId);
   };
   const [editingField, setEditingField] = useState<EditingField>(null);
   const [title, setTitle] = useState(card.title);
   const [draftTitle, setDraftTitle] = useState(card.title);
   const [description, setDescription] = useState(MOCK_DESCRIPTION);
+  // 종료 그룹과 비활성 카드에서는 내용을 바꿀 수 없다. 레이블·포트폴리오는 중단 그룹에서도 바꿀 수 없다.
+  const isGroupEnded = groupStatus === GroupStatus.SUCCESS || groupStatus === GroupStatus.FAIL;
+  const isGroupStopped = groupStatus === GroupStatus.STOP;
+  const isContentLocked = card.isDisabled || isGroupEnded;
+  const isLabelLocked = isContentLocked || isGroupStopped;
   const [draftDescription, setDraftDescription] = useState(description);
   const editBoxRef = useRef<HTMLDivElement>(null);
   const startEditingTitle = () => {
-    if (card.disabled) return;
+    if (isContentLocked) return;
     setDraftTitle(title);
     setEditingField("title");
   };
@@ -153,7 +181,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     setEditingField(null);
   };
   const startEditingDescription = () => {
-    if (card.disabled) return;
+    if (isContentLocked) return;
     setDraftDescription(description);
     setEditingField("description");
   };
@@ -202,7 +230,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     return () => document.removeEventListener("pointerdown", cancelOnOutsideClick);
   }, [editingField, isDescriptionDirty, isTitleDirty]);
   const toggleLabel = (color: CardLabelDto) => {
-    if (card.disabled) return;
+    if (isLabelLocked) return;
     const next = card.labels.includes(color)
       ? card.labels.filter((label) => label !== color)
       : [...card.labels, color];
@@ -246,7 +274,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
   return (
     <Window
       isSub={role === "sub"}
-      bg={card.disabled ? "gray.100" : undefined}
+      bg={card.isDisabled ? "gray.100" : undefined}
       minimized={minimized}
       onToggleMinimize={() => {
         if (!minimized && editingField !== null) {
@@ -280,8 +308,8 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 borderWidth="2px"
                 borderColor={LABEL_COLOR_HEX[color]}
                 bg={card.labels.includes(color) ? LABEL_COLOR_HEX[color] : "transparent"}
-                cursor={card.disabled ? "default" : "pointer"}
-                _active={card.disabled ? undefined : { transform: "scale(0.9)" }}
+                cursor={isLabelLocked ? "default" : "pointer"}
+                _active={isLabelLocked ? undefined : { transform: "scale(0.9)" }}
                 onClick={(event) => {
                   event.stopPropagation();
                   toggleLabel(color);
@@ -316,7 +344,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
             styles.section,
             styles.titleSection,
             isTitleStuck ? styles.titleStuck : undefined,
-            card.disabled ? styles.titleDisabled : undefined,
+            isContentLocked ? styles.titleDisabled : undefined,
           )}
         >
           {editingField === "title" ? (
@@ -340,7 +368,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
             </Box>
           ) : (
             <Text
-              className={cn(styles.title, card.disabled ? styles.titleReadOnly : undefined)}
+              className={cn(styles.title, isContentLocked ? styles.titleReadOnly : undefined)}
               fontSize="2xl"
               fontWeight="bold"
               onClick={startEditingTitle}
@@ -348,7 +376,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
               {title}
             </Text>
           )}
-          {!card.disabled && (
+          {!isContentLocked && (
             <AppTooltip
               content={editingField ? "제목/설명 수정을 마친 뒤 기록할 수 있습니다" : "새 기록 작성"}
               placement="top"
@@ -379,14 +407,14 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
             </Box>
           ) : description ? (
             <Box
-              className={cn(styles.descriptionText, styles.descriptionMarkdown, card.disabled ? styles.titleReadOnly : undefined)}
+              className={cn(styles.descriptionText, styles.descriptionMarkdown, isContentLocked ? styles.titleReadOnly : undefined)}
               onClick={startEditingDescription}
             >
               <MarkdownViewer content={description} />
             </Box>
           ) : (
             <Text
-              className={cn(styles.descriptionText, card.disabled ? styles.titleReadOnly : undefined)}
+              className={cn(styles.descriptionText, isContentLocked ? styles.titleReadOnly : undefined)}
               color="gray.500"
               onClick={startEditingDescription}
             >
@@ -410,7 +438,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
             </Box>
             <Box className={styles.metaItem}>
               <User size={14} />
-              {card.disabled ? (
+              {isContentLocked ? (
                 <Text fontSize="xs">{card.assigneeName ?? "없음"}</Text>
               ) : card.assigneeName ? (
                 <AssigneePicker
@@ -447,20 +475,27 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 {showDeleted ? <EyeOff size={16} /> : <Eye size={16} />}
               </Box>
             </AppTooltip>
-            {card.disabled ? (
-              <Box as="button" className={styles.activateButton} onClick={handleActivate}>
-                <LockKeyholeOpen size={14} />
-                카드 활성화
-              </Box>
+            {isGroupEnded ? null : card.isDisabled ? (
+              <>
+                <Box as="button" className={styles.activateButton} onClick={handleActivate}>
+                  <LockKeyholeOpen size={14} />
+                  카드 활성화
+                </Box>
+                <AppTooltip content="카드 삭제" placement="top">
+                  <Box as="button" className={cn(styles.secondaryActionButton, styles.deleteIconButton)} aria-label="카드 삭제" onClick={handleDelete}>
+                    <Trash2 size={16} />
+                  </Box>
+                </AppTooltip>
+              </>
             ) : (
               <>
-                {isPortfolioPublished && (
-                  <AppTooltip content={card.portfolio ? "포트폴리오에서 제외하기" : "포트폴리오에 포함하기"} placement="top">
+                {isPortfolioPublished && !isGroupStopped && (
+                  <AppTooltip content={card.isInPortfolio ? "포트폴리오에서 제외하기" : "포트폴리오에 포함하기"} placement="top">
                     <Box
                       as="button"
-                      className={cn(styles.secondaryActionButton, card.portfolio ? styles.portfolioActive : undefined)}
-                      aria-label={card.portfolio ? "포트폴리오에서 제외하기" : "포트폴리오에 포함하기"}
-                      aria-pressed={card.portfolio}
+                      className={cn(styles.secondaryActionButton, card.isInPortfolio ? styles.portfolioActive : undefined)}
+                      aria-label={card.isInPortfolio ? "포트폴리오에서 제외하기" : "포트폴리오에 포함하기"}
+                      aria-pressed={card.isInPortfolio}
                       onClick={onTogglePortfolio}
                     >
                       <BriefcaseBusiness size={16} />
@@ -522,33 +557,39 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 key={record.id}
                 groupId={groupId}
                 cardId={card.id}
-                cardTitle={card.title}
                 record={record}
-                disabled={card.disabled}
+                disabled={isContentLocked}
+                canArchive={!isGroupEnded && !isGroupStopped}
+                isPortfolioPublished={isPortfolioPublished}
                 onToggleDeleted={handleToggleRecordDeleted}
-                onEdit={() => onOpenEditRecord(record.id)}
+                onEdit={() => onOpenEditRecord(String(record.id))}
                 onOpenCard={onOpenCard}
-                highlighted={record.id === highlightedRecordId}
+                highlighted={String(record.id) === highlightedRecordId}
                 onHighlightEnd={() => setHighlightedRecordId(null)}
               />
             ))
           )}
-          {recordsQuery.isFetchingNextPage && <ContentSkeleton />}
-          {recordsQuery.isFetchNextPageError && (
-            <Text className={styles.noRecords} role="alert">다음 기록을 불러오지 못했습니다. 더 보기를 눌러 다시 시도하세요.</Text>
+          {/* 다음 기록이 남아 있으면 끝에 스켈레톤을 늘 두고, 이 스켈레톤이 보이면 이어서 불러온다. */}
+          {recordsQuery.hasNextPage && !recordsQuery.isFetchNextPageError && (
+            <div ref={recordsSentinelRef} aria-busy={recordsQuery.isFetchingNextPage}>
+              <ContentSkeleton />
+            </div>
           )}
-          {recordsQuery.data && (
+          {recordsQuery.isFetchNextPageError && (
+            <Text className={styles.noRecords} role="alert">다음 기록을 불러오지 못했습니다. 다시 시도를 눌러 주세요.</Text>
+          )}
+          {recordsQuery.data && (recordsQuery.isFetchNextPageError || (!recordsQuery.hasNextPage && records.length > 0)) && (
             <Box className={styles.recordsFooter}>
-              {recordsQuery.hasNextPage ? (
+              {recordsQuery.isFetchNextPageError ? (
                 <button
                   type="button"
                   className={styles.moreRecords}
                   disabled={recordsQuery.isFetching}
                   onClick={() => { if (!recordsQuery.isFetching) void recordsQuery.fetchNextPage(); }}
                 >
-                  {recordsQuery.isFetchingNextPage ? "불러오는 중…" : "- 더 보기 -"}
+                  - 다시 시도 -
                 </button>
-              ) : records.length > 0 && (
+              ) : (
                 <Text className={styles.lastRecord}>- 마지막 기록입니다 -</Text>
               )}
             </Box>

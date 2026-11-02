@@ -1,14 +1,22 @@
 import { GroupCategory, GroupInterest, GroupStatus, GroupVisibility } from "../../src/constant";
-import type { GroupInfoDto as GroupInfo } from "../../src/api/public/group/types";
+import type { GroupInfoDto } from "../../src/api/public/group/types";
+// 목업 서버 내부의 그룹 상태. 그룹장은 회원 아이디로 들고, 요청자 기준 값(isLeader 등)은 응답할 때 계산한다.
+export type GroupInfo = Omit<GroupInfoDto, "isLeader"> & { leaderUserId: number; archivedCardCount: number; savedRecordCount: number };
 import type { GroupMemberDto as GroupMember } from "../../src/api/public/group/GroupMemberListApi";
-import type { ActivityLogEntryDto as ActivityLogEntry } from "../../src/api/public/group/GroupActivityLogApi";
+// 목업은 레거시처럼 완성 문장으로 로그를 들고, 응답할 때 LEGACY 로그로 내려준다.
+export type ActivityLogEntry = { id: string; memberName: string; message: string; createdAt: string };
 import type { ArchivedCardDto as ArchivedCard, SavedRecordDto as SavedRecord } from "../../src/api/public/group/GroupArchiveApi";
 import type { ChatMessageDto as ChatMessage } from "../../src/api/public/group/GroupChatApi";
 import type { ActivityReportDto as ActivityReport, OpenSeminarCohortDto as OpenSeminarCohort } from "../../src/api/public/group/GroupExposureApi";
 import type { CardLabelDto as LabelColor } from "../../src/api/public/group/KanbanApi";
 import { legacyRecordAttachments, legacyRecordContent } from "./legacyRecordContent";
-export interface MockRecord { type: "tiptap" | "legacy"; id: string; authorName: string; authorUserId: number; content: string; createdAt: string; updatedAt: string; deleted: boolean }
-export interface MockCard { id: string; title: string; description: string; portfolio: boolean; authorName: string; authorUserId: number; assigneeName: string | null; assigneeUserId: number | null; inheritedFrom: string | null; coverImageUrl: string | null; labels: LabelColor[]; disabled: boolean; createdAt: string; records: MockRecord[] }
+// 기록 아이디는 백엔드처럼 숫자다. 목업 전체에서 이 함수로만 새 아이디를 만든다.
+let mockRecordSeq = 1;
+export const nextMockRecordId = () => mockRecordSeq++;
+export interface MockRecord { type: "tiptap" | "legacy"; id: number; authorName: string; authorUserId: number; content: string; createdAt: string; updatedAt: string; deleted: boolean; isInPortfolio?: boolean; files?: MockRecordFile[] }
+// 기록 본문이 참조하는 첨부 파일. fileId는 uploads 맵의 키다.
+export type MockRecordFile = { id: string; fileId: string; name: string; size: number; contentType: string }
+export interface MockCard { id: string; title: string; description: string; portfolio: boolean; authorName: string; authorUserId: number; assigneeName: string | null; assigneeUserId: number | null; inheritedFrom: string | null; coverImageUrl: string | null; labels: LabelColor[]; disabled: boolean; createdAt: string; records: MockRecord[]; recordSort?: "NEWEST" | "OLDEST" | "RECENTLY_UPDATED" }
 export interface MockList { id: string; title: string; description: string; cards: MockCard[] }
 const dummyGroupInfo: GroupInfo = {
   id: 1,
@@ -104,7 +112,7 @@ const dummySavedRecords: SavedRecord[] = Array.from({ length: 24 }, (_, index) =
   const listIndex = index % 8;
   const cardIndex = index % ((listIndex % 4) + 3);
   return {
-    id: `saved-${index + 1}`,
+    id: nextMockRecordId(),
     type: "tiptap" as const,
     content: SAVED_RECORD_CONTENTS[index % SAVED_RECORD_CONTENTS.length],
     cardId: `${listIndex + 1}-${cardIndex + 1}`,
@@ -162,6 +170,7 @@ const dummyChatMessages: ChatMessage[] = CHAT_MESSAGES.map((content, index) => {
     authorName: member.name,
     content,
     createdAt,
+    attachments: [],
   };
 });
 
@@ -206,12 +215,13 @@ const ALL_ELEMENTS_RECORD_HTML = [
 
 function createLongMockRecords(listIndex: number, cardIndex: number, member: { name: string; userId: number }): MockRecord[] {
   const baseTime = Date.parse("2026-08-01T00:00:00Z") + (listIndex * 10 + cardIndex) * 86400000;
+  // 리스트 1 카드 3은 카드 창 기록 이어 불러오기(10개 단위)를 확인할 수 있게 기록을 45개 둔다.
   const contents = listIndex === 0 && cardIndex === 1
     ? [ALL_ELEMENTS_RECORD_HTML, ...LONG_RECORD_PARAGRAPHS]
-    : LONG_RECORD_PARAGRAPHS;
+    : Array.from({ length: 45 }, (_, index) => `${index + 1}번째 기록. ${LONG_RECORD_PARAGRAPHS[index % LONG_RECORD_PARAGRAPHS.length]}`);
   return contents.map((content, index) => ({
     type: "tiptap" as const,
-    id: `${listIndex + 1}-${cardIndex + 1}-long-r${index + 1}`,
+    id: nextMockRecordId(),
     authorName: member.name,
     authorUserId: member.userId,
     content,
@@ -236,11 +246,12 @@ const LABEL_SETS: LabelColor[][] = [
 // 실제 백엔드 형식을 그대로 흉내 내는 게 더 정확하다).
 let mockCardIdCounter = 0;
 
-const dummyLists: MockList[] = Array.from({ length: 8 }, (_, listIndex) => ({
+// 자동 불러오기를 확인할 수 있게 리스트는 한 페이지(10개)보다 많이, 5번째마다 카드를 한 페이지(15개)보다 많이 둔다.
+const dummyLists: MockList[] = Array.from({ length: 25 }, (_, listIndex) => ({
   id: String(listIndex + 1),
   title: `리스트 ${listIndex + 1}`,
   description: `리스트 ${listIndex + 1}에서 진행할 작업을 모아두는 공간입니다.`,
-  cards: Array.from({ length: (listIndex % 4) + 3 }, (_, cardIndex) => {
+  cards: Array.from({ length: listIndex % 5 === 0 ? 40 : (listIndex % 4) + 3 }, (_, cardIndex) => {
     const member = dummyMembers[cardIndex % dummyMembers.length];
     mockCardIdCounter += 1;
     return {
@@ -263,7 +274,7 @@ const dummyLists: MockList[] = Array.from({ length: 8 }, (_, listIndex) => ({
         : [
           {
             type: "tiptap" as const,
-            id: `${listIndex + 1}-${cardIndex + 1}-r1`, authorName: member.name, authorUserId: member.userId,
+            id: nextMockRecordId(), authorName: member.name, authorUserId: member.userId,
             content: `${member.name}님이 진행 상황을 기록했습니다.`,
             createdAt: new Date(Date.parse("2026-08-01T00:00:00Z") + (listIndex * 10 + cardIndex) * 86400000 + 1000).toISOString(),
             updatedAt: new Date(Date.parse("2026-08-01T00:00:00Z") + (listIndex * 10 + cardIndex) * 86400000 + 1000).toISOString(),
@@ -271,7 +282,7 @@ const dummyLists: MockList[] = Array.from({ length: 8 }, (_, listIndex) => ({
           },
           {
             type: "tiptap" as const,
-            id: `${listIndex + 1}-${cardIndex + 1}-r2`, authorName: member.name, authorUserId: member.userId,
+            id: nextMockRecordId(), authorName: member.name, authorUserId: member.userId,
             content: "리뷰 반영 완료.",
             createdAt: new Date(Date.parse("2026-08-01T00:00:00Z") + (listIndex * 10 + cardIndex) * 86400000 + 2000).toISOString(),
             updatedAt: new Date(Date.parse("2026-08-01T00:00:00Z") + (listIndex * 10 + cardIndex) * 86400000 + 2000).toISOString(),
@@ -281,6 +292,32 @@ const dummyLists: MockList[] = Array.from({ length: 8 }, (_, listIndex) => ({
     };
   }),
 }));
+
+// 사이트에 올린 첨부 파일이 있는 기록. 목업 서버가 시작할 때 이 파일들을 업로드가 끝난 상태로 등록한다(groups.ts).
+const MOCK_ATTACHMENT_IMAGE = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"160\"><rect width=\"320\" height=\"160\" fill=\"#dbeafe\"/><text x=\"160\" y=\"88\" font-size=\"20\" text-anchor=\"middle\" fill=\"#1e3a8a\">화면 설계 시안</text></svg>";
+const MOCK_ATTACHMENT_TEXT = "SIGHT 리뉴얼 회의록\n- 칸반 이어 불러오기 확인\n- 첨부 파일 보기 확인\n";
+const byteLength = (text: string) => new TextEncoder().encode(text).length;
+export const MOCK_UPLOADED_RECORD_FILES: (MockRecordFile & { data: string })[] = [
+  { id: "f-mock-image", fileId: "mock-record-file-image", name: "화면 설계 시안.svg", size: byteLength(MOCK_ATTACHMENT_IMAGE), contentType: "image/svg+xml", data: MOCK_ATTACHMENT_IMAGE },
+  { id: "f-mock-text", fileId: "mock-record-file-text", name: "회의록.txt", size: byteLength(MOCK_ATTACHMENT_TEXT), contentType: "text/plain", data: MOCK_ATTACHMENT_TEXT },
+];
+{
+  const card = dummyLists[0].cards[1];
+  const createdAt = new Date(Date.parse(card.createdAt) + 60000).toISOString();
+  const [image, textFile] = MOCK_UPLOADED_RECORD_FILES;
+  card.records.push({
+    type: "tiptap", id: nextMockRecordId(), authorName: card.authorName, authorUserId: card.authorUserId,
+    content: [
+      "<p>사이트에 올린 첨부 파일이 있는 기록입니다.</p>",
+      `<img src="sightfile:${image.id}" alt="${image.name}">`,
+      `<div data-type="file-attachment" data-src="sightfile:${textFile.id}" data-name="${textFile.name}" data-size="${textFile.size}" data-content-type="${textFile.contentType}"></div>`,
+      "<p>아래 이미지는 외부 주소라 첨부 파일 목록에 나오지 않습니다.</p>",
+      "<img src=\"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Public_domain_cat_photo_on_the_streets.jpg/960px-Public_domain_cat_photo_on_the_streets.jpg\" alt=\"외부 이미지\">",
+    ].join(""),
+    createdAt, updatedAt: createdAt, deleted: false,
+    files: MOCK_UPLOADED_RECORD_FILES.map(({ data: _data, ...file }) => file),
+  });
+}
 
 // 세미나 접수 기간은 그룹이 아니라 운영진이 클럽 전체 단위로 연다 — 지금은 열려있다고 가정.
 const dummyOpenSeminarCohort: OpenSeminarCohort = {
@@ -352,7 +389,7 @@ export function createGroupFixture() {
   }
   // 제공받은 기록 #113908의 real_content 원문이다. 첫 카드에서 기존 Tiptap 기록과 함께 표시한다.
   data.lists[0].cards[0].records.push({
-    type: "legacy", id: "113908", authorName: "구자웅", authorUserId: 1,
+    type: "legacy", id: 113908, authorName: "구자웅", authorUserId: 1,
     content: `<h1>구상</h1>
 
 <p>어떤 책들이 있는지 저장.</p>
@@ -363,7 +400,7 @@ export function createGroupFixture() {
     createdAt: "2026-03-20T11:08:32+09:00", updatedAt: "2026-03-20T11:08:32+09:00", deleted: false,
   });
   data.lists[0].cards[0].records.push({
-    type: "legacy", id: "118953", authorName: "구자웅", authorUserId: 1,
+    type: "legacy", id: 118953, authorName: "구자웅", authorUserId: 1,
     content: `<div class="real_content">${legacyRecordContent}</div>${legacyRecordAttachments}`,
     createdAt: "2026-10-08T23:42:20+09:00", updatedAt: "2026-10-08T23:42:20+09:00", deleted: false,
   });

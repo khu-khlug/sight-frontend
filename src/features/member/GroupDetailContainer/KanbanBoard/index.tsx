@@ -1,6 +1,8 @@
 import { CSSProperties, FormEvent, memo, PointerEvent as ReactPointerEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ScrollArea } from "@chakra-ui/react";
+import ContentSkeleton from "../../../../components/ContentSkeleton";
+import { useLoadMoreOnScroll } from "../../../../hooks/useLoadMoreOnScroll";
 import { Plus } from "lucide-react";
 
 import Container from "../../../../components/Container";
@@ -53,11 +55,13 @@ const WINDOW_COVER_EXTRA_SCROLL = 40;
 // mainCardId)만 바뀌어도 부모가 리렌더된다 — memo로 감싸서 실제로 전달받는 props가
 // 안 바뀌면(핸들러는 전부 useGroupAction의 안정적인 mutate에 물린 useCallback) 이 무거운
 // 보드 전체가 같이 리렌더(깜빡임)되지 않게 막는다.
-const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfolioPublished, dashboardOverlayRef, dashboardExtraWidthPx, enabledFilters = DEFAULT_ENABLED_FILTERS, windowCoverage = null, onMinimizedHoverRequest, onScrollbarGrabbedChange, onAddCard, onAddList, onDeleteList, onMoveList, onMoveCard, onToggleCardPortfolio, onCardClick, onUpdateList }: Props) {
+const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMoreLists, onLoadMoreLists, loadingCardListIds, onLoadMoreCards, isMovePending, isReadOnly = false, isPortfolioPublished, dashboardOverlayRef, dashboardExtraWidthPx, enabledFilters = DEFAULT_ENABLED_FILTERS, windowCoverage = null, onMinimizedHoverRequest, onScrollbarGrabbedChange, onAddCard, onAddList, onDeleteList, onMoveList, onMoveCard, onToggleCardPortfolio, onCardClick, onUpdateList }: Props) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const addListFormRef = useRef<HTMLFormElement>(null);
+  const listSentinelRef = useRef<HTMLDivElement>(null);
+  useLoadMoreOnScroll({ rootRef: viewportRef, sentinelRef: listSentinelRef, hasMore: hasMoreLists, isLoading: isLoadingMoreLists, loadMore: onLoadMoreLists, axis: "horizontal" });
   const pendingPointerRef = useRef<PendingPointer | null>(null);
   const dragRef = useRef<DragSession | null>(null);
   const pendingCardPointerRef = useRef<PendingCardPointer | null>(null);
@@ -92,23 +96,51 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
   const leftCoverSpacerSpace = leftCoverSpacerWidth > 0 ? leftCoverSpacerWidth + LIST_GAP : 0;
   const leftSpace = dashboardExtraWidthPx + leftCoverSpacerSpace;
   const prevLeftSpaceRef = useRef(leftSpace);
-  // useEffect(페인트 이후 실행)로 두면, spacer 폭은 이미 반영됐는데 scrollLeft는 아직 안
-  // 바뀐 프레임이 브라우저에 실제로 한 번 그려진다 — 콘텐츠가 밀렸다가 다음 프레임에 제자리로
-  // "돌아오는" 깜빡임의 원인이었다. useLayoutEffect(페인트 이전 실행)로 같은 커밋 안에서
-  // scrollLeft까지 맞춘 뒤에 그려야 그 프레임 자체가 생기지 않는다.
+  const prevDashboardExtraWidthRef = useRef(dashboardExtraWidthPx);
+  const restoreTransitionFrameRef = useRef<number | null>(null);
+  // useLayoutEffect(페인트 이전 실행)로 같은 커밋 안에서 scrollLeft까지 맞춘 뒤에 그린다 —
+  // useEffect(페인트 이후 실행)면 spacer 폭은 반영됐는데 scrollLeft는 아직 안 바뀐 프레임이
+  // 한 번 그려져, 콘텐츠가 밀렸다가 다음 프레임에 제자리로 돌아오는 깜빡임이 생긴다.
   useLayoutEffect(() => {
     const delta = leftSpace - prevLeftSpaceRef.current;
+    const dashboardDelta = dashboardExtraWidthPx - prevDashboardExtraWidthRef.current;
     prevLeftSpaceRef.current = leftSpace;
+    prevDashboardExtraWidthRef.current = dashboardExtraWidthPx;
     const viewport = viewportRef.current;
-    if (delta === 0 || !viewport) return;
+    const content = contentRef.current;
+    if (delta === 0 || !viewport || !content) return;
+    // 스크롤 위치를 판단하려면 바뀐 패딩으로 레이아웃을 읽어야 한다. 읽는 순간 패딩 전환이
+    // 시작되지 않도록 먼저 전환을 끄고, 필요한 경우에만 아래에서 다시 켠다.
+    content.style.transition = "none";
+    if (restoreTransitionFrameRef.current !== null) cancelAnimationFrame(restoreTransitionFrameRef.current);
     // 스크롤이 이미 양 끝 중 한쪽이면 보정하지 않는다 — 양 끝에서는 콘텐츠가 밀리는 바로 그
     // 효과가 "창에 가려졌던 리스트를 드러낸다"는 spacer 본연의 목적이다(보정해버리면 가려진
     // 리스트가 다시 안 보이게 된다). 중간 어딘가를 보고 있을 때만 "보던 자리 유지"가 맞다.
     const isAtStart = viewport.scrollLeft <= 0;
     const isAtEnd = viewport.scrollLeft >= viewport.scrollWidth - viewport.clientWidth - 1;
-    if (isAtStart || isAtEnd) return;
-    viewport.scrollLeft += delta;
-  }, [leftSpace]);
+    if (isAtStart || isAtEnd) {
+      // 보정하지 않으면 대시보드 폭 변화만큼 리스트가 밀린다. 바뀌기 전 패딩에서 시작해
+      // CSS의 padding-left 전환으로 밀려 가게 한다(spacer 폭 변화는 즉시 반영된다).
+      if (dashboardDelta !== 0) {
+        const finalPadding = parseFloat(getComputedStyle(content).paddingLeft);
+        content.style.paddingLeft = `${finalPadding - dashboardDelta}px`;
+        void content.offsetWidth;
+        content.style.transition = "";
+        content.style.paddingLeft = "";
+        return;
+      }
+    } else {
+      viewport.scrollLeft += delta;
+    }
+    // 보정했으면 리스트는 제자리라 전환이 필요 없다. 이번 변경이 그려진 뒤에 전환을 되돌린다.
+    restoreTransitionFrameRef.current = requestAnimationFrame(() => {
+      restoreTransitionFrameRef.current = null;
+      content.style.transition = "";
+    });
+  }, [leftSpace, dashboardExtraWidthPx]);
+  useEffect(() => () => {
+    if (restoreTransitionFrameRef.current !== null) cancelAnimationFrame(restoreTransitionFrameRef.current);
+  }, []);
 
   const setDragSession = useCallback((next: DragSession | null) => {
     dragRef.current = next;
@@ -747,8 +779,17 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
                 onListHandleKeyDown={handleHandleKeyDown}
                 onCardHandlePointerDown={handleCardHandlePointerDown}
                 onCardHandleKeyDown={handleCardHandleKeyDown}
+                isLoadingMoreCards={loadingCardListIds.has(list.id)}
+                isReadOnly={isReadOnly}
+                onLoadMoreCards={onLoadMoreCards}
               />
             ))}
+            {hasMoreLists && (
+              <div ref={listSentinelRef} className={styles.listSkeleton} aria-busy={isLoadingMoreLists}>
+                <ContentSkeleton />
+              </div>
+            )}
+            {!isReadOnly && (
             <form ref={addListFormRef} className={styles.addListForm} onSubmit={handleAddList}>
               <input
                 className={styles.addListInput}
@@ -764,6 +805,7 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
                 리스트 생성
               </button>
             </form>
+            )}
             {windowCoverage?.side === "right" && (
               <div className={styles.coverSpacer} style={{ width: windowCoverage.widthPx + WINDOW_COVER_EXTRA_SCROLL }} aria-hidden="true" />
             )}
@@ -794,13 +836,12 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
             title={draggedCard.title}
             recordCount={draggedCard.recordCount}
             hasDescription={draggedCard.hasDescription}
-            inPortfolio={draggedCard.portfolio}
+            inPortfolio={draggedCard.isInPortfolio}
             showPortfolioStatus={isPortfolioPublished}
             assigneeName={draggedCard.assigneeName}
-            inheritedFrom={draggedCard.inheritedFrom}
             coverImageUrl={draggedCard.coverImageUrl}
             labels={draggedCard.labels}
-            disabled={draggedCard.disabled}
+            disabled={draggedCard.isDisabled}
             dimmed={isCardDimmed(draggedCard.labels ?? [], enabledFilters)}
             showDragHandle
           />

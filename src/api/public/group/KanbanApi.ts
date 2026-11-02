@@ -1,5 +1,4 @@
 import apiV2Client from "../../client/v2";
-import type { SavedRecordDto } from "./GroupArchiveApi";
 
 export type CardLabelDto = "red" | "yellow" | "green" | "blue" | "purple" | "lightGray" | "gray" | "black";
 export type KanbanCardDto = {
@@ -8,42 +7,64 @@ export type KanbanCardDto = {
   authorName: string;
   recordCount: number;
   hasDescription: boolean;
-  portfolio: boolean;
+  isInPortfolio: boolean;
   assigneeName: string | null;
   assigneeUserId: number | null;
-  inheritedFrom: string | null;
   coverImageUrl: string | null;
   labels: CardLabelDto[];
-  disabled: boolean;
+  isDisabled: boolean;
   createdAt: string;
 };
 export type KanbanListDto = {
   id: string;
   title: string;
   description: string;
+  cardCount: number;
   cards: KanbanCardDto[];
 };
+// 목록 응답 공통 형태. 다음 시작 위치는 skip + receivedCount다.
+type PageMeta = { skip: number; totalCount: number; receivedCount: number };
+export type KanbanListPageDto = PageMeta & { lists: KanbanListDto[] };
+export type KanbanCardPageDto = PageMeta & { cards: KanbanCardDto[] };
+export type KanbanCardDetailDto = KanbanCardDto & { listId: string; listTitle: string; description: string; recordSort: RecordSort };
 export type CardCoverImageUploadLinkDto = { url: string; fileUploadId: string };
 export type CardCoverImageInput = { coverImageUrl: string | null } | { fileUploadId: string };
-// fileUrl은 업로드가 끝난 뒤 기록 본문(img/audio src, 파일 다운로드 링크)에 그대로 넣는 주소다.
-export type RecordMediaUploadLinkDto = { url: string; fileUploadId: string; fileUrl: string };
 export type RecordType = "tiptap" | "legacy";
 export type RecordDto = {
   type: RecordType;
-  id: string;
+  id: number;
   authorName: string;
   content: string;
   createdAt: string;
   updatedAt: string;
-  deleted: boolean;
+  isDeleted: boolean;
+  isInPortfolio: boolean;
+  // 요청자 본인이 이 기록을 개인 보관했는지 여부.
+  isInUserArchive: boolean;
+  files: RecordFileDto[];
 };
-export type RecordWithCardDto = RecordDto & { cardId: string; cardTitle: string };
-export type RecordSortOrder = "newest" | "oldest" | "recentlyUpdated";
-export type RecordPageDto = { records: RecordDto[]; count: number };
+// url은 업로드가 끝난 파일의 읽기 링크이며, 업로드되지 않았으면 null이다.
+export type RecordFileDto = { id: string; fileId: string; url: string | null; name: string; size: number; contentType: string };
+export type RecordWithCardDto = RecordDto & { cardId: string; cardTitle: string; listId: string; listTitle: string };
+export type RecordSort = "NEWEST" | "OLDEST" | "RECENTLY_UPDATED";
+// 기록 본문이 참조하는 파일 하나. 새 파일은 fileId가 null이고 name·size·contentType을 함께 보낸다.
+export type RecordFileInput = { id: string; fileId: string | null; name: string; size: number; contentType: string };
+// 새 파일마다 서버가 백엔드 파일 아이디와 PUT 업로드 주소를 돌려준다.
+export type RecordUploadDto = { id: string; fileId: string; uploadUrl: string };
+export type RecordFilesUploadedResultDto = { fileId: string; isSuccess: boolean; reason: "NOT_FOUND" | "FORBIDDEN" | "DELETED" | "NOT_UPLOADED" | null };
+// 기록 정렬은 카드마다 저장되는 공통 설정이다. 카드 정보 변경으로 바꾸고, 기록 목록은 서버가 그 설정으로 정렬한다.
+export type RecordSortOrder = RecordSort;
+export type RecordPageDto = PageMeta & { records: RecordDto[] };
 
 export const KanbanApi = {
-  async listGroupLists(groupId: number): Promise<KanbanListDto[]> {
-    return (await apiV2Client.get<KanbanListDto[]>(`/groups/${groupId}/kanban`)).data;
+  async listGroupLists(groupId: number, skip = 0, signal?: AbortSignal): Promise<KanbanListPageDto> {
+    return (await apiV2Client.get<KanbanListPageDto>(`/groups/${groupId}/lists`, { params: { skip }, signal })).data;
+  },
+  async listGroupCards(groupId: number, listId: string, skip: number, signal?: AbortSignal): Promise<KanbanCardPageDto> {
+    return (await apiV2Client.get<KanbanCardPageDto>(`/groups/${groupId}/lists/${encodeURIComponent(listId)}/cards`, { params: { skip }, signal })).data;
+  },
+  async getGroupCard(groupId: number, cardId: string): Promise<KanbanCardDetailDto> {
+    return (await apiV2Client.get<KanbanCardDetailDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`)).data;
   },
   async createGroupList(groupId: number, input: { title: string }): Promise<void> {
     await apiV2Client.post(`/groups/${groupId}/lists`, input);
@@ -55,25 +76,32 @@ export const KanbanApi = {
     await apiV2Client.delete(`/groups/${groupId}/lists/${encodeURIComponent(listId)}`);
   },
   async moveGroupList(groupId: number, listId: string, input: { beforeListId: string | null }): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/lists/${encodeURIComponent(listId)}/position`, input);
+    await apiV2Client.patch(`/groups/${groupId}/lists/${encodeURIComponent(listId)}/position`, { insertBeforeListId: input.beforeListId ?? undefined });
+  },
+  // 생략한 필드는 그대로 둔다. 빈 문자열 설명은 설명을 지운다.
+  async updateGroupCard(groupId: number, cardId: string, input: { title?: string; description?: string; recordSort?: RecordSort }): Promise<void> {
+    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`, input);
   },
   async createGroupCard(groupId: number, input: { listId: string; title: string }): Promise<void> {
-    await apiV2Client.post(`/groups/${groupId}/cards`, input);
+    await apiV2Client.post(`/groups/${groupId}/lists/${encodeURIComponent(input.listId)}/cards`, { title: input.title });
   },
   async moveGroupCard(groupId: number, cardId: string, input: { targetListId: string; beforeCardId: string | null }): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/position`, input);
+    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/position`, {
+      listId: input.targetListId,
+      insertBeforeCardId: input.beforeCardId ?? undefined,
+    });
   },
-  async updateGroupCardPortfolio(groupId: number, cardId: string, input: { portfolio: boolean }): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/portfolio`, input);
+  async updateGroupCardPortfolio(groupId: number, cardId: string, input: { isInPortfolio: boolean }): Promise<void> {
+    await apiV2Client.put(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/portfolio`, input);
   },
   async updateGroupCardLabels(groupId: number, cardId: string, input: { labels: CardLabelDto[] }): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/labels`, input);
+    await apiV2Client.put(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/labels`, input);
   },
   async updateGroupCardAssignee(groupId: number, cardId: string, input: { assigneeUserId: number | null }): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/assignee`, input);
+    await apiV2Client.put(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/assignee`, input);
   },
-  async updateGroupCardDisabled(groupId: number, cardId: string, input: { disabled: boolean }): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/disabled`, input);
+  async updateGroupCardDisabled(groupId: number, cardId: string, input: { isDisabled: boolean }): Promise<void> {
+    await apiV2Client.put(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/disabled`, input);
   },
   // GroupExposureApi.issueActivityReportUploadLink와 같은 presigned URL 패턴 — 파일
   // 업로드/드래그앤드롭/붙여넣기는 이 링크로 먼저 올린 뒤 fileUploadId로 커밋한다.
@@ -84,64 +112,55 @@ export const KanbanApi = {
     const response = await fetch(url, { method: "PUT", body: file });
     if (!response.ok) throw new Error("이미지 업로드에 실패했습니다.");
   },
-  // URL은 coverImageUrl로, 업로드한 파일은 fileUploadId로 설정하고 null로 커버를 제거한다.
+  // URL은 coverImageUrl로, 업로드한 파일은 fileUploadId로 지정하고, coverImageUrl이 null이면 커버를 제거한다.
   async updateGroupCardCoverImage(groupId: number, cardId: string, input: CardCoverImageInput): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/cover-image`, input);
+    const path = `/groups/${groupId}/cards/${encodeURIComponent(cardId)}/cover-image`;
+    if ("coverImageUrl" in input && input.coverImageUrl === null) {
+      await apiV2Client.delete(path);
+      return;
+    }
+    await apiV2Client.post(path, input);
   },
-  // 완전 삭제가 아니라 아카이브다 — 보드에서 빠지고 GroupArchiveApi로 복구할 수 있다.
+  // 소프트 삭제다 — 보드에서 빠지고 GroupArchiveApi로 복구할 수 있다.
   async archiveGroupCard(groupId: number, cardId: string): Promise<void> {
     await apiV2Client.delete(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`);
   },
-  async listGroupRecords(groupId: number, cardId: string): Promise<RecordDto[]> {
-    return (await apiV2Client.get<RecordDto[]>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`)).data;
-  },
   async listGroupRecordsPage(groupId: number, cardId: string, input: {
-    offset: number; limit: number; sortOrder: RecordSortOrder; includeDeleted: boolean;
+    skip: number; limit: number; includeDeleted: boolean;
   }, signal?: AbortSignal): Promise<RecordPageDto> {
     return (await apiV2Client.get<RecordPageDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, {
-      params: input, signal,
+      params: { skip: input.skip, limit: input.limit, includeDeleted: input.includeDeleted }, signal,
     })).data;
   },
-  async archiveGroupRecord(groupId: number, cardId: string, recordId: string): Promise<void> {
-    await apiV2Client.delete(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records/${encodeURIComponent(recordId)}`);
+  async archiveGroupRecord(groupId: number, recordId: number): Promise<void> {
+    await apiV2Client.delete(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`);
   },
-  async restoreGroupRecord(groupId: number, cardId: string, recordId: string): Promise<void> {
-    await apiV2Client.post(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records/${encodeURIComponent(recordId)}/restoration`);
+  async restoreGroupRecord(groupId: number, recordId: number): Promise<void> {
+    await apiV2Client.post(`/groups/${groupId}/records/${encodeURIComponent(recordId)}/restore`);
   },
-  // TODO(mock): 기록 이동/개인 보관은 백엔드 계약 확정 전 개발 목업 경로다.
-  async moveGroupRecord(groupId: number, cardId: string, recordId: string, input: { targetCardId: string }): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records/${encodeURIComponent(recordId)}/card`, input);
+  async moveGroupRecord(groupId: number, recordId: number, input: { targetCardId: string }): Promise<void> {
+    await apiV2Client.put(`/groups/${groupId}/records/${encodeURIComponent(recordId)}/position`, input);
   },
-  async saveGroupRecord(groupId: number, cardId: string, recordId: string): Promise<SavedRecordDto> {
-    return (await apiV2Client.post<SavedRecordDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records/${encodeURIComponent(recordId)}/saving`)).data;
+  async saveGroupRecord(groupId: number, recordId: number): Promise<void> {
+    await apiV2Client.put(`/groups/${groupId}/records/${encodeURIComponent(recordId)}/archive`, { isInUserArchive: true });
   },
-  // TODO(mock): 기록 단건조회는 아직 백엔드 계약이 없다(knowledge/frontend/
-  // group-detail-api-design.md의 getGroupRecord 참고). 역방향(기록id -> 카드id) 조회 API가
-  // 생기기 전까지, 이미 있는 목록 API로 전체 카드를 뒤져서 같은 모양의 응답을 흉내낸다.
-  async getGroupRecord(groupId: number, recordId: string): Promise<RecordWithCardDto | null> {
-    const lists = await KanbanApi.listGroupLists(groupId);
-    for (const list of lists) {
-      for (const card of list.cards) {
-        const records = await KanbanApi.listGroupRecords(groupId, card.id);
-        const record = records.find((item) => item.id === recordId);
-        if (record) return { ...record, cardId: card.id, cardTitle: card.title };
-      }
-    }
-    return null;
+  async updateGroupRecordPortfolio(groupId: number, recordId: number, input: { isInPortfolio: boolean }): Promise<void> {
+    await apiV2Client.put(`/groups/${groupId}/records/${encodeURIComponent(recordId)}/portfolio`, input);
   },
-  async createGroupRecord(groupId: number, cardId: string, input: { content: string }): Promise<RecordDto> {
-    return (await apiV2Client.post<RecordDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, input)).data;
+  async getGroupRecord(groupId: number, recordId: number): Promise<RecordWithCardDto | null> {
+    return (await apiV2Client.get<RecordWithCardDto>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`)).data;
   },
-  async updateGroupRecord(groupId: number, cardId: string, recordId: string, input: { content: string }): Promise<void> {
-    await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records/${encodeURIComponent(recordId)}`, input);
+  async createGroupRecord(groupId: number, cardId: string, input: { content: string; files: RecordFileInput[] }): Promise<RecordDto & { uploads: RecordUploadDto[] }> {
+    return (await apiV2Client.post<RecordDto & { uploads: RecordUploadDto[] }>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, input)).data;
   },
-  // TODO(mock): 기록 본문 첨부(이미지·오디오·파일) 업로드는 아직 백엔드 계약이 없다. 커버 이미지와
-  // 같은 presigned URL 패턴으로 목업 서버가 응답한다 — 계약이 정해지면 이 두 함수의 본문만 바꾼다.
-  async issueRecordMediaUploadLink(groupId: number, cardId: string, input: { fileName: string; contentType: string }): Promise<RecordMediaUploadLinkDto> {
-    return (await apiV2Client.post<RecordMediaUploadLinkDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records/media/upload-link`, input)).data;
+  async updateGroupRecord(groupId: number, recordId: number, input: { content: string; files: RecordFileInput[] }): Promise<{ uploads: RecordUploadDto[] }> {
+    return (await apiV2Client.patch<{ uploads: RecordUploadDto[] }>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`, input)).data;
   },
-  async uploadRecordMediaFile(url: string, file: File, signal?: AbortSignal): Promise<void> {
-    const response = await fetch(url, { method: "PUT", body: file, signal });
-    if (!response.ok) throw new Error("파일 업로드에 실패했습니다.");
+  // 업로드 주소로 파일을 올린 뒤 서버에 알린다. 모두 성공 200, 일부 성공 206, 모두 실패 400이며 본문은 같다.
+  async notifyRecordFilesUploaded(groupId: number, fileIds: string[]): Promise<RecordFilesUploadedResultDto[]> {
+    const response = await apiV2Client.post<{ results: RecordFilesUploadedResultDto[] }>(`/groups/${groupId}/records/files/uploaded`, { fileIds }, {
+      validateStatus: (status) => status === 200 || status === 206 || status === 400,
+    });
+    return response.data.results;
   },
 };

@@ -1,10 +1,11 @@
 import ContentSkeleton from "../../../../../components/ContentSkeleton";
-import { useQuery } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { GroupChatApi } from "../../../../../api/public/group/GroupChatApi";
 import { useGroupAction } from "../../../../../hooks/group/useGroupAction";
 import { Box, IconButton, ScrollArea, Text, Textarea } from "@chakra-ui/react";
 import { File, MessageCircle, MessageCirclePlus, Plus, Send, Smile, X } from "lucide-react";
-import { ChangeEvent, DragEvent, KeyboardEvent, ReactNode, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, KeyboardEvent, ReactNode, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
 import AppTooltip from "../../../../../components/AppTooltip";
@@ -19,6 +20,11 @@ const EmojiPicker = lazy(() => import("../../../../../components/EmojiPicker"));
 
 type Props = {
   isMember: boolean;
+  // 채팅방 존재·참여 여부는 그룹 정보 조회 값을 쓴다.
+  hasChatRoom: boolean;
+  isChatParticipant: boolean;
+  // 중단·종료 그룹에서는 메시지를 보낼 수 없다.
+  isWritable: boolean;
   groupId: number;
   onTabChange: (id: string) => void;
 };
@@ -61,7 +67,6 @@ function InfoTabLink({ onTabChange }: { onTabChange: (id: string) => void }) {
   );
 }
 
-const PAGE_SIZE = 10;
 // 입력창이 최대 몇 px까지 늘어날지 — style.module.css의 max-height 대신 여기서만 정의해서
 // autosize 계산(JS)과 늘어나는 한계(inline style)가 항상 같은 값을 쓰게 한다.
 const MAX_TEXTAREA_HEIGHT = 132;
@@ -70,14 +75,10 @@ const MAX_TEXTAREA_HEIGHT = 132;
 type File_ = globalThis.File;
 type Attachment = { file: File_; previewUrl: string | null };
 
-/*
- * 디스코드 첨부파일 용량 제한 — 확장자 제한은 없고(디스코드가 막는 파일 형식은 없음),
- * 용량만 제한된다. 다만 정확한 기준값이 계정/서버 부스트 등급에 따라 다르고 최근에도
- * 바뀐 적이 있어서(2026-08 기준 공식 안내로는 일반 계정 20MB), 여기 값은 그 중 가장
- * 오래 통용된 보수적인 기준(10MB)이다 — 실제 이 그룹의 디스코드 서버가 부스트로 더 큰
- * 한도를 갖고 있다면 이 상수만 바꾸면 된다.
- */
-const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024;
+// 서버·디스코드 기준: 파일 하나 20 MiB, 한 메시지 첨부 합계 25 MiB, 본문 2000자.
+const MAX_ATTACHMENT_SIZE_BYTES = 20 * 1024 * 1024;
+const MAX_ATTACHMENT_TOTAL_BYTES = 25 * 1024 * 1024;
+const MAX_MESSAGE_LENGTH = 2000;
 
 function isSameDay(a: string, b: string) {
   return formatDate(new Date(a), DateFormats.DATE) === formatDate(new Date(b), DateFormats.DATE);
@@ -98,8 +99,8 @@ function DateDivider({ value }: { value: string }) {
 
 /*
  * 디스코드 채팅방을 그대로 가져온 모습. 메시지는 오래된 것부터 위에서 아래로 쌓이고, 날짜가
- * 바뀌는 지점마다 구분선이 낀다. 처음엔 최근 10건만 보여주고, 메시지 영역 맨 위 "더보기"를
- * 누르면 10건씩 더 불러온다(과거로 확장).
+ * 바뀌는 지점마다 구분선이 낀다. 처음엔 최근 50건을 불러오고, 메시지 영역 맨 위 "더 보기"를
+ * 누르면 이전 50건씩 더 불러온다(과거로 확장).
  *
  * 스크롤은 이 탭 전체가 아니라 메시지 영역 안에서만 생겨야 해서, ScrollArea가 필요하다.
  * ScrollArea가 실제 높이를 가지려면 이 컴포넌트 자신부터 실제 높이(style.module.css의
@@ -110,14 +111,24 @@ function DateDivider({ value }: { value: string }) {
  * 각 컨테이너의 레이아웃 스타일(크기·flex·간격)은 style.module.css에 두고, 컴포넌트에는
  * 데이터에 따라 달라지는 것(뱃지 색, 아이콘 등)만 인라인으로 남긴다.
  */
-export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
+export default function GroupChat({ groupId, isMember, hasChatRoom, isChatParticipant, isWritable, onTabChange }: Props) {
   const action = useGroupAction(groupId);
-  const channelQuery = useQuery({ queryKey: ["group-detail", groupId, "chat-channel"], queryFn: () => GroupChatApi.getGroupDiscordChannel(groupId), enabled: isMember });
-  const hasChatRoom = channelQuery.data?.hasChatRoom ?? false;
-  const isChatParticipant = channelQuery.data?.isChatParticipant ?? false;
-  const messagesQuery = useQuery({ queryKey: ["group-detail", groupId, "chat-messages"], queryFn: () => GroupChatApi.listGroupDiscordMessages(groupId), enabled: isMember && hasChatRoom });
-  const messages = messagesQuery.data ?? [];
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const messagesQuery = useInfiniteQuery({
+    queryKey: ["group-detail", groupId, "chat-messages"],
+    queryFn: ({ pageParam, signal }) => GroupChatApi.listGroupDiscordMessagesPage(groupId, pageParam, signal),
+    initialPageParam: 0,
+    getNextPageParam: (last) => last.hasMore && last.receivedCount > 0 ? last.skip + last.receivedCount : undefined,
+    enabled: isMember && hasChatRoom,
+  });
+  // 첫 페이지가 최신 범위다. 이전 페이지를 앞에 붙이고, 조회 사이에 새 메시지가 생겨 범위가 겹친 메시지는 한 번만 둔다.
+  const messages = useMemo(() => {
+    const seen = new Set<string>();
+    return [...(messagesQuery.data?.pages ?? [])].reverse().flatMap((page) => page.messages).filter((message) => {
+      if (seen.has(message.id)) return false;
+      seen.add(message.id);
+      return true;
+    });
+  }, [messagesQuery.data]);
   const [draft, setDraft] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -131,12 +142,28 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
 
-  const isChatReady = isMember && hasChatRoom && channelQuery.isSuccess && messagesQuery.isSuccess;
+  const isChatReady = isMember && hasChatRoom && messagesQuery.isSuccess;
   // 로딩 중에는 viewport가 없다. 메시지가 표시되는 첫 렌더에서 화면을 그리기 전에 내린다.
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (isChatReady && viewport) viewport.scrollTop = viewport.scrollHeight;
   }, [isChatReady, groupId]);
+
+  // 이전 메시지는 위에 붙으므로, 불러오기 직전의 아래쪽 기준 거리를 기억했다가 붙은 뒤 같은 메시지가 같은 자리에 보이게 한다.
+  const distanceFromBottomRef = useRef<number | null>(null);
+  const loadOlder = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (viewport) distanceFromBottomRef.current = viewport.scrollHeight - viewport.scrollTop;
+    void messagesQuery.fetchNextPage();
+  }, [messagesQuery]);
+  const pageCount = messagesQuery.data?.pages.length ?? 0;
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const distance = distanceFromBottomRef.current;
+    if (!viewport || distance === null) return;
+    distanceFromBottomRef.current = null;
+    viewport.scrollTop = viewport.scrollHeight - distance;
+  }, [pageCount]);
 
   // 미리보기용 objectURL은 메모리에 남아있는 blob 참조라, 탭을 떠날 때(언마운트) 살아있는
   // 것들을 한 번에 정리한다 — attachmentsRef로 매 렌더의 최신 값을 들고 있다가 언마운트
@@ -166,15 +193,24 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
   const addFiles = (files: File_[]) => {
     if (!mountedRef.current || action.isPending) return;
     const accepted: Attachment[] = [];
+    let totalSize = attachmentsRef.current.reduce((sum, attachment) => sum + attachment.file.size, 0);
 
     for (const file of files) {
       if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-        toast.error(`"${file.name}"의 용량이 너무 커서 첨부할 수 없습니다 (최대 10MB).`, {
+        toast.error(`"${file.name}"의 용량이 너무 커서 첨부할 수 없습니다 (최대 20MB).`, {
           autoClose: 2500,
           hideProgressBar: true,
         });
         continue;
       }
+      if (totalSize + file.size > MAX_ATTACHMENT_TOTAL_BYTES) {
+        toast.error(`첨부 파일 합계가 너무 커서 "${file.name}"을 첨부할 수 없습니다 (합계 최대 25MB).`, {
+          autoClose: 2500,
+          hideProgressBar: true,
+        });
+        continue;
+      }
+      totalSize += file.size;
       accepted.push({
         file,
         previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
@@ -192,7 +228,7 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
 
   const addRemoteFile = async (dragged: DraggedFile) => {
     if (dragged.size !== undefined && dragged.size > MAX_ATTACHMENT_SIZE_BYTES) {
-      toast.error(`"${dragged.name}"의 용량이 너무 커서 첨부할 수 없습니다 (최대 10MB).`);
+      toast.error(`"${dragged.name}"의 용량이 너무 커서 첨부할 수 없습니다 (최대 20MB).`);
       return;
     }
     setLoadingAttachmentCount((count) => count + 1);
@@ -277,19 +313,15 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
 
   // 파일은 SIGHT 서버로 전송한다. 실패하면 입력과 첨부를 그대로 유지한다.
   const handleSend = () => {
-    if (action.isPending || loadingAttachmentCount > 0 || (!draft.trim() && attachments.length === 0)) return;
+    if (!isWritable || action.isPending || loadingAttachmentCount > 0 || (!draft.trim() && attachments.length === 0)) return;
     action.mutate(async () => {
-      const uploaded = await Promise.all(attachments.map(async ({ file }) => ({
-        name: file.name,
-        type: file.type,
-        data: await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(reader.error ?? new Error("파일을 읽지 못했습니다."));
-          reader.readAsDataURL(file);
-        }),
-      })));
-      return GroupChatApi.sendGroupDiscordMessage(groupId, { content: draft.trim(), attachments: uploaded });
+      try {
+        return await GroupChatApi.sendGroupDiscordMessage(groupId, { content: draft.trim(), files: attachments.map(({ file }) => file) });
+      } catch (error) {
+        // 413은 서버 설정이나 디스코드가 요청 크기를 거부한 경우다. 입력과 첨부는 그대로 둔다.
+        if (isAxiosError(error) && error.response?.status === 413) throw new Error("파일 용량이 커서 보낼 수 없습니다.");
+        throw error;
+      }
     }, { onSuccess: () => {
       setDraft("");
       attachments.forEach((attachment) => attachment.previewUrl && URL.revokeObjectURL(attachment.previewUrl));
@@ -333,8 +365,8 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
     );
   }
 
-  if (channelQuery.isPending || (hasChatRoom && messagesQuery.isPending)) return <ContentSkeleton />;
-  if (channelQuery.isError || messagesQuery.isError) return <Text role="alert">채팅을 불러오지 못했습니다.</Text>;
+  if (hasChatRoom && messagesQuery.isPending) return <ContentSkeleton />;
+  if (messagesQuery.isError) return <Text role="alert">채팅을 불러오지 못했습니다.</Text>;
 
   if (!hasChatRoom) {
     return (
@@ -346,9 +378,6 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
       </Text>
     );
   }
-
-  const visibleMessages = messages.slice(-visibleCount);
-  const hasMore = visibleCount < messages.length;
 
   return (
     <Box
@@ -380,7 +409,12 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
           {/* w="100%"를 명시한다 — Ark UI가 Content에 인라인으로 minWidth: fit-content를
               박아 넣어서, 명시하지 않으면 자식 내용 크기에 따라 폭이 줄어들 수 있다. */}
           <ScrollArea.Content w="100%" className={styles.messagesContent}>
-            {hasMore && (
+            {messagesQuery.isFetchingNextPage && (
+              <div aria-busy>
+                <ContentSkeleton />
+              </div>
+            )}
+            {messagesQuery.hasNextPage && !messagesQuery.isFetchingNextPage && (
               // 채팅 흐름 안에 있으니 테두리·배경 있는 일반 버튼 대신, 날짜 구분선과 같은
               // 톤(gray.400)의 텍스트 버튼으로 — 호버할 때만 링크처럼 진해진다.
               <Box
@@ -390,13 +424,13 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
                 fontSize="xs"
                 color="gray.400"
                 _hover={{ color: "brand.600", textDecoration: "underline" }}
-                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                onClick={loadOlder}
               >
-                이전 메시지 더 보기
+                {messagesQuery.isFetchNextPageError ? "이전 메시지를 불러오지 못했습니다. 다시 시도" : "이전 메시지 더 보기"}
               </Box>
             )}
-            {visibleMessages.map((message, index) => {
-              const prev = visibleMessages[index - 1];
+            {messages.map((message, index) => {
+              const prev = messages[index - 1];
               const showDateDivider = !prev || !isSameDay(prev.createdAt, message.createdAt);
 
               return (
@@ -417,9 +451,9 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
                     {message.attachments?.map((attachment, attachmentIndex) => (
                       <a
                         key={attachmentIndex}
-                        href={attachment.data}
+                        href={attachment.url}
                         download={attachment.name}
-                        {...draggableFileProps({ url: attachment.data, name: attachment.name, contentType: attachment.type })}
+                        {...draggableFileProps({ url: attachment.url, name: attachment.name, contentType: attachment.contentType ?? "" })}
                       >
                         {attachment.name}
                       </a>
@@ -428,7 +462,7 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
                 </Box>
               );
             })}
-            {visibleMessages.length > 0 && (
+            {messages.length > 0 && (
               <Box display="flex" alignItems="center" gap="8px">
                 <Box flex="1" h="1px" bg="gray.200" />
                 <Text fontSize="xs" color="gray.400" flex="none">
@@ -494,11 +528,12 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
         </IconButton>
         <Textarea
           ref={textareaRef}
-          disabled={action.isPending}
+          disabled={action.isPending || !isWritable}
+          maxLength={MAX_MESSAGE_LENGTH}
           value={draft}
           onChange={handleDraftChange}
           onKeyDown={handleDraftKeyDown}
-          placeholder="메시지 입력"
+          placeholder={isWritable ? "메시지 입력" : "중단되거나 종료된 그룹에서는 메시지를 보낼 수 없습니다"}
           rows={1}
           className={styles.textarea}
           border="none"
@@ -515,7 +550,7 @@ export default function GroupChat({ groupId, isMember, onTabChange }: Props) {
             <Smile size={16} />
           </IconButton>
         )}
-        <IconButton type="submit" disabled={action.isPending || loadingAttachmentCount > 0 || (!draft.trim() && attachments.length === 0)} size="xs" variant="ghost" aria-label="전송" minW="28px" h="28px" p={0}>
+        <IconButton type="submit" disabled={!isWritable || action.isPending || loadingAttachmentCount > 0 || (!draft.trim() && attachments.length === 0)} size="xs" variant="ghost" aria-label="전송" minW="28px" h="28px" p={0}>
           <Send size={16} />
         </IconButton>
       </Box>

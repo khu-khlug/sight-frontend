@@ -1,4 +1,5 @@
 import { Badge, Box, Heading, ScrollArea, Text } from "@chakra-ui/react";
+import { GroupStatus } from "../../../../constant";
 import { Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
@@ -46,6 +47,7 @@ type Props = {
   onToggleFilter: (key: LabelFilterKey) => void;
   onOpenFile: (content: FileWindowContent) => void;
   onOpenRecord: (cardId: string, recordId: string) => void;
+  onOpenCard: (cardId: string) => void;
   // GroupSettings(개인설정 탭)에 그대로 전달한다 — 실제 싱글/듀얼 강제는 WindowLayer가 하고,
   // 여기서는 그 설정의 공통 조상으로서 체크박스 상태만 전달한다.
   dualWindowEnabled: boolean;
@@ -71,6 +73,7 @@ export default function Dashboard({
   onToggleFilter,
   onOpenFile,
   onOpenRecord,
+  onOpenCard,
   dualWindowEnabled,
   onDualWindowEnabledChange,
 }: Props) {
@@ -100,7 +103,7 @@ export default function Dashboard({
   }, [isExpanded]);
 
   const currentUserQuery = useCurrentUser();
-  const isLeader = currentUserQuery.data?.id === groupInfo.leaderUserId;
+  const isLeader = groupInfo.isLeader;
   const specialOrganizations = [...new Set(groupInfo.specialOrganizations)];
   const portfolioCounts = { listCount: groupInfo.portfolioListCount, cardCount: groupInfo.portfolioCardCount };
   const scenario = useGroupAction(groupInfo.id);
@@ -218,6 +221,9 @@ export default function Dashboard({
                   // ScrollArea가 아니라 .tabArea가 준 높이를 그대로 GroupChat에 넘긴다.
                   <GroupChat
                     isMember={groupInfo.isMember}
+                    hasChatRoom={groupInfo.hasChatRoom}
+                    isChatParticipant={groupInfo.isChatParticipant}
+                    isWritable={groupInfo.status === GroupStatus.PROGRESS}
                     groupId={groupInfo.id}
                     onTabChange={handleTabChange}
                   />
@@ -242,6 +248,7 @@ export default function Dashboard({
                   />
                 ) : activeId === "repository" ? (
                   <GroupRepository
+                    groupId={groupInfo.id}
                     repositoryUrls={groupInfo.repositoryUrls}
                     viewportRef={repoViewportRef}
                     viewportId={repoViewportId}
@@ -286,7 +293,7 @@ export default function Dashboard({
                         ) : activeId === "member" ? (
                           <GroupMemberList groupId={groupInfo.id} category={groupInfo.category} />
                         ) : activeId === "log" ? (
-                          <GroupActivityLog groupId={groupInfo.id} />
+                          <GroupActivityLog groupId={groupInfo.id} onOpenCard={onOpenCard} />
                         ) : activeId === "development" ? (
                           <GroupDevelopment
                             info={groupInfo}

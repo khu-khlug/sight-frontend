@@ -205,8 +205,8 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
       window.alert("그룹장만 그룹 정보를 변경할 수 있습니다.");
       return;
     }
-    if (info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL) {
-      window.alert("활동이 종료된 그룹의 정보는 변경할 수 없습니다.");
+    if (info.status !== GroupStatus.PROGRESS) {
+      window.alert("중단되거나 종료된 그룹의 정보는 변경할 수 없습니다.");
       return;
     }
     if (showPersonalSettings) handleCancelPersonalSettings();
@@ -221,7 +221,8 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
     setShowStatus((value) => !value);
   };
 
-  const canEndGroup = info.status === GroupStatus.PROGRESS || info.status === GroupStatus.STOP;
+  // 종료는 진행 중인 그룹만 할 수 있다. 중단 그룹은 먼저 재진행해야 한다.
+  const canEndGroup = info.status === GroupStatus.PROGRESS;
   const canProgressGroup = info.status === GroupStatus.STOP || info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL;
   const closeStatusPanels = () => { setShowStatus(false); setShowManagerSettings(false); };
 
@@ -244,7 +245,7 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
       return;
     }
     if (action.isPending || !canProgressGroup) return;
-    const recoveredPoints = info.status === GroupStatus.SUCCESS ? 50 : info.status === GroupStatus.FAIL ? 30 : 0;
+    const recoveredPoints = info.status === GroupStatus.SUCCESS ? 90 : info.status === GroupStatus.FAIL ? 70 : 0;
     const pointNotice = recoveredPoints ? `\n현재 멤버 전체에게서 종료 시 지급한 경험치 ${recoveredPoints}점을 회수합니다.` : "";
     if (!window.confirm(`"${info.title}" 그룹을 진행중으로 변경하시겠습니까?${pointNotice}`)) return;
     action.mutate(() => GroupSettingsApi.progressGroup(info.id), { onSuccess: closeStatusPanels });
@@ -315,7 +316,7 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
           </div>
         </>}
         <button type="button" className={styles.menuButton}><BookOpen size={20} aria-hidden="true" />사용법 튜토리얼</button>
-        <button type="button" className={styles.menuButton} disabled={action.isPending} onClick={leaveGroup}><LogOut size={20} aria-hidden="true" />그룹 나가기</button>
+        <button type="button" className={styles.menuButton} disabled={action.isPending || info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL} onClick={leaveGroup}><LogOut size={20} aria-hidden="true" />그룹 나가기</button>
       </div>
       <GroupInfoEditor
         info={info}

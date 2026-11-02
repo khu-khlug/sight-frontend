@@ -15,7 +15,8 @@
 }
 
 /* 폭이 줄어들지 않아야 넘칠 때 스크롤이 생기고, flex로 감싸 카드리스트가 컨테이너 높이 전체를 쓴다 */
-.list {
+.list,
+.listSkeleton {
   display: flex;
   flex: none;
   flex-direction: column;
@@ -231,8 +232,9 @@
 .content {
   box-sizing: border-box;
   padding: 8px 12px 8px calc(12px + var(--dashboard-width) - 56px);
-  /* 패딩과 scrollLeft를 같은 커밋에서 보정하기 위해 폭 전환은 잠시 꺼둔다.
-     기존 전환: transition: padding-left 250ms ease, padding-right 250ms ease; */
+  /* 대시보드 폭 전환(Dashboard/style.module.css)과 같은 시간·곡선으로 리스트가 밀린다.
+     scrollLeft로 보던 자리를 유지할 때는 KanbanBoard/index.tsx가 이 전환을 잠시 끈다. */
+  transition: padding-left 160ms ease-in;
 }
 
 /* 듀얼 카드 창이 리스트를 가리는 쪽에 자리 차지용으로 넣는 빈 flex 자식 — 그만큼 scrollWidth가
@@ -283,4 +285,9 @@
 .scrollbar[data-force-visible="true"] {
   opacity: 1 !important;
   z-index: 4;
+}
+
+/* 다음 리스트를 불러오는 동안 리스트 자리에 보이는 스켈레톤 — 폭은 .list와 같은 규칙을 쓴다. */
+.listSkeleton {
+  align-self: flex-start;
 }

@@ -1,7 +1,8 @@
 import ContentSkeleton from "../../../../../components/ContentSkeleton";
+import { resolveRecordContent, siteFileDrag } from "../../EditWindow/recordFiles";
 import { AutosaveApi } from "../../../../../api/public/group/AutosaveApi";
 import { GroupArchiveApi } from "../../../../../api/public/group/GroupArchiveApi";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useGroupAction } from "../../../../../hooks/group/useGroupAction";
 import { Box, Button, createListCollection, Portal, ScrollArea, Select, Text } from "@chakra-ui/react";
 import { ChevronDown, CreditCard, PenBox } from "lucide-react";
@@ -10,16 +11,12 @@ import { useRef, useState } from "react";
 import Collapse from "../../../../../components/Collapse";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
-import { decodeEditContentKey, encodeDraftOpenHash } from "../../EditWindow/types";
+import { encodeDraftOpenHash } from "../../EditWindow/types";
 import RecordViewer from "../../RecordViewer";
 import { groupSavedRecords } from "../../savedRecords";
 import { useGroupDetailPageState } from "../../pageState";
 import { ArchivedCard } from "./types";
 import styles from "./style.module.css";
-
-// EditWindow가 AutosaveApi.save 때 넣어주는 extra 모양 — 지금 그룹과 같을 때만 이 탭에 노출한다
-// (자동저장은 회원별 전역 슬롯 하나뿐이라 다른 그룹 카드 것일 수도 있다).
-type AutosaveExtra = { groupId: number; cardTitle: string | null };
 
 type ListOption = { id: string; title: string };
 
@@ -42,20 +39,42 @@ const sortByNewest = (cards: ArchivedCard[]) =>
 export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
   const { pageState } = useGroupDetailPageState();
   const queryClient = useQueryClient();
-  const cardsQuery = useQuery({ queryKey: ["group-detail", groupId, "archived-cards"], queryFn: () => GroupArchiveApi.listArchivedGroupCards(groupId) });
-  const recordsQuery = useQuery(groupSavedRecords.queryOptions(groupId));
-  const autosaveQuery = useQuery({ queryKey: ["group-detail", groupId, "autosave-metadata"], queryFn: () => AutosaveApi.getMetadata() });
-  const cards = cardsQuery.data ?? [];
-  const savedRecords = recordsQuery.data ?? [];
+  const cardsQuery = useInfiniteQuery({
+    queryKey: ["group-detail", groupId, "archived-cards"],
+    queryFn: ({ pageParam, signal }) => GroupArchiveApi.listDeletedGroupCardsPage(groupId, pageParam, signal),
+    initialPageParam: 0,
+    getNextPageParam: (last) => {
+      const next = last.skip + last.receivedCount;
+      return last.receivedCount > 0 && next < last.totalCount ? next : undefined;
+    },
+  });
+  // 보관한 기록은 10개씩 더보기로 받는다. 보관·해제는 useGroupAction이 그룹 쿼리를 무효화해 이 목록도 다시 받는다.
+  const recordsQuery = useInfiniteQuery({
+    queryKey: ["group-detail", groupId, "saved-records-page"],
+    queryFn: ({ pageParam, signal }) => GroupArchiveApi.listSavedGroupRecordsPage(groupId, pageParam, signal),
+    initialPageParam: 0,
+    getNextPageParam: (last) => {
+      const next = last.skip + last.receivedCount;
+      return last.receivedCount > 0 && next < last.totalCount ? next : undefined;
+    },
+  });
+  const autosaveQuery = useQuery({ queryKey: ["group-detail", groupId, "autosave-metadata"], queryFn: () => AutosaveApi.getMetadata(groupId) });
+  const cards = cardsQuery.data?.pages.flatMap((page) => page.cards) ?? [];
+  const deletedCardCount = cardsQuery.data?.pages[0]?.totalCount ?? 0;
+  const savedRecords = recordsQuery.data?.pages.flatMap((page) => page.records) ?? [];
+  const savedRecordCount = recordsQuery.data?.pages[0]?.totalCount ?? 0;
 
-  // 자동저장은 회원별 전역 슬롯 하나뿐이다 — "새 기록"이든 "기록 수정"이든, extra에 담긴
-  // groupId가 지금 보고 있는 그룹과 같을 때만 "임시저장: 카드명" 버튼을 띄운다. 눌렀을 때는
-  // "불러올까요?"를 다시 묻지 않도록 encodeDraftOpenHash로 전용 해시를 만든다.
+  // 임시저장은 회원별 전역 슬롯 하나뿐이고, 서버는 그 슬롯이 이 그룹 것일 때만 메타데이터를 돌려준다 —
+  // 있으면 "임시저장: 카드명" 버튼을 띄운다. 눌렀을 때는 "불러올까요?"를 다시 묻지 않도록
+  // encodeDraftOpenHash로 전용 해시를 만든다.
   const autosave = autosaveQuery.data;
-  const autosaveTarget = autosave ? decodeEditContentKey(autosave.location) : null;
-  const autosaveExtra = autosave?.extra ? (JSON.parse(autosave.extra) as AutosaveExtra) : null;
-  const draft = autosaveTarget && autosaveExtra?.groupId === groupId
-    ? { cardTitle: autosaveExtra.cardTitle ?? "제목 없음", hash: encodeDraftOpenHash(autosaveTarget) }
+  const draft = autosave
+    ? {
+      cardTitle: autosave.cardTitle || "제목 없음",
+      hash: encodeDraftOpenHash(autosave.recordId === null
+        ? { kind: "new", cardId: autosave.cardId }
+        : { kind: "record", recordId: String(autosave.recordId) }),
+    }
     : null;
   const action = useGroupAction(groupId);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -97,7 +116,7 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
           aria-pressed={activeView === "records"}
           onClick={() => handleViewChange("records")}
         >
-          보관한 기록 <span className={styles.count}>{savedRecords.length}</span>
+          보관한 기록 <span className={styles.count}>{savedRecordCount}</span>
         </button>
         <button
           type="button"
@@ -105,7 +124,7 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
           aria-pressed={activeView === "cards"}
           onClick={() => handleViewChange("cards")}
         >
-          삭제된 카드 <span className={styles.count}>{cards.length}</span>
+          삭제된 카드 <span className={styles.count}>{deletedCardCount}</span>
         </button>
       </div>
       <ScrollArea.Root className={styles.listArea} size="sm" variant="hover">
@@ -190,13 +209,22 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
               </Box>
             );
           })}
+          {cardsQuery.isFetchingNextPage && (
+            <div aria-busy>
+              <ContentSkeleton />
+            </div>
+          )}
+          {cardsQuery.hasNextPage && !cardsQuery.isFetchingNextPage && (
+            <Button w="100%" size="sm" variant="outline" onClick={() => void cardsQuery.fetchNextPage()}>
+              {cardsQuery.isFetchNextPageError ? "다시 시도" : "더보기"}
+            </Button>
+          )}
         </Box>
       ) : (
         <Box key="records" className={styles.viewContent} display="flex" flexDirection="column" gap="8px">
           {savedRecords.length === 0 && <Text fontSize="sm" color="gray.500">보관한 기록이 없습니다.</Text>}
-          {[...savedRecords]
-            .sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime())
-            .map((record) => (
+          {/* 서버가 최근 보관순으로 준다. */}
+          {savedRecords.map((record) => (
               <Box key={record.id} className={styles.savedRecord}>
                 <Text fontSize="sm" color="gray.500" className={styles.recordMeta}>
                   {/* 이 링크를 누르는 시점에 이미 그룹 상세 페이지(경로)에 있으므로 해시만
@@ -209,12 +237,12 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
                 <Text fontSize="xs" color="gray.500" className={styles.recordMeta}>
                   <RelativeDateTime value={record.savedAt} /> 보관됨
                 </Text>
-                <RecordViewer type={record.type} content={record.content} className={styles.recordContent} defaultCodeWrap={pageState.textWrap} />
+                <RecordViewer type={record.type} content={resolveRecordContent(record.content, record.files, groupId)} getDraggedFile={siteFileDrag} className={styles.recordContent} defaultCodeWrap={pageState.textWrap} />
                 <div className={styles.recordActions}>
                   <button
                     type="button"
                     className={styles.moreButton}
-                    onClick={() => onOpenRecord(record.cardId, record.id)}
+                    onClick={() => onOpenRecord(record.cardId, String(record.id))}
                   >
                     더보기
                   </button>
@@ -229,6 +257,16 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
                 </div>
               </Box>
             ))}
+          {recordsQuery.isFetchingNextPage && (
+            <div aria-busy>
+              <ContentSkeleton />
+            </div>
+          )}
+          {recordsQuery.hasNextPage && !recordsQuery.isFetchingNextPage && (
+            <Button w="100%" size="sm" variant="outline" onClick={() => void recordsQuery.fetchNextPage()}>
+              {recordsQuery.isFetchNextPageError ? "다시 시도" : "더보기"}
+            </Button>
+          )}
         </Box>
       )}
           </ScrollArea.Content>

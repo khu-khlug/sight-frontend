@@ -21,14 +21,14 @@ export type MediaContent =
 export class MediaInputError extends Error {}
 
 const MB = 1024 * 1024;
-// TODO: 업로드 용량 제한 정책을 정해야 한다. 지금은 커버 이미지(10MB)·활동보고서(20MB) 업로드 기준에 맞춘 임시 값이다.
-// 동영상은 목업 서버의 요청 크기 제한(30MB) 안에서 정했다.
-export const MAX_UPLOAD_BYTES: Record<MediaKind, number> = { image: 10 * MB, audio: 20 * MB, video: 20 * MB, file: 20 * MB };
+// 업로드 크기는 백엔드의 업로드 링크 기준(파일 하나 20 MiB)을 따른다.
+export const MAX_UPLOAD_BYTES: Record<MediaKind, number> = { image: 20 * MB, audio: 20 * MB, video: 20 * MB, file: 20 * MB };
 
 // 종류별 확장자 — 파일 종류 판별(classifyFile), 파일 선택 창의 accept, 박스 하단의 허용 확장자 표시가 같은 목록을 쓴다.
-const IMAGE_EXTENSIONS = new Set(["apng", "avif", "bmp", "gif", "ico", "jpeg", "jpg", "png", "svg", "webp"]);
+// 백엔드 허용 형식에 맞춘다: 이미지 jpeg·png·webp·gif·avif, 오디오 mpeg·mp4·aac·ogg·wav·flac·webm, 동영상 mp4·webm.
+const IMAGE_EXTENSIONS = new Set(["avif", "gif", "jpeg", "jpg", "png", "webp"]);
 const AUDIO_EXTENSIONS = new Set(["aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "weba"]);
-const VIDEO_EXTENSIONS = new Set(["m4v", "mov", "mp4", "ogv", "webm"]);
+const VIDEO_EXTENSIONS = new Set(["mp4", "webm"]);
 
 type KindConfig = {
   label: string;

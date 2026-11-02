@@ -21,6 +21,10 @@ export type MediaServices = {
   // 파일을 올리고 본문에 넣을 주소를 돌려준다.
   uploadFile?: (file: File, signal: AbortSignal) => Promise<string>;
   resolveFileMetadata?: (url: string) => Promise<FileMetadata>;
+  // 끌어온 앱 안 파일을 다시 올리지 않고 참조할 수 있으면 본문에 넣을 주소와 정보를 돌려준다(같은 그룹의 업로드된 파일 등).
+  referenceFile?: (url: string) => { src: string; size: number; contentType: string } | null;
+  // 참조할 수 없는 앱 안 파일을 내려받는다. 받은 파일은 uploadFile로 새 파일처럼 올린다.
+  fetchFile?: (file: DraggedFile, signal: AbortSignal) => Promise<File>;
 };
 export type MediaInputOptions = { services: MutableRefObject<MediaServices> | null };
 export type MediaInputAttrs = { kind: MediaKind; id: string };
@@ -141,7 +145,10 @@ function processFile(editor: Editor, id: string, file: File) {
   });
 }
 
-// 앱 안 파일은 올리지 않고 원래 주소를 그대로 참조한다.
+/*
+ * 앱 안 파일을 끌어 놓았을 때 — data: 주소는 파일로 바꿔 올리고, 참조할 수 있는 파일이면 참조로 넣고,
+ * 내려받을 수 있으면 받아서 새 파일로 올린다. 둘 다 주입되지 않은 편집기에서는 원래 주소를 그대로 넣는다.
+ */
 function processRemote(editor: Editor, id: string, item: DraggedFile) {
   // 채팅 첨부처럼 data: 주소로 들고 있는 파일은 그대로 넣으면 본문 HTML이 커지므로 파일로 바꿔 올린다.
   if (item.url.startsWith("data:")) {
@@ -150,6 +157,37 @@ function processRemote(editor: Editor, id: string, item: DraggedFile) {
       .then((response) => response.blob())
       .then((blob) => processFile(editor, id, new File([blob], item.name, { type: item.contentType ?? blob.type })))
       .catch(() => fail(editor, id, "파일을 읽지 못했습니다."));
+    return;
+  }
+  const services = getServices(editor);
+  const reference = services.referenceFile?.(item.url);
+  if (reference) {
+    const kind = kindForInput(editor, id, item.name, reference.contentType);
+    replaceMediaInput(editor, id, toMediaContent(kind, { src: reference.src, name: item.name, size: reference.size, contentType: reference.contentType }));
+    return;
+  }
+  const fetchFile = services.fetchFile;
+  if (fetchFile && services.uploadFile) {
+    const kind = kindForInput(editor, id, item.name, item.contentType);
+    if (item.size !== undefined && item.size > MAX_UPLOAD_BYTES[kind]) {
+      fail(editor, id, oversizeMessage(kind));
+      return;
+    }
+    if (controllers.has(id)) return;
+    const controller = new AbortController();
+    controllers.set(id, controller);
+    setStatus(editor, id, { busy: true, message: `${item.name} 가져오는 중` });
+    fetchFile(item, controller.signal)
+      .then((file) => {
+        if (controller.signal.aborted) return;
+        controllers.delete(id);
+        processFile(editor, id, file);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        controllers.delete(id);
+        fail(editor, id, "파일을 가져오지 못했습니다.");
+      });
     return;
   }
   if (item.contentType !== undefined && item.size !== undefined) {

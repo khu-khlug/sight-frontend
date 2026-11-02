@@ -1,13 +1,16 @@
 import apiV2Client from "../../client/v2";
+import type { RecordFileDto, RecordFileInput, RecordUploadDto } from "./KanbanApi";
 
-// 기록 작성/수정 자동 저장 — 회원별로 하나뿐인 전역 슬롯이다(GROUP_BUSINESS_RULES.md 8-1,
-// GROUP_DATA_SCHEMA.md의 `autosave` 테이블 참고). location은 지금 작성 중인 대상을 가리키는
-// 식별자로, EditWindow/types.ts의 encodeEditContentKey가 만드는 문자열("edit:new_<카드id>"
-// 또는 "edit:<기록id>")을 그대로 쓴다.
-// updatedAt은 전송/수신 시각이 아니라 초안을 수정한 시각(Unix epoch milliseconds)이다.
-export type AutosaveMetadataDto = { location: string; extra: string | null; updatedAt: number };
-export type AutosaveDto = AutosaveMetadataDto & { content: string };
-export type AutosaveInput = { location: string; content: string; extra?: string; updatedAt: number };
+// 기록 작성/수정 임시저장 — 회원별로 하나뿐인 슬롯이며, 그 슬롯이 경로의 그룹 것일 때만 다룬다.
+// 작성 중인 대상은 카드 아이디와 수정 중인 기록 아이디(새 기록이면 null)다.
+export type AutosaveTarget = { cardId: string; recordId: number | null };
+// updatedAt은 전송/수신 시각이 아니라 초안을 수정한 시각(ISO 8601 UTC, Z 접미사)이다.
+export type AutosaveMetadataDto = AutosaveTarget & { isNewRecord: boolean; cardTitle: string; updatedAt: string };
+export type AutosaveDto = AutosaveMetadataDto & { content: string; files: RecordFileDto[] };
+// files는 본문이 참조하는 첨부 파일 전체다.
+export type AutosaveInput = AutosaveTarget & { content: string; files: RecordFileInput[]; updatedAt: string };
+
+const draftPath = (groupId: number) => `/groups/${groupId}/records/draft`;
 
 // 회원별 단일 슬롯에 대한 저장/삭제 순서를 유지한다. 이전 저장이 삭제 뒤에 도착하면
 // 최종 제출한 초안이 다시 생기므로 삭제도 같은 큐를 사용한다.
@@ -19,23 +22,28 @@ function enqueueWrite(write: () => Promise<void>): Promise<void> {
 }
 
 export const AutosaveApi = {
-  async getMetadata(): Promise<AutosaveMetadataDto | null> {
-    return (await apiV2Client.get<AutosaveMetadataDto | null>("/autosave/metadata")).data;
+  async getMetadata(groupId: number): Promise<AutosaveMetadataDto | null> {
+    return (await apiV2Client.get<{ draft: AutosaveMetadataDto | null }>(`${draftPath(groupId)}/meta`)).data.draft;
   },
-  async get(): Promise<AutosaveDto | null> {
-    return (await apiV2Client.get<AutosaveDto | null>("/autosave")).data;
+  async get(groupId: number): Promise<AutosaveDto | null> {
+    const response = await apiV2Client.get<{ draft: AutosaveDto }>(draftPath(groupId), {
+      validateStatus: (status) => status === 200 || status === 404,
+    });
+    return response.status === 404 ? null : response.data.draft;
   },
-  async save(input: AutosaveInput, options?: { leaving?: boolean }): Promise<void> {
+  // 새 파일의 업로드 정보를 돌려준다. 페이지를 떠나며 보낸 요청은 응답을 읽지 못할 수 있어 빈 배열일 수 있다.
+  async save(groupId: number, input: AutosaveInput, options?: { leaving?: boolean }): Promise<RecordUploadDto[]> {
     const body = JSON.stringify(input);
     const canKeepAlive = new Blob([body]).size <= 64 * 1024;
     if (options?.leaving && !canKeepAlive) throw new Error("이탈 시 전송 가능한 크기를 초과했습니다.");
+    let uploads: RecordUploadDto[] = [];
     await enqueueWrite(async () => {
       if (!canKeepAlive) {
-        await apiV2Client.put("/autosave", input);
+        uploads = (await apiV2Client.put<{ uploads: RecordUploadDto[] }>(draftPath(groupId), input)).data?.uploads ?? [];
         return;
       }
       // PUT과 쿠키 인증을 유지하면서 페이지가 닫혀도 전송을 이어간다.
-      const response = await fetch(apiV2Client.getUri({ url: "/autosave" }), {
+      const response = await fetch(apiV2Client.getUri({ url: draftPath(groupId) }), {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -43,9 +51,11 @@ export const AutosaveApi = {
         keepalive: true,
       });
       if (!response.ok) throw new Error(`임시저장 실패: ${response.status}`);
+      uploads = (await response.json().catch(() => null) as { uploads?: RecordUploadDto[] } | null)?.uploads ?? [];
     });
+    return uploads;
   },
-  async clear(): Promise<void> {
-    await enqueueWrite(async () => { await apiV2Client.delete("/autosave"); });
+  async clear(groupId: number): Promise<void> {
+    await enqueueWrite(async () => { await apiV2Client.delete(draftPath(groupId)); });
   },
 };

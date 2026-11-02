@@ -7,7 +7,7 @@ export type GroupInfoDto = {
   category: GroupCategory;
   status: GroupStatus;
   visibility: GroupVisibility;
-  leaderUserId: number;
+  isLeader: boolean;
   isMember: boolean;
   hasChatRoom: boolean;
   isChatParticipant: boolean;
@@ -27,8 +27,30 @@ export type GroupInfoDto = {
   reportCount: number;
   portfolioListCount: number;
   portfolioCardCount: number;
-  archivedCardCount: number;
-  savedRecordCount: number;
   createdAt: string;
   lastActivityAt: string;
 };
+
+// 그룹 정보 조회 API의 응답 형태. GroupInfoApi가 화면용 GroupInfoDto로 바꾼다.
+export type GroupInfoResponseDto = {
+  id: number;
+  title: string;
+  description: string | null;
+  category: GroupCategory;
+  status: GroupStatus;
+  requesterInfo: { userRole: "NONE" | "MEMBER" | "LEADER"; isBookmarked: boolean; isInChatRoom: boolean };
+  specialOrganization: SpecialOrganization | null;
+  interests: GroupInterest[] | null;
+  techStack: string[] | null;
+  repositoryUrls: string[] | null;
+  memberCount: number;
+  activity: { listCount: number; cardCount: number; recordCount: number };
+  createdAt: string;
+  lastActivityAt: string;
+  allowJoin: boolean;
+  visibility: GroupVisibility;
+  exposure: { isPortfolioPublished: boolean; portfolioListCount: number; portfolioCardCount: number; seminarCount: number; reportCount: number };
+  hasChatRoom: boolean;
+};
+// 개발용 시나리오에서 바꿀 수 있는 그룹 정보. 그룹장 지정은 목업 서버가 회원 아이디로 처리한다.
+export type GroupScenarioInfo = Partial<Omit<GroupInfoDto, "isLeader">> & { leaderUserId?: number };

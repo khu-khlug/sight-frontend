@@ -9,9 +9,9 @@ import type { RecordSortOrder } from "../../../../../api/public/group/KanbanApi"
 export type { RecordSortOrder } from "../../../../../api/public/group/KanbanApi";
 
 const SORT_OPTIONS: { value: RecordSortOrder; label: string }[] = [
-  { value: "newest", label: "최신순" },
-  { value: "oldest", label: "오래된순" },
-  { value: "recentlyUpdated", label: "최근변경순" },
+  { value: "NEWEST", label: "최신순" },
+  { value: "OLDEST", label: "오래된순" },
+  { value: "RECENTLY_UPDATED", label: "최근변경순" },
 ];
 
 type Props = {
