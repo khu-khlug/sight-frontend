@@ -2,11 +2,12 @@ import DOMPurify from "dompurify";
 import { useMemo } from "react";
 
 import { cn } from "../../util/cn";
+import { removeMediaElements } from "../BlockContent/removeMediaElements";
 import styles from "./style.module.css";
 
-type Props = { content: string; className?: string };
+type Props = { content: string; className?: string; hideMedia?: boolean };
 
-function prepareHtml(content: string): string {
+function prepareHtml(content: string, hideMedia: boolean): string {
   const body = DOMPurify.sanitize(content, {
     RETURN_DOM: true,
     ADD_TAGS: ["iframe"],
@@ -18,6 +19,8 @@ function prepareHtml(content: string): string {
   if (!(body instanceof Element)) {
     throw new Error("레거시 본문을 HTML 요소로 정리하지 못했습니다.");
   }
+
+  if (hideMedia) removeMediaElements(body);
 
   // 레거시 아코디언의 jQuery 동작을 브라우저 기본 접기/펼치기로 대체한다.
   for (const accordion of Array.from(body.querySelectorAll(".accordion-content")).reverse()) {
@@ -65,7 +68,7 @@ function prepareHtml(content: string): string {
   return body.innerHTML;
 }
 
-export default function LegacyViewer({ content, className }: Props) {
-  const html = useMemo(() => prepareHtml(content), [content]);
+export default function LegacyViewer({ content, className, hideMedia = false }: Props) {
+  const html = useMemo(() => prepareHtml(content, hideMedia), [content, hideMedia]);
   return <div className={cn(styles.document, className)} dangerouslySetInnerHTML={{ __html: html }} />;
 }

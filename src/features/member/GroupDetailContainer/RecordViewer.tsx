@@ -13,7 +13,7 @@ type Props = ComponentProps<typeof BlockViewer> & { type: RecordType };
 export default function RecordViewer({ type, ...props }: Props) {
   return (
     <Suspense fallback={<ContentSkeleton />}>
-      {type === "legacy" ? <LegacyViewer content={props.content} className={props.className} /> : <BlockViewer {...props} />}
+      {type === "legacy" ? <LegacyViewer content={props.content} className={props.className} hideMedia={props.hideMedia} /> : <BlockViewer {...props} />}
     </Suspense>
   );
 }

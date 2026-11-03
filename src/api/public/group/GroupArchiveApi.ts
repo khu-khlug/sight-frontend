@@ -1,8 +1,8 @@
 import apiV2Client from "../../client/v2";
-import type { RecordFileDto, RecordType } from "./KanbanApi";
+import type { RecordType } from "./KanbanApi";
 
 export type ArchivedCardDto = { id: string; title: string; authorName: string; recordCount: number; createdAt: string; deletedAt: string };
-export type SavedRecordDto = { files?: RecordFileDto[]; type: RecordType; id: number; content: string; cardId: string; cardTitle: string; authorName: string; createdAt: string; savedAt: string };
+export type SavedRecordDto = { type: RecordType; id: number; content: string; cardId: string; cardTitle: string; authorName: string; createdAt: string; savedAt: string };
 type PageMeta = { skip: number; totalCount: number; receivedCount: number };
 type SavedRecordResponseDto = Omit<SavedRecordDto, "id"> & { recordId: number };
 export const GroupArchiveApi = {

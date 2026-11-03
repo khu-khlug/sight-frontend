@@ -1,5 +1,4 @@
 import ContentSkeleton from "../../../../../components/ContentSkeleton";
-import { resolveRecordContent, siteFileDrag } from "../../EditWindow/recordFiles";
 import { AutosaveApi } from "../../../../../api/public/group/AutosaveApi";
 import { GroupArchiveApi } from "../../../../../api/public/group/GroupArchiveApi";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -237,7 +236,7 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
                 <Text fontSize="xs" color="gray.500" className={styles.recordMeta}>
                   <RelativeDateTime value={record.savedAt} /> 보관됨
                 </Text>
-                <RecordViewer type={record.type} content={resolveRecordContent(record.content, record.files, groupId)} getDraggedFile={siteFileDrag} className={styles.recordContent} defaultCodeWrap={pageState.textWrap} />
+                <RecordViewer type={record.type} content={record.content} hideMedia className={styles.recordContent} defaultCodeWrap={pageState.textWrap} />
                 <div className={styles.recordActions}>
                   <button
                     type="button"
