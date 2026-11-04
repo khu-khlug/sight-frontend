@@ -13,7 +13,7 @@ import { useGroupAction } from "../../../hooks/group/useGroupAction";
 import { GroupDetailPageStateProvider } from "./pageState";
 import { groupPagePreferences } from "./groupPagePreferences";
 import { useGroupPagePreferences } from "./useGroupPagePreferences";
-import { encodeWindowOpenRequest, type MinimizedHoverRequest, type WindowOpenRequest } from "./actions";
+import { encodeWindowOpenRequest, type WindowOpenRequest } from "./actions";
 import RecordWindow from "./RecordWindow";
 import { decodeRecordContentKey } from "./RecordWindow/types";
 import CardWindow from "./CardWindow";
@@ -124,18 +124,13 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
   locationStateRef.current = location.state;
   const historyIndexRef = useRef<number | null>(typeof window.history.state?.idx === "number" ? window.history.state.idx : null);
   const windowLayerRef = useRef<WindowLayerHandle>(null);
-  // WindowLayer가 상태전이와 URL 해시 문법(knowledge/frontend/card-window-manager.md §9)을
+  // WindowLayer가 상태전이와 URL 해시 문법(그룹문서/card-window-manager.md §9)을
   // 전부 소유한다 — 여기서는 "지금 메인이 뭔지"(존재 확인용)와 "URL을 이렇게 맞춰달라"는
   // 완성된 문자열만 콜백으로 받는다.
   const [mainCardId, setMainCardId] = useState<string | null>(null);
   const [windowCoverage, setWindowCoverage] = useState<WindowCoverage | null>(null);
-  // KanbanBoard의 가로 스크롤바가 내려간 헤더와 좌표상 겹칠 때, WindowLayer가 노출한
-  // setMinimizedLift를 그대로 불러준다 — 들뜨기 로직 자체는 WindowLayer 하나에만 있다.
-  const handleMinimizedHoverRequest = useCallback((request: MinimizedHoverRequest) => {
-    windowLayerRef.current?.requestMinimizedHover(request);
-  }, []);
-  const handleScrollbarGrabbedChange = useCallback((grabbed: boolean) => {
-    windowLayerRef.current?.setScrollbarGrabbed(grabbed);
+  const handleCoverageChange = useCallback((next: WindowCoverage | null) => {
+    setWindowCoverage((previous) => previous?.side === next?.side && previous?.widthPx === next?.widthPx ? previous : next);
   }, []);
   const preferences = useGroupPagePreferences();
   const [dualWindowPreview, setDualWindowPreview] = useState<boolean | null>(null);
@@ -449,7 +444,7 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
 
   return (
     <>
-      <div className={styles.section} style={sectionStyle}>
+      <div className={styles.section} style={sectionStyle} data-group-detail>
         <div className={styles.kanbanBackground} aria-hidden="true" />
         <KanbanBoard
           lists={lists}
@@ -466,8 +461,6 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
           dashboardExtraWidthPx={activeId === null ? 0 : DASHBOARD_WIDTH_EXPANDED - DASHBOARD_WIDTH_COLLAPSED}
           enabledFilters={enabledFilters}
           windowCoverage={windowCoverage}
-          onMinimizedHoverRequest={handleMinimizedHoverRequest}
-          onScrollbarGrabbedChange={handleScrollbarGrabbedChange}
           onAddCard={handleAddCard}
           onAddList={handleAddList}
           onDeleteList={handleDeleteList}
@@ -505,7 +498,7 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
           isDashboardExpanded={activeId !== null}
           onHashChange={handleHashChange}
           onMainCardChange={setMainCardId}
-          onCoverageChange={setWindowCoverage}
+          onCoverageChange={handleCoverageChange}
           dualWindowEnabled={dualWindowEnabled}
           initialSplitRatio={preferences.splitRatio}
           onSplitRatioCommit={handleSplitRatioCommit}

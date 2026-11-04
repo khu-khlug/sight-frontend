@@ -55,10 +55,9 @@ const WINDOW_COVER_EXTRA_SCROLL = 40;
 // mainCardId)만 바뀌어도 부모가 리렌더된다 — memo로 감싸서 실제로 전달받는 props가
 // 안 바뀌면(핸들러는 전부 useGroupAction의 안정적인 mutate에 물린 useCallback) 이 무거운
 // 보드 전체가 같이 리렌더(깜빡임)되지 않게 막는다.
-const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMoreLists, onLoadMoreLists, loadingCardListIds, onLoadMoreCards, isMovePending, isReadOnly = false, isPortfolioPublished, dashboardOverlayRef, dashboardExtraWidthPx, enabledFilters = DEFAULT_ENABLED_FILTERS, windowCoverage = null, onMinimizedHoverRequest, onScrollbarGrabbedChange, onAddCard, onAddList, onDeleteList, onMoveList, onMoveCard, onToggleCardPortfolio, onCardClick, onUpdateList }: Props) {
+const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMoreLists, onLoadMoreLists, loadingCardListIds, onLoadMoreCards, isMovePending, isReadOnly = false, isPortfolioPublished, dashboardOverlayRef, dashboardExtraWidthPx, enabledFilters = DEFAULT_ENABLED_FILTERS, windowCoverage = null, onAddCard, onAddList, onDeleteList, onMoveList, onMoveCard, onToggleCardPortfolio, onCardClick, onUpdateList }: Props) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const scrollbarRef = useRef<HTMLDivElement>(null);
   const addListFormRef = useRef<HTMLFormElement>(null);
   const listSentinelRef = useRef<HTMLDivElement>(null);
   useLoadMoreOnScroll({ rootRef: viewportRef, sentinelRef: listSentinelRef, hasMore: hasMoreLists, isLoading: isLoadingMoreLists, loadMore: onLoadMoreLists, axis: "horizontal" });
@@ -642,83 +641,30 @@ const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMo
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    const wheelRoot = viewport.closest<HTMLElement>("[data-group-detail]") ?? viewport;
 
     const handleWheel = (event: WheelEvent) => {
-      if (event.ctrlKey || event.metaKey || !(event.target instanceof Element)) return;
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || !(event.target instanceof Element)) return;
+      const overMinimizedHeader = !!event.target.closest(".js-window-minimized .js-window-header, [data-minimized-window-gap]");
+      if (!viewport.contains(event.target) && !overMinimizedHeader) return;
       if (event.target.closest("input, textarea, select")) return;
       const cardArea = event.target.closest<HTMLElement>("[data-kanban-card-scroll-area]");
       const cardViewport = cardArea?.querySelector<HTMLElement>("[data-kanban-card-list]");
       if (cardViewport && cardViewport.scrollHeight > cardViewport.clientHeight + 1) return;
-      if (event.target.closest("button") && !cardArea && !event.target.closest("[data-kanban-header]")) return;
-      if (viewport.scrollWidth <= viewport.clientWidth || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      if (!overMinimizedHeader && event.target.closest("button") && !cardArea && !event.target.closest("[data-kanban-header]")) return;
+      if (viewport.scrollWidth <= viewport.clientWidth) return;
+      const horizontalWheel = Math.abs(event.deltaY) <= Math.abs(event.deltaX);
+      if (horizontalWheel && !overMinimizedHeader) return;
 
       const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
         : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? viewport.clientWidth : 1;
-      viewport.scrollLeft += event.deltaY * unit;
+      viewport.scrollLeft += (horizontalWheel ? event.deltaX : event.deltaY) * unit;
       event.preventDefault();
     };
 
-    viewport.addEventListener("wheel", handleWheel, { passive: false });
-    return () => viewport.removeEventListener("wheel", handleWheel);
+    wheelRoot.addEventListener("wheel", handleWheel, { passive: false });
+    return () => wheelRoot.removeEventListener("wheel", handleWheel);
   }, []);
-
-  // 내려간 카드 창이 이 가로 스크롤바 트랙과 같은 자리를 차지하면 스크롤바가 창에 가려
-  // 네이티브 :hover를 못 받는다 — 그래서 좌표를 직접 비교해서 겹칠 때만 scrollbar에
-  // data-force-visible을 찍는다. "커서 아래 hit-test된 요소가 헤더인가"(event.target 기준)로
-  // 내려간 헤더 위인지를 판정하면 안 된다 — 스크롤바가 뜨자마자 z-index로 헤더보다 위로
-  // 올라와서, 바로 다음 pointermove에서는 hit-test 대상 자체가 스크롤바로 바뀌어 "헤더 위가
-  // 아님"으로 뒤집히고, 그러면 다시 꺼졌다 켜졌다를 매 프레임 반복한다(자기 판정 근거를 자기가
-  // 가리는 셈). 대신 "내려간 창이 하나라도 있는가"는 hit-test와 무관한 사실이고, 그 상태에서
-  // 커서가 스크롤바의 실제 좌표 안에 있다는 것 자체가 이미 "내려간 헤더 위에서 스크롤바와
-  // 겹친다"는 뜻이다(내려간 창이 없으면 애초에 스크롤바를 가릴 것도 없으니 보통 :hover로 충분).
-  // 그 들뜨기는 직접 흉내 내지 않고(WindowLayer가 이미 liftMinimizedSlots라는 같은 로직을
-  // 갖고 있으므로) WindowOpenRequest와 같은 패턴의 요청(MinimizedHoverRequest)만 던져
-  // WindowLayer가 그 함수를 그대로 쓰게 한다(GroupDetailContainer가
-  // WindowLayerHandle.requestMinimizedHover로 중계).
-  const wasOverScrollbarRef = useRef(false);
-  useEffect(() => {
-    const handlePointerMove = (event: PointerEvent) => {
-      const scrollbar = scrollbarRef.current;
-      if (!scrollbar) return;
-      const hasMinimizedWindow = document.querySelector(".js-window-minimized") !== null;
-      const rect = scrollbar.getBoundingClientRect();
-      const isOverScrollbar = hasMinimizedWindow
-        && event.clientX >= rect.left && event.clientX <= rect.right
-        && event.clientY >= rect.top && event.clientY <= rect.bottom;
-      if (isOverScrollbar) scrollbar.dataset.forceVisible = "true";
-      else delete scrollbar.dataset.forceVisible;
-      if (isOverScrollbar !== wasOverScrollbarRef.current) {
-        wasOverScrollbarRef.current = isOverScrollbar;
-        onMinimizedHoverRequest?.({ hovering: isOverScrollbar });
-      }
-    };
-
-    document.addEventListener("pointermove", handlePointerMove);
-    return () => {
-      document.removeEventListener("pointermove", handlePointerMove);
-      delete scrollbarRef.current?.dataset.forceVisible;
-      if (wasOverScrollbarRef.current) {
-        wasOverScrollbarRef.current = false;
-        onMinimizedHoverRequest?.({ hovering: false });
-      }
-    };
-  }, [onMinimizedHoverRequest]);
-
-  // 스크롤바 썸을 드래그로 잡고 있는 동안(zag-js가 드래그 시작~끝 사이에 data-scrolling
-  // 속성을 붙였다 뗀다)도 독립된 호버 소스로 등록한다 — 드래그 중 포인터가 트랙 바깥으로
-  // 잠깐 나가도(포인터 캡처라 스크롤 자체는 계속됨) 좌표 기반 판정과 무관하게 계속 들떠
-  // 있어야 한다.
-  useEffect(() => {
-    const scrollbar = scrollbarRef.current;
-    if (!scrollbar) return;
-    const notifyGrabbed = () => onScrollbarGrabbedChange?.(scrollbar.hasAttribute("data-scrolling"));
-    const observer = new MutationObserver(notifyGrabbed);
-    observer.observe(scrollbar, { attributes: true, attributeFilter: ["data-scrolling"] });
-    return () => {
-      observer.disconnect();
-      onScrollbarGrabbedChange?.(false);
-    };
-  }, [onScrollbarGrabbedChange]);
 
   const draggedList = drag ? lists.find((list) => list.id === drag.id) : null;
   const draggedCard = cardDrag ? lists.find((list) => list.id === cardDrag.sourceListId)?.cards.find((card) => card.id === cardDrag.cardId) : null;
@@ -811,7 +757,7 @@ const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMo
             )}
           </ScrollArea.Content>
         </ScrollArea.Viewport>
-        <ScrollArea.Scrollbar ref={scrollbarRef} orientation="horizontal" className={styles.scrollbar} />
+        <ScrollArea.Scrollbar orientation="horizontal" className={styles.scrollbar} />
       </ScrollArea.Root>
       {drag && draggedList && createPortal(
         <div

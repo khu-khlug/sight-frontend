@@ -1,10 +1,9 @@
 import { CSSProperties, forwardRef, PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
-import { MinimizedHoverRequest } from "../actions";
 import { cn } from "../../../../util/cn";
 import {
   applyCloseWindow,
-  applyRaise,
+  applyRestore,
   applyWindowAction,
   DualTarget,
   LayoutState,
@@ -43,7 +42,7 @@ export type WindowBinding = {
   onSendToSide: (side: "left" | "right") => void;
   // 이 창이 저장 안 한 변경을 들고 있는 동안 확인 함수를 등록해둔다. null을 넘기면 해제.
   // 반환값 true = 계속 진행(버려도 됨), false = 취소(그대로 남아있음). WindowLayer는 이
-  // 창이 실제로 사라지는 모든 경로(닫기, 다른 카드로 교체, 펼치기로 반대쪽이 사라짐 등)
+  // 창이 실제로 사라지는 모든 경로(닫기, 다른 카드로 교체, 전체 너비로 펼쳐 반대쪽이 사라짐 등)
   // 직전에 등록된 함수를 호출해서 확인한다 — 콘텐츠 쪽은 레이어가 싱글/듀얼 중 무엇인지,
   // 어떤 경로로 닫히는지 몰라도 된다.
   registerCloseGuard: (confirmClose: (() => boolean) | null) => void;
@@ -58,19 +57,12 @@ export type WindowLayerHandle = {
   // 지금 이 카드가 열려 있으면(메인/서브 어느 쪽이든) 닫는다 — 카드가 외부에서(삭제 등) 사라진
   // 경우 호출부(GroupDetailContainer)가 쓴다. 안 열려 있으면 아무 일도 안 한다.
   closeCardIfOpen: (cardId: string) => void;
-  // 지금 URL 해시를 레이어 상태로 그대로 되돌린다(knowledge/frontend/card-window-manager.md
+  // 지금 URL 해시를 레이어 상태로 그대로 되돌린다(그룹문서/card-window-manager.md
   // §9.3) — 직접 진입·브라우저 뒤로/앞으로가기처럼 "URL이 이미 바뀐 뒤 그에 맞춰 상태만
   // 맞추면 되는" 경우에 쓴다. 주소 정규화·창 ID 보충은 replace하며 히스토리는 추가하지 않는다.
   syncFromHash: (hash: string, history?: unknown) => boolean;
   getHistoryState: () => WindowHistoryState;
-  // WindowOpenRequest와 같은 패턴 — 요청하는 쪽(KanbanBoard의 가로 스크롤바)은 내려간 헤더를
-  // 들어올리는 내부 함수(liftMinimizedSlots/clearLiftedSlots)를 몰라도 되고, "지금 들어올려야
-  // 하는가"만 요청한다. WindowLayer는 이 요청을 받아 네이티브 호버가 거는 것과 같은 함수를
-  // 그대로 호출한다.
-  requestMinimizedHover: (request: MinimizedHoverRequest) => void;
-  // 스크롤바 썸을 드래그로 잡고 있는 동안에도 호버와 독립된 소스로 등록한다 — 드래그 중
-  // 커서가 트랙 밖으로 잠깐 나가도 들뜸이 꺼지지 않아야 한다.
-  setScrollbarGrabbed: (grabbed: boolean) => void;
+
 };
 
 // 듀얼 한쪽이 빈 슬롯이고 반대쪽이 실제로 펼쳐져 칸반을 가리고 있을 때, 그 가린 폭만큼
@@ -108,7 +100,7 @@ type Props = {
 const CONTENT_INSET = 40;
 const DUAL_GAP = 20;
 const MIN_DUAL_RESIZE_RANGE = 100;
-// .slot의 left/width/height/bottom 트랜지션 시간(style.module.css)과 같은 값 — 전환
+// .slot의 left/width/height/top 트랜지션 시간(style.module.css)과 같은 값 — 전환
 // 애니메이션이 끝나는 시점에 맞춰 .slotFront를 뗀다.
 const SWITCH_ANIMATION_MS = 200;
 const CLOSE_ANIMATION_MS = 160;
@@ -151,7 +143,7 @@ function targetForRole(state: LayoutState, role: number): WindowTarget {
   return isMain ? "dualMain" : "dualSub";
 }
 
-// 가려지지 않는 틈이 하나라도 있는가(빈 슬롯이거나 내려간 자리) — 있으면 그 틈을 통해 칸반을
+// 가려지지 않는 틈이 하나라도 있는가(빈 슬롯이거나 접힌 자리) — 있으면 그 틈을 통해 칸반을
 // 조작할 수 있어야 하니 오버레이 전체의 클릭/딤을 꺼서 틈을 통과시킨다(실제 창 자신은 각
 // 슬롯이 pointer-events:auto로 다시 켜서 평소처럼 클릭된다).
 function isGap(value: SlotValue): boolean {
@@ -172,8 +164,8 @@ function mainCardId(state: LayoutState | null, roleData: Record<number, string>)
 
 /*
  * 카드 창뿐 아니라 앞으로 생길 다른 창 종류도 같이 쓸 레이어 껍데기. 상태전이(windowManager.ts의
- * 매핑 함수들)를 직접 호출해서 소유하고, 6개 물리 슬롯(싱글/싱글내림/좌펼침/우펼침/좌내림/
- * 우내림) 중 배치가 있는 곳만 렌더링한다. 호출하는 쪽(GroupDetailContainer)은 "이 카드
+ * 매핑 함수들)를 직접 호출해서 소유하고, 6개 물리 슬롯(싱글/싱글접힘/좌펼침/우펼침/좌접힘/
+ * 우접힘) 중 배치가 있는 곳만 렌더링한다. 호출하는 쪽(GroupDetailContainer)은 "이 카드
  * 열어줘"만 요청하고, URL은 onHashChange로 받은 문자열을 그대로 navigate에 싣기만 한다 —
  * 해시 문법과 상태 적용은 여기서 소유한다. 일반 조작은 해시가 바뀔 때마다 히스토리를 추가한다.
  */
@@ -201,7 +193,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
   const historyIdAliasesRef = useRef(new Map<string, number>());
   const [exitingWindows, setExitingWindows] = useState<RenderedWindow[]>([]);
   const [roleChangedWindowIds, setRoleChangedWindowIds] = useState<Set<number>>(new Set());
-  const [sequencedWindowMotions, setSequencedWindowMotions] = useState<Map<number, "lower" | "raise">>(new Map());
+  const [sequencedWindowMotions, setSequencedWindowMotions] = useState<Map<number, "collapse" | "restore">>(new Map());
   useEffect(() => {
     if (!sequencedWindowMotions.size) return;
     // 160ms씩 두 단계가 끝나면 일반 전환으로 복귀한다.
@@ -234,29 +226,21 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
     if (switchFrontTimerRef.current !== null) clearTimeout(switchFrontTimerRef.current);
   }, []);
 
-  // 내려간 슬롯 "들뜨기" — 호버를 낼 수 있는 쪽마다 자기 몫의 변수 하나씩 쓴다(아래 slot
-  // 3종 + 스크롤바). 이벤트가 생기면 자기 변수만 갱신하고 공용 액션 함수(recomputeLift)를
-  // 부른다 — 그 함수는 등록된 변수 전부를 OR로 묶어서, 하나라도 true면 전체를 들어올리고
-  // 전부 false면 내린다. 서로 다른 소스가 서로의 변수를 지우지 않으니(각자 자기 것만 쓴다)
-  // "한쪽 소스가 끝날 때 다른 쪽이 이미 걸어둔 들뜸까지 같이 지워지는" 경합이 안 생긴다.
+  // 각 접힌 헤더는 자기 슬롯의 호버에만 반응한다.
   const hoverSourcesRef = useRef({
-    scrollbar: false,
-    // 스크롤바 썸을 드래그로 잡고 있는 동안 — 드래그 중엔 커서가 트랙 바깥으로 잠깐 벗어나도
-    // (포인터 캡처로 스크롤은 계속됨) 호버와는 별개로 계속 들떠 있어야 하니 독립된 변수를 둔다.
-    scrollbarGrabbed: false,
     singleMinimized: false,
     leftMinimized: false,
     rightMinimized: false,
   });
-  const [isMinimizedLifted, setIsMinimizedLifted] = useState(false);
-  const recomputeLift = useCallback(() => {
-    const next = Object.values(hoverSourcesRef.current).some(Boolean);
-    setIsMinimizedLifted((current) => (current === next ? current : next));
+  const [minimizedHover, setMinimizedHover] = useState({ ...hoverSourcesRef.current });
+  const updateHoveredSlots = useCallback(() => {
+    setMinimizedHover({ ...hoverSourcesRef.current });
   }, []);
   const setHoverSource = useCallback((key: keyof typeof hoverSourcesRef.current, hovering: boolean) => {
+    if (hoverSourcesRef.current[key] === hovering) return;
     hoverSourcesRef.current[key] = hovering;
-    recomputeLift();
-  }, [recomputeLift]);
+    updateHoveredSlots();
+  }, [updateHoveredSlots]);
 
   useEffect(() => {
     if (!overlayEl) return;
@@ -357,16 +341,22 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
     const keptIds = new Set(Object.values(next.windowIds));
     const beforeWindows = renderedWindowsFor(before);
     const afterWindows = renderedWindowsFor(next);
-    const motions = new Map<number, "lower" | "raise">();
+    for (const item of beforeWindows) {
+      if (!MINIMIZED_SLOTS.has(item.slot)) continue;
+      if (!afterWindows.some((window) => window.windowId === item.windowId && window.slot === item.slot)) {
+        setHoverSource(item.slot as "singleMinimized" | "leftMinimized" | "rightMinimized", false);
+      }
+    }
+    const motions = new Map<number, "collapse" | "restore">();
     for (const item of afterWindows) {
       const previous = beforeWindows.find((window) => window.windowId === item.windowId);
       if (!previous || previous.aloneEdgeClass === item.aloneEdgeClass) continue;
       const wasMinimized = MINIMIZED_SLOTS.has(previous.slot);
       const isMinimized = MINIMIZED_SLOTS.has(item.slot);
-      if (wasMinimized !== isMinimized) motions.set(item.windowId, isMinimized ? "lower" : "raise");
+      if (wasMinimized !== isMinimized) motions.set(item.windowId, isMinimized ? "collapse" : "restore");
     }
     setSequencedWindowMotions(motions);
-    // 내리기/올리기는 애니메이션을 유지하고 메인↔서브 역할만 바뀐 창의 높이는 즉시 반영한다.
+    // 접기/펼치기는 애니메이션을 유지하고 메인↔서브 역할만 바뀐 창의 높이는 즉시 반영한다.
     setRoleChangedWindowIds(new Set(afterWindows.filter((item) => {
       const previous = beforeWindows.find((window) => window.windowId === item.windowId);
       return previous && previous.role !== item.role
@@ -384,7 +374,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
         renderContent,
         style: rect && overlayRect ? {
           left: rect.left - overlayRect.left,
-          bottom: overlayRect.bottom - rect.bottom,
+          top: rect.top - overlayRect.top,
           width: rect.width,
           height: rect.height,
         } : undefined,
@@ -509,7 +499,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
   function reassignMainSide(value: WindowSnapshot, nextSide: "left" | "right"): WindowSnapshot {
     if (value.mainSide === nextSide || value.state?.kind !== "Dual") return { ...value, mainSide: nextSide };
     // 크기 조절은 내용 교환이 아니라 메인/서브 역할 이름만 다시 붙이는 작업이다.
-    // 부호(내림 상태)와 Empty까지 함께 재배정해야 mainSide가 바뀌어도 물리적 좌우는 유지된다.
+    // 부호(접힘 상태)와 Empty까지 함께 재배정해야 mainSide가 바뀌어도 물리적 좌우는 유지된다.
     // 사용자 교환 액션은 부호를 슬롯에 남기므로 여기에서 재사용하지 않는다.
     const switched: LayoutState = { kind: "Dual", main: value.state.sub, sub: value.state.main };
     return {
@@ -612,12 +602,6 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
       }
       return true;
     },
-    requestMinimizedHover: (request: MinimizedHoverRequest) => {
-      setHoverSource("scrollbar", request.hovering);
-    },
-    setScrollbarGrabbed: (grabbed: boolean) => {
-      setHoverSource("scrollbarGrabbed", grabbed);
-    },
   }), [state, roleData, windowIds, canGoDual, onMainCardChange, onHashChange, setHoverSource, splitRatio, mainSide, overlayWidth, overlayHeight, isSupportedContent, onUnsupportedContent]);
 
   // 화면이 좁아지면 듀얼을 싱글로 되돌린다(되돌릴 수 없는 전환 — 나중에 다시 넓어져도 자동으로
@@ -642,7 +626,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
 
   const isClickThrough = hasPassthroughGap(state);
 
-  // 반대쪽이 가리지 않는 상태(빈 슬롯이거나 내려감)이고 이쪽이 실제로 펼쳐져 있을 때만
+  // 반대쪽이 가리지 않는 상태(빈 슬롯이거나 접힘)이고 이쪽이 실제로 펼쳐져 있을 때만
   // 칸반을 가린다 — 양쪽 다 펼쳐진 실제 창이면 어느 쪽도 "유일하게 가리는 쪽"이 아니라서
   // 이 함수의 범위 밖이다(그 경우는 커버리지 없음, null 유지).
   const coverage: WindowCoverage | null = useMemo(() => {
@@ -693,8 +677,8 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
   }, []);
 
   // "바깥" 클릭만 다룬다 — 창 자체(헤더 포함) 안에서 일어난 클릭이 버블링돼 올라온 거면
-  // 무시한다. 안 그러면 펼쳐진 창 헤더(내려가 있지 않을 땐 자기 onClick이 없다)를 눌렀을 때
-  // 이벤트가 여기까지 올라와서 "바깥 클릭"으로 오인되어 둘 다 내려가 버린다.
+  // 무시한다. 안 그러면 펼쳐진 창 헤더(접혀 있지 않을 땐 자기 onClick이 없다)를 눌렀을 때
+  // 이벤트가 여기까지 올라와서 "바깥 클릭"으로 오인되어 둘 다 접혀 버린다.
   //
   // 정렬 메뉴·담당자 선택 같은 Popover(RecordSortMenu, AssigneePicker 등)는 Chakra <Portal>로
   // 내용을 DOM 트리 밖(보통 body 근처)에 그린다 — React는 synthetic event를 리액트 트리
@@ -703,7 +687,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
   // 언어 선택 등 Menu의 role="menu", 내용을 복사할 수 있는 툴팁의 role="tooltip"을 따로 걸러낸다. Dialog의 배경·Positioner도 제외해서
   // 모달을 닫는 바깥 클릭이 창 최소화까지 이어지지 않게 한다. 리사이즈 핸들(두 창 사이)도
   // windowsGroup 바깥의 형제 엘리먼트라 따로 걸러줘야 한다 — 안 그러면 드래그 없이 그냥
-  // 클릭(또는 드래그 종료의 click 이벤트)만 해도 "바깥 클릭"으로 오인돼 둘 다 내려간다.
+  // 클릭(또는 드래그 종료의 click 이벤트)만 해도 "바깥 클릭"으로 오인돼 둘 다 접힌다.
   const isOutsideTarget = (target: EventTarget | null) => {
     if (!(target instanceof Element)) return false;
     if (windowsGroupRef.current?.contains(target)) return false;
@@ -780,7 +764,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
     let next: LayoutState = state;
     for (const item of active) {
       if (!MINIMIZED_SLOTS.has(item.slot)) continue;
-      next = applyRaise(next, targetForRole(next, item.role));
+      next = applyRestore(next, targetForRole(next, item.role));
     }
     commit(next, roleData, windowIds);
   };
@@ -795,7 +779,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
     commit(next, roleData, windowIds);
   };
 
-  // 듀얼이고 "양쪽 다 내려감"만 아니면(둘 다 펼침 / 한쪽만 펼침+반대 내려감 / 한쪽만
+  // 듀얼이고 "양쪽 다 접힘"만 아니면(둘 다 펼침 / 한쪽만 펼침+반대 접힘 / 한쪽만
   // 펼침+반대 빈 슬롯, 3가지 전부) 드래그 핸들을 띄운다. 위치는 항상 일반 배치 기준
   // (content-inset)이다 — "혼자일 때 가장자리로 더 붙이기"(slotLeftExpandedAlone 등)는
   // 벽과의 거리(위치)만 바꾸는 별개 메커니즘이고, 이 비율은 폭만 정하므로 서로 안 건드린다.
@@ -864,13 +848,13 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
   const overlayStyle = {
     "--dual-split-ratio": splitRatio,
     "--dual-min-slot-width": `${minSlotWidth}px`,
-    "--divider-left": coverage?.side === "left"
+  } as CSSProperties;
+  const dividerLeft = coverage?.side === "left"
       ? "calc(var(--content-inset) / 2 + var(--dual-slot-width-left) + var(--dual-gap) / 2)"
       : coverage?.side === "right"
       ? "calc(100% - var(--content-inset) / 2 - var(--dual-slot-width-right) - var(--dual-gap) / 2)"
-      : "calc(var(--content-inset) + var(--dual-slot-width-left) + var(--dual-gap) / 2)",
-  } as CSSProperties;
-  // 두 슬롯 "사이" 중앙선 — 리사이즈 핸들과 "모두 올리기/내리기" 버튼(.midGapZone)이 같이
+      : "calc(var(--content-inset) + var(--dual-slot-width-left) + var(--dual-gap) / 2)";
+  // 두 슬롯 "사이" 중앙선 — 리사이즈 핸들과 "모두 펼치기/접기" 버튼(.midGapZone)이 같이
   // 쓴다. 혼자일 때는 그 창 자체가 가장자리로 붙어 있으므로(slotLeftExpandedAlone 등,
   // content-inset/2) 중앙선도 그 붙은 창의 실제 가장자리를 따라가야
   // 한다 — 안 그러면 핸들이 창에서 동떨어진, 아무 의미 없는 자리에 남는다. 비율이 위치를
@@ -909,7 +893,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
             isClosing,
             canGoDual,
             otherSideEmpty,
-            onToggleMinimize: () => { if (!isClosing) applyAction(minimized ? { type: "raise", target } : { type: "minimize", target }); },
+            onToggleMinimize: () => { if (!isClosing) applyAction(minimized ? { type: "restore", target } : { type: "minimize", target }); },
             onClose: (options) => { if (!isClosing) closeWindow(target, options); },
             onSwitchSide: () => {
               if (isClosing) return;
@@ -924,12 +908,14 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
               else closeGuardsRef.current.delete(windowId);
             },
           };
-          // 반대쪽이 비었거나 내려가 있어서 이 창 혼자 칸반을 가리고 있을 때(coverage와 같은
+          // 반대쪽이 비었거나 접혀 있어서 이 창 혼자 칸반을 가리고 있을 때(coverage와 같은
           // 조건), 폭은 그대로 두고 자기 쪽 가장자리로 더 밀착시켜 칸반이 보이는 틈을 넓힌다.
           const aloneEdgeClass = item.aloneEdgeClass;
           return (
             <div
               key={windowId}
+              data-window-slot
+              data-window-motion={sequencedWindowMotions.get(windowId)}
               ref={(element) => {
                 if (element) {
                   windowElementsRef.current.set(windowId, element);
@@ -942,13 +928,13 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
                 SLOT_CLASS[item.slot],
                 role === "sub" && !minimized ? styles.slotSubExpanded : undefined,
                 roleChangedWindowIds.has(windowId) ? styles.slotRoleChanged : undefined,
-                sequencedWindowMotions.get(windowId) === "lower" ? styles.slotLowerThenMove : undefined,
-                sequencedWindowMotions.get(windowId) === "raise" ? styles.slotMoveThenRaise : undefined,
+                sequencedWindowMotions.get(windowId) === "collapse" ? styles.slotMoveThenCollapse : undefined,
+                sequencedWindowMotions.get(windowId) === "restore" ? styles.slotRestoreThenMove : undefined,
                 aloneEdgeClass,
                 windowId === switchFrontId ? styles.slotFront : undefined,
-                minimized && isMinimizedLifted ? styles.slotLifted : undefined,
+                minimized && minimizedHover[item.slot as "singleMinimized" | "leftMinimized" | "rightMinimized"] ? styles.slotHovered : undefined,
               )}
-              // 버튼(최소화/닫기) 위에서는 들어올리지 않는다 — 기존 :hover:not(:has(button:hover))
+              // 접기·펼치기 및 닫기 버튼 위에서는 호버로 확장하지 않는다 — 기존 :hover:not(:has(button:hover))
               // 와 같은 예외를 그대로 유지한다. pointerenter/leave는 버블링 중 하위 요소 전환을
               // 구분 못 해서(슬롯에 들어온 뒤로 계속 "진입 상태") pointermove로 매번 커서
               // 아래가 버튼인지 확인한다. item.slot은 minimized일 때만 singleMinimized/
@@ -968,9 +954,10 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
       {bothMinimized && (
         <button
           type="button"
-          className={cn(styles.midGapZone, styles.midGapZoneBottom)}
-          style={{ left: "var(--divider-left)" }}
-          aria-label="두 창 모두 올리기"
+          className={cn(styles.midGapZone, styles.midGapZoneCollapsed)}
+          data-minimized-window-gap
+          style={{ left: dividerLeft }}
+          aria-label="두 창 모두 펼치기"
           onClick={handleRestoreBoth}
         />
       )}
@@ -978,8 +965,8 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
         <button
           type="button"
           className={cn(styles.midGapZone, styles.midGapZoneTop)}
-          style={{ left: "var(--divider-left)" }}
-          aria-label="두 창 모두 내리기"
+          style={{ left: dividerLeft }}
+          aria-label="두 창 모두 접기"
           onClick={handleMinimizeBoth}
         />
       )}
@@ -988,7 +975,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
         <div
           ref={resizeHandleRef}
           className={styles.resizeHandle}
-          style={{ left: "var(--divider-left)" }}
+          style={{ left: dividerLeft }}
           aria-hidden="true"
           onPointerDown={handleResizePointerDown}
           onPointerMove={handleResizePointerMove}

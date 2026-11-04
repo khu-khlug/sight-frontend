@@ -1,5 +1,5 @@
 import { Box } from "@chakra-ui/react";
-import { ChevronUp, Minus, X } from "lucide-react";
+import { ChevronDown, Minus, X } from "lucide-react";
 import { ReactNode } from "react";
 
 import AppTooltip from "../../../../components/AppTooltip";
@@ -10,9 +10,9 @@ import styles from "./style.module.css";
 type Props = {
   headerLeft?: ReactNode;
   // headerLeft 안에 클릭 가능한 요소(예: CardWindow의 라벨 필터 점)가 있으면, 그 사이 빈
-  // 공간을 잘못 클릭했을 때 헤더 onClick(내리기)까지 같이 발동한다 — 그게 싫은 쪽(CardWindow)은
-  // false로 꺼서 headerLeft 영역만 그 클릭을 삼키게 한다. 내려간 상태에서 헤더를 클릭해
-  // 올리는 동작(§3)은 이 prop과 무관하게 항상 유지한다 — 펼쳐진 상태에서 "내리기"로 가는
+  // 공간을 잘못 클릭했을 때 헤더 onClick(접기)까지 같이 발동한다 — 그게 싫은 쪽(CardWindow)은
+  // false로 꺼서 headerLeft 영역만 그 클릭을 삼키게 한다. 접힌 상태에서 헤더를 클릭해
+  // 펼치는 동작(§3)은 이 prop과 무관하게 항상 유지한다 — 펼쳐진 상태에서 "접기"로 가는
   // 경로만 막는다.
   headerLeftTogglesMinimize?: boolean;
   middleActions?: ReactNode;
@@ -33,13 +33,13 @@ type Props = {
  * 때문이다(카드는 세로만, 텍스트 파일은 줄바꿈/가로스크롤 토글 등). 둥근 모서리(.window의
  * border-radius)에 맞춘 스크롤바 보정 클래스(.scrollbar/.scrollbarHorizontal)는 이 모듈에
  * 그대로 남겨뒀으니, children 쪽에서 이 CSS 모듈을 import해 자기 스크롤박스에 적용하면 된다.
- * 크기·위치·내리기/올리기 이동 애니메이션은 이 컴포넌트를 감싸는 슬롯
+ * 크기·위치·접기/펼치기 이동 애니메이션은 이 컴포넌트를 감싸는 슬롯
  * (WindowLayer/style.module.css의 .slot*)이 맡는다 — 여기서는 그 슬롯의 100%를 채울 뿐이다.
  * 오버레이·딤 배경·바깥 클릭 감지처럼 레이어 전체에 걸치는 동작도 WindowLayer(../WindowLayer)
  * 가 맡는다. 닫기 애니메이션 타이밍도 WindowLayer의 binding.isClosing으로 제어한다.
  * 헤더에는 항상 un-hashed 마커 "js-window-header"를,
- * 내려간 상태에서는 추가로 "js-window-minimized"를 붙인다 — WindowLayer가 다른 CSS 모듈
- * 파일에서 "듀얼 양쪽 다 내려간/펼쳐진 두 헤더 사이 호버 시 동시에 음영·들어올리기"를
+ * 접힌 상태에서는 추가로 "js-window-minimized"를 붙인다 — WindowLayer가 다른 CSS 모듈
+ * 파일에서 "듀얼 양쪽 다 접힌/펼쳐진 두 헤더 사이 호버 시 동시에 음영·들어펼치기"를
  * :has()로 걸 때 참조하는 훅이다(같은 CSS 모듈이 아니라 해시된 클래스명으로는 못 잡는다).
  */
 export default function Window({ headerLeft, headerLeftTogglesMinimize = true, middleActions, children, bg = "white", isSub = false, minimized, onToggleMinimize, isClosing = false, onRequestClose }: Props) {
@@ -70,18 +70,18 @@ export default function Window({ headerLeft, headerLeftTogglesMinimize = true, m
             {headerLeft}
           </div>
           <div className={styles.headerRightSlot}>
-            <AppTooltip content={minimized ? "올리기" : "내리기"} placement="top">
+            <AppTooltip content={minimized ? "펼치기" : "접기"} placement="top">
               <Box
                 as="button"
                 className={cn(styles.iconSlot, styles.minimizeSlot)}
-                aria-label={minimized ? "올리기" : "내리기"}
+                aria-label={minimized ? "펼치기" : "접기"}
                 onClick={(event) => {
                   event.stopPropagation();
                   onToggleMinimize();
                 }}
               >
                 <span className={styles.iconCircle}>
-                  {minimized ? <ChevronUp size={18} /> : <Minus size={18} />}
+                  {minimized ? <ChevronDown size={18} /> : <Minus size={18} />}
                 </span>
               </Box>
             </AppTooltip>

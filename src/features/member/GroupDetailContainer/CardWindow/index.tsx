@@ -133,7 +133,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
   useLoadMoreOnScroll({ sentinelRef: recordsSentinelRef, hasMore: Boolean(hasNextPage) && !isFetchNextPageError, isLoading: isFetching, loadMore: loadMoreRecords });
   useEffect(() => {
     if (!focusRecordId) return;
-    // 내려간 창이면 먼저 펼친다. 펼쳐져 minimized가 바뀌면 이 effect가 다시 돌며 스크롤한다.
+    // 접힌 창이면 먼저 펼친다. 펼쳐져 minimized가 바뀌면 이 effect가 다시 돌며 스크롤한다.
     if (minimized) {
       onToggleMinimize();
       return;
@@ -289,7 +289,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
       middleActions={middleActions}
       headerLeftTogglesMinimize={false}
       headerLeft={
-        // 내려가면 라벨 필터 줄 대신 카드 제목을 보여준다 — 창 자체의 동작(내리기/올리기,
+        // 접히면 라벨 필터 줄 대신 카드 제목을 보여준다 — 창 자체의 동작(접기/펼치기,
         // 닫기, 딤 배경 등)은 전부 Window가 맡고, CardWindow는 이 표시 전환만 담당한다.
         <Box className={styles.headerLeftStack}>
           <Box

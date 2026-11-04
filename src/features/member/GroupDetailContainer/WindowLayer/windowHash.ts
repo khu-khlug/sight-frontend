@@ -1,10 +1,10 @@
-// URL 해시 ↔ 레이어 상태 변환. 문법은 knowledge/frontend/card-window-manager.md §9.1 참고.
+// URL 해시 ↔ 레이어 상태 변환. 문법은 그룹문서/card-window-manager.md §9.1 참고.
 //
 //   hash := "" | slot ("&" slot)?
 //   slot := "_"? (card-id | "empty" | type "=" value)
 //
 // 첫 slot이 메인, "&" 뒤 slot이 서브다. slot이 하나면 싱글, 둘이면 듀얼. "_"는 그 슬롯이
-// 내려간(minimized) 상태라는 뜻이다.
+// 접힌(minimized) 상태라는 뜻이다.
 //
 // card-id와 "type=value"를 구분하는 데 별도 접두 기호(예전엔 "$")가 필요 없다 — card-id(지금
 // 정수 카운터든, 나중에 마이그레이션할 ulid든)는 "=" 문자를 포함할 일이 없으므로 "=" 유무

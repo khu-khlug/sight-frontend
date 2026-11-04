@@ -1,7 +1,7 @@
 /*
- * 창 상자 하나의 크롬. 오버레이·딤 배경·크기·위치·내리기/올리기 이동은 WindowLayer(감싸는
+ * 창 상자 하나의 크롬. 오버레이·딤 배경·크기·위치·접기/펼치기 이동은 WindowLayer(감싸는
  * .slot*)가 맡고, 여기서는 이 창 하나의 헤더·콘텐츠만 다룬다. 이 컴포넌트는 항상 부모 슬롯의
- * 100%를 채운다. --window-header-height/--window-hover-lift는 WindowLayer의 .overlay가
+ * 100%를 채운다. --window-header-height/--window-hover-extension은 WindowLayer의 .overlay가
  * 선언해 아래로 내려준다.
  */
 .windowAnim {
@@ -17,11 +17,9 @@
   animation: windowOut 160ms ease forwards;
 }
 
-/* 내려간 헤더에 호버하면(부모 슬롯의 height가 늘어나는 동안) 그 늘어난 만큼 드러나는 콘텐츠
-   영역도 흰색 대신 헤더와 같은 톤으로 맞춘다. js-window-minimized는 un-hashed 전역 마커라
-   :global()로 감싸야 한다. */
-:global(.js-window-minimized):hover:not(:has(button:hover)) .content {
-  background-color:  rgba(250, 250, 250, 0.9) !important;
+/* 접는 동안 드러나는 본문도 헤더 및 카드 제목과 같은 톤으로 맞춘다. */
+:global(.js-window-minimized) .content {
+  background-color: var(--chakra-colors-gray-100, #f4f4f5) !important;
 }
 
 @keyframes windowIn {
@@ -49,12 +47,15 @@
   transition: border-radius 200ms ease;
 }
 
-/* 내려간 상태에서는 페이지 프레임 경계에 붙으므로 아래쪽 꼭짓점은 둥글면 안 되고, 아래쪽
-   테두리 선도 없어야 한다(프레임에 맞닿은 쪽이라 선이 필요 없다). */
+/* 접힌 헤더는 상단에 독립된 박스로 놓인다. */
 .windowMinimized {
-  border-radius: 16px 16px 0 0;
-  border-bottom: none;
-  box-shadow: inset 0 -10px 10px -10px rgba(0, 0, 0, 0.5);
+  border-radius: 0 0 16px 16px;
+  /* 접기와 좌우 이동이 끝날 때까지 위쪽 라운드를 유지한다. */
+  transition: border-radius 0s linear 160ms;
+}
+
+:global([data-window-motion="collapse"]) .windowMinimized {
+  transition-delay: 320ms;
 }
 
 .header {
@@ -67,22 +68,26 @@
 }
 
 .headerMinimized {
+  /* 슬롯이 호버로 늘어날 때 글자와 버튼도 늘어난 헤더의 중앙을 따른다.
+     접는 도중에는 헤더가 본문 높이까지 커지지 않도록 최대 높이를 제한한다. */
+  height: 100%;
+  max-height: calc(var(--window-header-height) + var(--window-hover-extension) - 2px);
   cursor: pointer;
-  /* bg prop(인라인 background-color)보다 우선해야 해서 !important. 살짝 회색+반투명하게
-     둬서 "내려가 있다"는 상태가 옅게 티나게 한다. */
-  background-color:  rgba(250, 250, 250, 0.9) !important;
+  /* 접힌 제목줄 전체에 같은 회색 배경을 적용한다. */
+  background-color: var(--chakra-colors-gray-100, #f4f4f5) !important;
 }
 
 /* 펼쳐진 상태에서도, 헤더의 콘텐츠 없는 빈 영역(헤더 왼쪽 표시·버튼이 아닌 나머지)에 호버하면
    음영을 넣는다. 헤더 자신이 베이스 배경(bg prop)이라 반투명 색(blackAlpha 등)을 쓰면 뒤가
    비쳐 보인다 — 완전 불투명한 회색을 써야 한다. .headerLeft나 버튼 위에 있을 땐 제외한다. */
-.header:hover:not(:has(.headerLeft:hover)):not(:has(button:hover)) {
+.header:hover:not(:has(.headerLeft:hover)):not(:has(button:hover)),
+.headerMinimized:hover:not(:has(button:hover)) {
   background-color: var(--chakra-colors-gray-100, #f4f4f5) !important;
 }
 
 /* 헤더 전체 높이를 다 차지하고 왼쪽 끝에 붙는다 — 그래야 라벨 위/아래 빈틈이 .header 자신한테
    클릭을 넘기지 않고 이 박스가 전부 받는다(headerLeftTogglesMinimize=false일 때 이 박스가
-   stopPropagation으로 내리기를 막는 범위이기도 하다). 안의 내용물 정렬·여백은 이 박스가 아니라
+   stopPropagation으로 접기를 막는 범위이기도 하다). 안의 내용물 정렬·여백은 이 박스가 아니라
    여기 들어오는 콘텐츠(headerLeft prop)가 패딩으로 알아서 한다. */
 .headerLeft {
   height: 100%;
@@ -103,15 +108,15 @@
   /* 좁아질 때 줄어들 공간은 전부 .headerLeft가 흡수해야 한다 — 닫기 등 우측 아이콘이 밀려나
      사라지면 안 되므로 이 영역 자체는 줄어들지 않는다. */
   flex-shrink: 0;
-  /* 닫기~내리기까지 모든 아이콘 사이에 빈 공간이 없어야 한다 — 갭을 두지 않고, 각 .iconSlot의
+  /* 닫기~접기까지 모든 아이콘 사이에 빈 공간이 없어야 한다 — 갭을 두지 않고, 각 .iconSlot의
      flex:1로 전체 폭을 정확히 1/n씩 나눠 서로 맞닿게 한다. */
 }
 
 /* 좌/우 버튼 두 개를 묶는 래퍼. 감싸지 않았을 때(듀얼 모드)와 똑같이 두 버튼이 맞닿아야
    하므로 gap을 두지 않는다. 이 래퍼 자신은 .headerRightSlot 안에서 다른 .iconSlot(flex:1)
-   형제 둘(내리기·닫기)과 같은 줄에 있는데, 그 둘과 똑같이 1/n씩 나누려면 이 래퍼가 자기
+   형제 둘(접기·닫기)과 같은 줄에 있는데, 그 둘과 똑같이 1/n씩 나누려면 이 래퍼가 자기
    안의 아이콘 2개 몫(flex:2)을 차지해야 한다 — 그래야 전체가 "아이콘 개수만큼" 똑같이
-   나뉜다(싱글: 내리기+좌+우+닫기=4등분, 듀얼은 래퍼 없이 이미 iconSlot 4개라 자동으로 맞음). */
+   나뉜다(싱글: 접기+좌+우+닫기=4등분, 듀얼은 래퍼 없이 이미 iconSlot 4개라 자동으로 맞음). */
 .navGroup {
   display: flex;
   flex: 2;

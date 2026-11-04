@@ -1,9 +1,9 @@
 // 윈도우 매니저 — 카드/파일/기록 편집창이 레이어 위 어디에 어떤 모양으로 떠 있는지를
 // 전담한다. 세 가지를 묶어서 다룬다:
-//   1. 추상 상태 전이: LayoutState(싱글/듀얼, 역할 1/2/3)가 액션(새 창/닫기/내림/올림/
-//      펼침/전환/역할로 보내기)에 따라 어떻게 바뀌는지. 실제 창 데이터(id, 콘텐츠)는 전혀
+//   1. 추상 상태 전이: LayoutState(싱글/듀얼, 역할 1/2/3)가 액션(새 창/닫기/접기/펼치기/
+//      전체 너비로 펼치기/전환/역할로 보내기)에 따라 어떻게 바뀌는지. 실제 창 데이터(id, 콘텐츠)는 전혀
 //      모른다.
-//   2. 물리 배치: 그 추상 역할이 화면의 왼쪽/오른쪽, 펼침/내림 중 어디에 그려져야 하는지.
+//   2. 물리 배치: 그 추상 역할이 화면의 왼쪽/오른쪽, 펼침/접힘 중 어디에 그려져야 하는지.
 //   3. role-data 재배정: 호출 하나 안에서만 의미 있는 임시 역할 라벨(1/2/3)을, 실제 창
 //      데이터(roleData)와 함께 다음 상태에 맞는 정규 라벨로 다시 매긴다.
 //
@@ -37,7 +37,7 @@ import { encodeFileContentKey, type FileWindowContent } from "../FileWindow/type
 // 레이아웃 상태 — 창 객체를 담지 않는다. 창 레이어 자체가 없으면 null이다(별도 "Empty"
 // variant를 두지 않는다). 있으면 싱글(창 하나) / 듀얼(메인+서브 두 자리, 각 자리는 실제 창
 // 이거나 빈 슬롯 "Empty") 중 하나이고, 실제 창 자리의 값은 역할 번호(1/2/3)에 부호를 붙여
-// 내림 여부를 나타낸다(예: -1 = 역할1이 내려간 상태). 실제 창 데이터(카드 id 등)는 이 파일
+// 접힘 여부를 나타낸다(예: -1 = 역할1이 접힌 상태). 실제 창 데이터(카드 id 등)는 이 파일
 // 밖에서 관리한다.
 export type SignedRole = 1 | -1 | 2 | -2 | 3 | -3;
 export type SlotValue = SignedRole | "Empty";
@@ -110,11 +110,11 @@ export function applyNewWindow(state: LayoutState | null, source?: WindowRole): 
   return NEW_WINDOW_PATCHES[NEW_WINDOW_PATCHES.length - 1](state, source) as LayoutState;
 }
 
-// 닫기/내림/펼침처럼 "셋 중 어느 자리에 대한 이벤트인지"만 필요한 함수들이 공유하는 입력 타입.
+// 닫기/접기/펼치기처럼 "셋 중 어느 자리에 대한 이벤트인지"만 필요한 함수들이 공유하는 입력 타입.
 export type WindowTarget = "single" | "dualMain" | "dualSub";
 
 // 창 닫기 — 싱글 닫기는 레이어 자체가 없어지므로 null. 듀얼에서 한쪽이 닫히면, 반대쪽이 실제
-// 창이면 그 창이 자기 내림 상태를 유지한 채 싱글로 승격되고, 반대쪽이 원래 빈 슬롯이었으면
+// 창이면 그 창이 자기 접힘 상태를 유지한 채 싱글로 승격되고, 반대쪽이 원래 빈 슬롯이었으면
 // 레이어 자체가 종료된다(null).
 const CLOSE_WINDOW_MAP = new Map<string, LayoutState | null>([
   [`single:${key({ kind: "Single", occupant: 1 })}`, null],
@@ -180,7 +180,7 @@ export function applyCloseWindow(state: LayoutState, target: WindowTarget, resto
   return CLOSE_WINDOW_PATCHES[CLOSE_WINDOW_PATCHES.length - 1](state, target);
 }
 
-// 내림(minimize) — 이미 내려간 자리, 빈 슬롯을 내리는 입력은 없음(무효). 부호만 뒤집는다.
+// 접기(minimize) — 이미 접힌 자리, 빈 슬롯을 접는 입력은 없음(무효). 부호만 뒤집는다.
 const MINIMIZE_MAP = new Map<string, LayoutState>([
   [`single:${key({ kind: "Single", occupant: 1 })}`, { kind: "Single", occupant: -1 }],
 
@@ -199,8 +199,8 @@ export function applyMinimize(state: LayoutState, target: WindowTarget): LayoutS
   return next;
 }
 
-// 올림/열림(raise) — 내림의 순수 반대. 이미 올라와있는 자리, 빈 슬롯을 올리는 입력은 없음(무효).
-const RAISE_MAP = new Map<string, LayoutState>([
+// 펼치기(restore) — 접기의 반대. 이미 펼친 자리, 빈 슬롯을 펼치는 입력은 없음(무효).
+const RESTORE_MAP = new Map<string, LayoutState>([
   [`single:${key({ kind: "Single", occupant: -1 })}`, { kind: "Single", occupant: 1 }],
 
   [`dualMain:${key({ kind: "Dual", main: -1, sub: 2 })}`, { kind: "Dual", main: 1, sub: 2 }],
@@ -212,14 +212,14 @@ const RAISE_MAP = new Map<string, LayoutState>([
   [`dualSub:${key({ kind: "Dual", main: "Empty", sub: -2 })}`, { kind: "Dual", main: "Empty", sub: 2 }],
 ]);
 
-export function applyRaise(state: LayoutState, target: WindowTarget): LayoutState {
-  const next = RAISE_MAP.get(`${target}:${key(state)}`);
-  if (!next) throw new Error(`applyRaise: invalid (${target}, ${key(state)})`);
+export function applyRestore(state: LayoutState, target: WindowTarget): LayoutState {
+  const next = RESTORE_MAP.get(`${target}:${key(state)}`);
+  if (!next) throw new Error(`applyRestore: invalid (${target}, ${key(state)})`);
   return next;
 }
 
-// 펼침/확장(expand) — 대상 자리를 "올라온 싱글"로 만든다. 반대쪽은 무조건 닫히고(빈 슬롯이면
-// 그냥 없어짐), 대상 자신이 내려가 있었으면 올리는 것까지 한 번에 처리된다.
+// 전체 너비로 펼치기(expand) — 대상 자리를 "펼친 싱글"로 만든다. 반대쪽은 무조건 닫히고(빈 슬롯이면
+// 그냥 없어짐), 대상 자신이 접혀 있었으면 펼치는 것까지 한 번에 처리된다.
 export type DualTarget = "dualMain" | "dualSub";
 
 const EXPAND_MAP = new Map<string, LayoutState>([
@@ -244,8 +244,8 @@ export function applyExpand(state: LayoutState, target: DualTarget): LayoutState
   return next;
 }
 
-// 전환(스위치) — 두 창의 내용은 교환하되 내림 여부는 기존 좌/우 슬롯에 유지한다.
-// 반대쪽이 빈 슬롯이면 유지할 내림 상태가 없으므로 기존 창의 상태를 그대로 옮긴다.
+// 전환(스위치) — 두 창의 내용은 교환하되 접힘 여부는 기존 좌/우 슬롯에 유지한다.
+// 반대쪽이 빈 슬롯이면 유지할 접힘 상태가 없으므로 기존 창의 상태를 그대로 옮긴다.
 // 물리적 좌/우 → main/sub 변환은 호출부 책임이다.
 const SWITCH_MAP = new Map<string, LayoutState>([
   [key({ kind: "Dual", main: 1, sub: 2 }), { kind: "Dual", main: 2, sub: 1 }],
@@ -288,7 +288,7 @@ export type WindowAction =
   | { type: "new"; source?: WindowRole }
   | { type: "close"; target: WindowTarget; restoreRole?: SignedRole }
   | { type: "minimize"; target: WindowTarget }
-  | { type: "raise"; target: WindowTarget }
+  | { type: "restore"; target: WindowTarget }
   | { type: "expand"; target: DualTarget }
   | { type: "switch" }
   | { type: "sendToRole"; target: SendTarget };
@@ -301,8 +301,8 @@ export function applyWindowAction(state: LayoutState | null, action: WindowActio
       return applyCloseWindow(state, action.target, action.restoreRole);
     case "minimize":
       return applyMinimize(state, action.target);
-    case "raise":
-      return applyRaise(state, action.target);
+    case "restore":
+      return applyRestore(state, action.target);
     case "expand":
       return applyExpand(state, action.target);
     case "switch":
@@ -367,7 +367,7 @@ function locateInState(state: LayoutState | null, role: number, mainSide = MAIN_
 }
 
 // 듀얼의 빈 슬롯("Empty")이 지금 어느 물리 슬롯에 있는지 — 실제 창 데이터는 없지만 자리
-// 표시자(placeholder)를 그릴 위치가 필요할 때 쓴다. 빈 슬롯은 내림 개념이 없어 항상 펼침
+// 표시자(placeholder)를 그릴 위치가 필요할 때 쓴다. 빈 슬롯은 접힘 개념이 없어 항상 펼침
 // 쪽 물리 슬롯이다.
 export function locateEmptySlot(state: LayoutState | null): PhysicalSlot | null {
   if (state === null || state.kind !== "Dual") return null;
@@ -461,8 +461,3 @@ export function encodeWindowOpenRequest(request: WindowOpenRequest): string {
   return encodeEditContentKey(request.target);
 }
 
-// WindowOpenRequest와 같은 이유로 여기 둔다 — 요청하는 쪽(KanbanBoard)은 WindowLayer가
-// 내려간 헤더를 들어올릴 때 내부적으로 어떤 함수(liftMinimizedSlots/clearLiftedSlots)를
-// 쓰는지 몰라도 되고, "지금 내려간 헤더 위에서 들어올려야 하는 상황인가"만 넘기면 된다.
-// WindowLayer는 이 요청을 받아 자기가 호버로 거는 것과 똑같은 함수를 그대로 호출한다.
-export type MinimizedHoverRequest = { hovering: boolean };

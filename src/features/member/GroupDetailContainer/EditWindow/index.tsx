@@ -93,7 +93,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
   const confirmDiscardEdit = () => window.confirm("작성 중인 내용이 있습니다. 편집을 종료하시겠습니까?");
 
   const editorHandle = useRef<BlockEditorHandle | null>(null);
-  // 에디터가 아직 없거나 이미 내려간 시점(창 교체 직전의 마지막 저장 등)에는 마지막으로 읽은 본문을 쓴다.
+  // 에디터가 아직 없거나 이미 해제된 시점(창 교체 직전의 마지막 저장 등)에는 마지막으로 읽은 본문을 쓴다.
   const lastContent = useRef(initialContent);
   const getContent = useCallback(() => {
     const html = editorHandle.current?.getHTML();
