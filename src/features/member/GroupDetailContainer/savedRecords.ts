@@ -22,9 +22,13 @@ export const groupSavedRecords = {
   async insert(client: QueryClient, groupId: number, recordId: number): Promise<void> {
     await KanbanApi.saveGroupRecord(groupId, recordId);
     setRecordSaved(client, groupId, recordId, true);
+    await client.invalidateQueries({ queryKey: ["saved-records-page"] });
+    await client.invalidateQueries({ queryKey: ["group-detail", groupId] });
   },
   async remove(client: QueryClient, groupId: number, recordId: number): Promise<void> {
     await GroupArchiveApi.removeSavedGroupRecord(groupId, recordId);
     setRecordSaved(client, groupId, recordId, false);
+    await client.invalidateQueries({ queryKey: ["saved-records-page"] });
+    await client.invalidateQueries({ queryKey: ["group-detail", groupId] });
   },
 };

@@ -22,8 +22,8 @@ type ListOption = { id: string; title: string };
 type Props = {
   groupId: number;
   lists: ListOption[];
-  // 보관한 기록의 "더보기" — 기록이 속한 카드 창을 열고 그 기록 위치로 스크롤한다.
-  onOpenRecord: (cardId: string, recordId: string) => void;
+  // 보관한 기록의 "더보기"는 그룹과 기록을 식별해 읽기 전용 창을 연다.
+  onOpenRecord: (groupId: number, recordId: number) => void;
 };
 
 type ArchiveView = "cards" | "records";
@@ -47,10 +47,10 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
       return last.receivedCount > 0 && next < last.totalCount ? next : undefined;
     },
   });
-  // 보관한 기록은 10개씩 더보기로 받는다. 보관·해제는 useGroupAction이 그룹 쿼리를 무효화해 이 목록도 다시 받는다.
+  // 보관한 기록은 그룹에 관계없이 사용자 기준으로 10개씩 받는다.
   const recordsQuery = useInfiniteQuery({
-    queryKey: ["group-detail", groupId, "saved-records-page"],
-    queryFn: ({ pageParam, signal }) => GroupArchiveApi.listSavedGroupRecordsPage(groupId, pageParam, signal),
+    queryKey: ["saved-records-page"],
+    queryFn: ({ pageParam, signal }) => GroupArchiveApi.listSavedRecordsPage(pageParam, signal),
     initialPageParam: 0,
     getNextPageParam: (last) => {
       const next = last.skip + last.receivedCount;
@@ -226,12 +226,8 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
           {savedRecords.map((record) => (
               <Box key={record.id} className={styles.savedRecord}>
                 <Text fontSize="sm" color="gray.500" className={styles.recordMeta}>
-                  {/* 이 링크를 누르는 시점에 이미 그룹 상세 페이지(경로)에 있으므로 해시만
-                      바꾸면 된다 — groupId나 /dev/group/ 같은 경로 문자열을 몰라도 된다.
-                      접두사 없는 bare id 형태(windowHash.ts)는 예전에 외부로 공유된 카드
-                      URL과의 하위 호환용이고, 앱 내부에서 새로 만드는 링크는 명시적인
-                      "card=<id>" 형태를 쓴다. */}
-                  <a className={styles.cardLink} href={`#card=${record.cardId}`}><CreditCard size={14} className={styles.icon} />{record.cardTitle}</a> · {record.authorName} 작성
+                  {record.groupName}<br />
+                  <CreditCard size={14} className={styles.icon} />{record.cardTitle} · {record.authorName} 작성
                 </Text>
                 <Text fontSize="xs" color="gray.500" className={styles.recordMeta}>
                   <RelativeDateTime value={record.savedAt} /> 보관됨
@@ -241,7 +237,7 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
                   <button
                     type="button"
                     className={styles.moreButton}
-                    onClick={() => onOpenRecord(record.cardId, String(record.id))}
+                    onClick={() => onOpenRecord(record.groupId, record.id)}
                   >
                     더보기
                   </button>
@@ -249,7 +245,7 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
                     type="button"
                     className={styles.removeButton}
                     disabled={action.isPending}
-                    onClick={() => action.mutate(() => groupSavedRecords.remove(queryClient, groupId, record.id))}
+                    onClick={() => action.mutate(() => groupSavedRecords.remove(queryClient, record.groupId, record.id))}
                   >
                     제거
                   </button>

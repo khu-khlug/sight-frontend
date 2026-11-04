@@ -28,7 +28,7 @@ import GroupRepository from "../tabs/GroupRepository";
 import type { RepositoryScrollMetrics } from "../tabs/GroupRepository";
 import RepositoryHorizontalScrollbar from "../tabs/GroupRepository/RepositoryHorizontalScrollbar";
 import GroupSearch from "../tabs/GroupSearch";
-import GroupSettings from "../tabs/GroupSettings";
+import GroupSettings, { type SettingsEntryRequest } from "../tabs/GroupSettings";
 import TabBar from "../TabBar";
 import { GroupDetailTabId, GROUP_DETAIL_TAB_LABEL, GROUP_DETAIL_TABS } from "../groupDetailTabs";
 import { CardListData } from "../KanbanBoard";
@@ -46,7 +46,7 @@ type Props = {
   enabledFilters: Set<LabelFilterKey>;
   onToggleFilter: (key: LabelFilterKey) => void;
   onOpenFile: (content: FileWindowContent) => void;
-  onOpenRecord: (cardId: string, recordId: string) => void;
+  onOpenRecord: (groupId: number, recordId: number) => void;
   onOpenCard: (cardId: string) => void;
   // GroupSettings(개인설정 탭)에 그대로 전달한다 — 실제 싱글/듀얼 강제는 WindowLayer가 하고,
   // 여기서는 그 설정의 공통 조상으로서 체크박스 상태만 전달한다.
@@ -124,6 +124,8 @@ export default function Dashboard({
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
   const repoViewportId = useId();
   const [isEditingGroupInfo, setIsEditingGroupInfo] = useState(false);
+  const [settingsEntryRequest, setSettingsEntryRequest] = useState<SettingsEntryRequest | null>(null);
+  const settingsEntryIdRef = useRef(0);
   const [draftGroupTitle, setDraftGroupTitle] = useState(groupInfo.title);
   const [repoScrollMetrics, setRepoScrollMetrics] = useState<RepositoryScrollMetrics>({
     viewportWidth: 0,
@@ -151,7 +153,16 @@ export default function Dashboard({
     if (pendingPersonalSettingsLeaveConfirmRef.current && !pendingPersonalSettingsLeaveConfirmRef.current()) return;
     if (pendingGroupInfoLeaveConfirmRef.current && !pendingGroupInfoLeaveConfirmRef.current()) return;
     setIsEditingGroupInfo(false);
+    setSettingsEntryRequest(null);
     onTabChange(id);
+  };
+
+  const handleSettingsBadge = (target: SettingsEntryRequest["target"]) => {
+    if (pendingPersonalSettingsLeaveConfirmRef.current && !pendingPersonalSettingsLeaveConfirmRef.current()) return;
+    if (pendingGroupInfoLeaveConfirmRef.current && !pendingGroupInfoLeaveConfirmRef.current()) return;
+    setIsEditingGroupInfo(false);
+    setSettingsEntryRequest({ id: ++settingsEntryIdRef.current, target });
+    if (activeId !== "settings") onTabChange("settings");
   };
 
   const handleStartGroupInfoEdit = () => {
@@ -177,26 +188,25 @@ export default function Dashboard({
         {showContent && (
           <>
             <Box className={styles.header} display="flex" flexWrap="wrap" gap="6px" px="15px" mb={2}>
-              <button
-                type="button"
-                className={styles.badgeButton}
-                aria-label="그룹 설정으로 이동"
-                onClick={() => {
-                  if (activeId !== "settings") handleTabChange("settings");
-                }}
-              >
-                {specialOrganizations.map((organization) => (
-                  <GroupSpecialOrganizationBadge key={organization} organization={organization} />
-                ))}
+              {specialOrganizations.map((organization) => (
+                <button key={organization} type="button" className={styles.badgeButton} aria-label="그룹 정보 변경으로 이동" onClick={() => handleSettingsBadge("info")}>
+                  <GroupSpecialOrganizationBadge organization={organization} />
+                </button>
+              ))}
+              <button type="button" className={styles.badgeButton} aria-label="그룹 정보 변경으로 이동" onClick={() => handleSettingsBadge("info")}>
                 <GroupCategoryBadge category={groupInfo.category} />
+              </button>
+              <button type="button" className={styles.badgeButton} aria-label="그룹 상태 변경 펼치기" onClick={() => handleSettingsBadge("status")}>
                 <GroupStatusBadge status={groupInfo.status} />
+              </button>
                 {/* 그룹장은 항상 멤버이기도 하므로, 그룹장이면 "내 그룹" 대신 "그룹장"만 보여준다 */}
+              {(isLeader || groupInfo.isMember) && <button type="button" className={styles.badgeButton} aria-label="그룹 설정으로 이동" onClick={() => { if (activeId !== "settings") handleTabChange("settings"); }}>
                 {isLeader ? (
                   <Badge colorPalette="red" size="sm"><Users size="16px" /> 그룹장</Badge>
                 ) : (
                   groupInfo.isMember && <Badge colorPalette="yellow" size="sm"><Users size="16px" /> 내 그룹</Badge>
                 )}
-              </button>
+              </button>}
             </Box>
             <Heading className={styles.header} size="xl" px="15px" mb={4}>
               {isEditingGroupInfo && activeId === "settings" ? (
@@ -257,6 +267,7 @@ export default function Dashboard({
                   />
                 ) : activeId === "settings" ? (
                   <GroupSettings
+                    entryRequest={settingsEntryRequest}
                     info={groupInfo}
                     isManager={currentUserQuery.data?.manager ?? false}
                     isLeader={isLeader}

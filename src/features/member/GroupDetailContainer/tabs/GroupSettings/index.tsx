@@ -17,7 +17,10 @@ import { useGroupPagePreferences } from "../../useGroupPagePreferences";
 import GroupInfoEditor, { type EditableGroupInfo } from "./GroupInfoEditor";
 import styles from "./style.module.css";
 
+export type SettingsEntryRequest = { id: number; target: "info" | "status" };
+
 type Props = {
+  entryRequest?: SettingsEntryRequest | null;
   info: GroupInfo;
   isManager: boolean;
   isLeader: boolean;
@@ -93,7 +96,7 @@ type PersonalSettingsDraft = {
   usePersonalGithub: boolean;
 };
 
-export default function GroupSettings({ info, isManager, isLeader, isEditing, titleDraft, onStartEdit, onCloseEdit, onSave, dualWindowEnabled, onDualWindowEnabledChange, onUnsavedPersonalSettingsGuardChange, onUnsavedGroupInfoGuardChange }: Props) {
+export default function GroupSettings({ entryRequest, info, isManager, isLeader, isEditing, titleDraft, onStartEdit, onCloseEdit, onSave, dualWindowEnabled, onDualWindowEnabledChange, onUnsavedPersonalSettingsGuardChange, onUnsavedGroupInfoGuardChange }: Props) {
   const preferences = useGroupPagePreferences();
   const action = useGroupAction(info.id);
   const [showStatus, setShowStatus] = useState(false);
@@ -220,6 +223,26 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
     }
     setShowStatus((value) => !value);
   };
+
+  // 배지 진입도 기존 메뉴와 같은 권한·그룹 상태 검사를 거친다.
+  const entryActionsRef = useRef({ openEditor, openStatus: () => undefined as void });
+  entryActionsRef.current = {
+    openEditor,
+    openStatus: () => {
+      if (!isLeader) {
+        window.alert("그룹장만 그룹 상태를 변경할 수 있습니다.");
+        return;
+      }
+      setShowStatus(true);
+    },
+  };
+  const handledEntryRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!entryRequest || handledEntryRef.current === entryRequest.id) return;
+    handledEntryRef.current = entryRequest.id;
+    if (entryRequest.target === "info") entryActionsRef.current.openEditor();
+    else entryActionsRef.current.openStatus();
+  }, [entryRequest]);
 
   // 종료는 진행 중인 그룹만 할 수 있다. 중단 그룹은 먼저 재진행해야 한다.
   const canEndGroup = info.status === GroupStatus.PROGRESS;

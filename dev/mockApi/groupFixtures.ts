@@ -112,6 +112,8 @@ const dummySavedRecords: SavedRecord[] = Array.from({ length: 24 }, (_, index) =
   const listIndex = index % 8;
   const cardIndex = index % ((listIndex % 4) + 3);
   return {
+    groupId: index % 3 === 0 ? 2 : 1,
+    groupName: index % 3 === 0 ? "다른 그룹 목업" : dummyGroupInfo.title,
     id: nextMockRecordId(),
     type: "tiptap" as const,
     content: SAVED_RECORD_CONTENTS[index % SAVED_RECORD_CONTENTS.length],
@@ -378,8 +380,11 @@ const initialGroupData = {
 
 export function createGroupFixture() {
   const data = structuredClone(initialGroupData);
-  for (const saved of data.savedRecords) {
-    const card = data.lists.flatMap((list) => list.cards).find((item) => item.id === saved.cardId);
+  for (const [index, saved] of data.savedRecords.entries()) {
+    const list = data.lists[index % 8];
+    const card = list.cards[index % list.cards.length];
+    saved.cardId = card.id;
+    saved.cardTitle = card.title;
     const authorUserId = data.members.find((member) => member.name === saved.authorName)?.userId ?? 1;
     card?.records.push({
       id: saved.id, authorName: saved.authorName, authorUserId, content: saved.content,
@@ -404,5 +409,8 @@ export function createGroupFixture() {
     content: `<div class="real_content">${legacyRecordContent}</div>${legacyRecordAttachments}`,
     createdAt: "2026-10-08T23:42:20+09:00", updatedAt: "2026-10-08T23:42:20+09:00", deleted: false,
   });
+  const fileCard = data.lists[0].cards[1];
+  const fileRecord = fileCard.records.find((record) => record.files?.length);
+  if (fileRecord) data.savedRecords.unshift({ groupId: 1, groupName: data.groupInfo.title, id: fileRecord.id, type: fileRecord.type, content: fileRecord.content, cardId: fileCard.id, cardTitle: fileCard.title, authorName: fileRecord.authorName, createdAt: fileRecord.createdAt, savedAt: "2026-10-09T00:00:00Z" });
   return data;
 }

@@ -74,7 +74,6 @@ export default function Window({ headerLeft, headerLeftTogglesMinimize = true, m
               <Box
                 as="button"
                 className={cn(styles.iconSlot, styles.minimizeSlot)}
-                pr={isSub ? "6px" : undefined}
                 aria-label={minimized ? "올리기" : "내리기"}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -86,9 +85,7 @@ export default function Window({ headerLeft, headerLeftTogglesMinimize = true, m
                 </span>
               </Box>
             </AppTooltip>
-            {!isSub && (
-              <>
-                {middleActions}
+            {!isSub && middleActions}
                 <AppTooltip content="닫기" placement="top">
                   <Box
                     as="button"
@@ -105,8 +102,6 @@ export default function Window({ headerLeft, headerLeftTogglesMinimize = true, m
                     </span>
                   </Box>
                 </AppTooltip>
-              </>
-            )}
           </div>
         </Box>
         <Box className={styles.content} bg={bg}>

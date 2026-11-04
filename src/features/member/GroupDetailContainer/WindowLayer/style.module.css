@@ -100,6 +100,15 @@
   transition: left 160ms ease-in, width 160ms ease-in;
 }
 
+/* 한쪽만 펼쳐진 배치와 내림 배치 사이에서는 세로·가로 이동을 순서대로 진행한다. */
+.slotLowerThenMove {
+  transition: left 160ms ease-in 160ms, width 160ms ease-in, height 160ms ease-in, bottom 160ms ease-in;
+}
+
+.slotMoveThenRaise {
+  transition: left 160ms ease-in, width 160ms ease-in, height 160ms ease-in 160ms, bottom 160ms ease-in 160ms;
+}
+
 .slotSingle {
   left: var(--content-inset);
   width: var(--single-slot-width);

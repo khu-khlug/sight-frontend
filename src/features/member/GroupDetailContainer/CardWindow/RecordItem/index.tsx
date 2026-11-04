@@ -21,6 +21,8 @@ import styles from "./style.module.css";
 import RecordMoveMenu from "./RecordMoveMenu";
 
 type Props = {
+  className?: string;
+  locationLabel?: string;
   // 그룹 포트폴리오가 발행 중일 때만 기록의 포트폴리오 포함 버튼을 보인다.
   isPortfolioPublished?: boolean;
   // 중단·종료 그룹에서는 개인 보관·보관 해제와 기록 포트폴리오 변경을 할 수 없다.
@@ -43,7 +45,7 @@ type Props = {
 const META_LINE_GAP = 14;
 const ICON_GROUP_GAP = 2;
 
-export default function RecordItem({ groupId, cardId, record, disabled = false, isPortfolioPublished = false, canArchive = true, onToggleDeleted, onEdit, onOpenCard, highlighted = false, onHighlightEnd }: Props) {
+export default function RecordItem({ className, locationLabel, groupId, cardId, record, disabled = false, isPortfolioPublished = false, canArchive = true, onToggleDeleted, onEdit, onOpenCard, highlighted = false, onHighlightEnd }: Props) {
   const queryClient = useQueryClient();
   const isSaved = record.isInUserArchive;
   const action = useGroupAction(groupId);
@@ -111,7 +113,7 @@ export default function RecordItem({ groupId, cardId, record, disabled = false, 
     observer.observe(measureGroup);
     if (measureActionsRef.current) observer.observe(measureActionsRef.current);
     return () => observer.disconnect();
-  }, [record.isDeleted, record.type, disabled, isSaved]);
+  }, [record.isDeleted, record.type, disabled, isSaved, locationLabel]);
 
   const handleDelete = () => {
     if (window.confirm("기록을 삭제하시겠습니까? 삭제한 기록은 나중에 복구할 수 있습니다.")) {
@@ -126,8 +128,8 @@ export default function RecordItem({ groupId, cardId, record, disabled = false, 
   const metaItemsContent = (
     <>
       <Box className={styles.metaItem}>
-        <Hash size={14} />
-        <Text fontSize="xs">{record.id}</Text>
+        {!locationLabel && <Hash size={14} />}
+        <Text fontSize="xs">{locationLabel ?? record.id}</Text>
       </Box>
       <Box className={styles.metaItem}>
         <PenLine size={14} />
@@ -150,7 +152,7 @@ export default function RecordItem({ groupId, cardId, record, disabled = false, 
   return (
     <SkeletonWrapper
       data-record-id={record.id}
-      className={cn(styles.record, record.isDeleted ? styles.recordDeleted : undefined, isCompact ? styles.recordCompactHeader : undefined, highlighted ? styles.recordHighlighted : undefined)}
+      className={cn(styles.record, record.isDeleted ? styles.recordDeleted : undefined, isCompact ? styles.recordCompactHeader : undefined, highlighted ? styles.recordHighlighted : undefined, className)}
       onAnimationEnd={(event) => {
         // 자식 요소의 애니메이션 종료도 버블링되므로 이 요소 자신의 강조 애니메이션만 본다.
         if (highlighted && event.target === event.currentTarget) onHighlightEnd?.();
@@ -270,8 +272,8 @@ const formatFileSize = (size: number) => size >= 1024 * 1024
 function RecordFileList({ files }: { files: RecordDto["files"] }) {
   if (!files.length) return <Text className={styles.fileListEmpty} fontSize="xs">첨부 파일이 없습니다.</Text>;
   return (
-    <ScrollArea.Root className={styles.fileList} size="xs" variant="hover">
-      <ScrollArea.Viewport style={{ overflowY: "hidden" }}>
+    <ScrollArea.Root className={styles.fileList} size="xs" variant="hover" h="auto" flexShrink={0}>
+      <ScrollArea.Viewport h="auto" style={{ overflowY: "hidden" }}>
         <ScrollArea.Content className={styles.fileListContent}>
           {files.map((file) => (
             <AppTooltip key={file.id} content={file.fileId} placement="top" interactive>

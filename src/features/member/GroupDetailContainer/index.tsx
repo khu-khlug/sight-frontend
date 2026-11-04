@@ -14,6 +14,8 @@ import { GroupDetailPageStateProvider } from "./pageState";
 import { groupPagePreferences } from "./groupPagePreferences";
 import { useGroupPagePreferences } from "./useGroupPagePreferences";
 import { encodeWindowOpenRequest, type MinimizedHoverRequest, type WindowOpenRequest } from "./actions";
+import RecordWindow from "./RecordWindow";
+import { decodeRecordContentKey } from "./RecordWindow/types";
 import CardWindow from "./CardWindow";
 import Dashboard from "./Dashboard";
 import EditWindow from "./EditWindow";
@@ -27,7 +29,6 @@ import styles from "./style.module.css";
 import WindowLayer, { HistoryMode, WindowBinding, WindowCoverage, WindowLayerHandle, WindowRole } from "./WindowLayer";
 import type { WindowHistoryState } from "./WindowLayer";
 import { isCardKey } from "./WindowLayer/contentKey";
-import { decodeWindowHash } from "./WindowLayer/windowHash";
 
 export type { CardListData };
 const DASHBOARD_WIDTH_COLLAPSED = 56;
@@ -193,21 +194,33 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
   }, []);
   const handleCardClick = useCallback((cardId: string) => openWindow({ type: "card", cardId }), [openWindow]);
   const handleOpenFile = useCallback((content: FileWindowContent) => openWindow({ type: "file", content }), [openWindow]);
-  // 특정 기록을 보여줄 때는 카드 창을 열고, 그 카드 창이 기록 위치로 스크롤하도록 대상을 넘긴다.
-  // URL 해시에는 남기지 않는다 — 해시 문법(windowHash.ts)은 창 배치만 표현한다.
-  const [recordFocus, setRecordFocus] = useState<{ cardId: string; recordId: string } | null>(null);
-  const handleOpenRecord = useCallback((cardId: string, recordId: string) => {
-    // 삭제된 카드는 보드에 없어서, 그대로 열면 "존재하지 않는 카드" 감시가 반응한다.
-    if (!listsRef.current.some((list) => list.cards.some((card) => card.id === cardId))) {
-      window.alert("삭제된 카드의 기록입니다.");
-      return;
+  const handleOpenRecordCard = useCallback(async (cardId: string) => {
+    try {
+      const detail = await KanbanApi.getGroupCard(groupId, cardId);
+      const loaded = [...(queryClient.getQueryData<CardListData[]>(kanbanQueryKey) ?? [])];
+      while (!loaded.some((list) => list.id === detail.listId)) {
+        const page = await KanbanApi.listGroupLists(groupId, loaded.length);
+        if (!page.receivedCount) throw new Error("소속 리스트를 찾을 수 없습니다.");
+        loaded.push(...page.lists);
+      }
+      const index = loaded.findIndex((list) => list.id === detail.listId);
+      const list = { ...loaded[index], cards: [...loaded[index].cards] };
+      while (!list.cards.some((card) => card.id === cardId)) {
+        const page = await KanbanApi.listGroupCards(groupId, list.id, list.cards.length);
+        if (!page.receivedCount) throw new Error("소속 카드를 찾을 수 없습니다.");
+        list.cards.push(...page.cards);
+      }
+      loaded[index] = list;
+      queryClient.setQueryData(kanbanQueryKey, loaded);
+      handleCardClick(cardId);
+    } catch {
+      toast.error("소속 카드를 열 수 없습니다. 삭제되었거나 열람 권한이 없을 수 있습니다.");
     }
-    setRecordFocus({ cardId, recordId });
-    // 이미 열린 카드 창이 있으면 새 창을 열지 않고 그 창에서 스크롤만 한다.
-    const { roleData } = decodeWindowHash(windowLayerRef.current?.getHistoryState().hash ?? "");
-    if (!Object.values(roleData).includes(cardId)) handleCardClick(cardId);
-  }, [handleCardClick]);
-  const clearRecordFocus = useCallback(() => setRecordFocus(null), []);
+  }, [groupId, queryClient, kanbanQueryKey, handleCardClick]);
+  const handleOpenRecord = useCallback((recordGroupId: number, recordId: number) => {
+    openWindow({ type: "record", target: { groupId: recordGroupId, recordId } });
+  }, [openWindow]);
+  const clearRecordFocus = useCallback(() => undefined, []);
   const handleOpenEdit = useCallback((target: EditWindowTarget, sourceRole: WindowRole) => {
     // 수정 버튼에서 연 기록은 이미 카드 창에 불러온 원문을 그대로 초기값으로 넘긴다.
     if (target.kind === "record") {
@@ -373,16 +386,16 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
         onOpenNewRecord={() => handleOpenEdit({ kind: "new", cardId: card.id }, binding.role)}
         onOpenEditRecord={(recordId) => handleOpenEdit({ kind: "record", recordId }, binding.role)}
         onOpenCard={handleCardClick}
-        focusRecordId={recordFocus?.cardId === card.id ? recordFocus.recordId : null}
+        focusRecordId={null}
         onRecordFocused={clearRecordFocus}
       />
     )] as const));
     return Object.fromEntries(entries);
-  }, [lists, groupId, isPortfolioPublished, handleUpdateCardLabels, handleUpdateCardAssignee, handleUpdateCardCoverImage, handleToggleCardPortfolio, handleToggleCardDisabled, handleDeleteCard, handleDeleteRecord, handleRestoreRecord, handleOpenEdit, handleCardClick, recordFocus, clearRecordFocus]);
+  }, [lists, groupId, isPortfolioPublished, handleUpdateCardLabels, handleUpdateCardAssignee, handleUpdateCardCoverImage, handleToggleCardPortfolio, handleToggleCardDisabled, handleDeleteCard, handleDeleteRecord, handleRestoreRecord, handleOpenEdit, handleCardClick, clearRecordFocus]);
 
   // 콘텐츠 종류의 판별은 페이지가 담당한다. 지원하지 않는 주소는 복원 시 제외한다.
   const isSupportedContent = useCallback((key: string) => (
-    isCardKey(key) || Boolean(decodeFileContentKey(key)) || Boolean(decodeEditContentKey(key))
+    isCardKey(key) || Boolean(decodeRecordContentKey(key)) || Boolean(decodeFileContentKey(key)) || Boolean(decodeEditContentKey(key))
   ), []);
   const handleUnsupportedContent = useCallback(() => {
     window.alert("지원하지 않거나 잘못된 창 주소입니다.");
@@ -391,6 +404,8 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
   const renderContent = useCallback((key: string, binding: WindowBinding): ReactNode => {
     const renderCard = cardsForWindowLayer[key];
     if (renderCard) return renderCard(binding);
+    const recordTarget = decodeRecordContentKey(key);
+    if (recordTarget) return <RecordWindow key={key} binding={binding} target={recordTarget} currentGroupId={groupId} onOpenCard={handleOpenRecordCard} />;
     const fileContent = decodeFileContentKey(key);
     if (fileContent) {
       return (
@@ -419,7 +434,7 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
       );
     }
     return null;
-  }, [cardsForWindowLayer, textFontSize, handleChangeTextFontSize, groupId, allCards, handleCreateRecord, handleUpdateRecord]);
+  }, [handleOpenRecordCard, cardsForWindowLayer, textFontSize, handleChangeTextFontSize, groupId, allCards, handleCreateRecord, handleUpdateRecord]);
 
   if (infoQuery.isPending || listsQuery.isPending) return <Box p={10}><ContentSkeleton /></Box>;
   if (infoQuery.isError || listsQuery.isError) return <Box p={6}>

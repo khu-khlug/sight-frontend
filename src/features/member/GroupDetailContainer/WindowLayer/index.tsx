@@ -201,6 +201,13 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
   const historyIdAliasesRef = useRef(new Map<string, number>());
   const [exitingWindows, setExitingWindows] = useState<RenderedWindow[]>([]);
   const [roleChangedWindowIds, setRoleChangedWindowIds] = useState<Set<number>>(new Set());
+  const [sequencedWindowMotions, setSequencedWindowMotions] = useState<Map<number, "lower" | "raise">>(new Map());
+  useEffect(() => {
+    if (!sequencedWindowMotions.size) return;
+    // 160ms씩 두 단계가 끝나면 일반 전환으로 복귀한다.
+    const timer = setTimeout(() => setSequencedWindowMotions(new Map()), 360);
+    return () => clearTimeout(timer);
+  }, [sequencedWindowMotions]);
   const windowElementsRef = useRef(new Map<number, HTMLDivElement>());
   const exitTimersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   useEffect(() => () => {
@@ -350,6 +357,15 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
     const keptIds = new Set(Object.values(next.windowIds));
     const beforeWindows = renderedWindowsFor(before);
     const afterWindows = renderedWindowsFor(next);
+    const motions = new Map<number, "lower" | "raise">();
+    for (const item of afterWindows) {
+      const previous = beforeWindows.find((window) => window.windowId === item.windowId);
+      if (!previous || previous.aloneEdgeClass === item.aloneEdgeClass) continue;
+      const wasMinimized = MINIMIZED_SLOTS.has(previous.slot);
+      const isMinimized = MINIMIZED_SLOTS.has(item.slot);
+      if (wasMinimized !== isMinimized) motions.set(item.windowId, isMinimized ? "lower" : "raise");
+    }
+    setSequencedWindowMotions(motions);
     // 내리기/올리기는 애니메이션을 유지하고 메인↔서브 역할만 바뀐 창의 높이는 즉시 반영한다.
     setRoleChangedWindowIds(new Set(afterWindows.filter((item) => {
       const previous = beforeWindows.find((window) => window.windowId === item.windowId);
@@ -713,6 +729,23 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
     commit(next, { ...roleData, [restoreRole]: options.restoreContentKey }, { ...windowIds, [restoreRole]: restoredWindowId });
   };
 
+  const escapeCloseRef = useRef<() => void>(() => undefined);
+  escapeCloseRef.current = () => {
+    if (!state) return;
+    if (state.kind === "Single") closeWindow("single");
+    else if (typeof state.sub === "number") closeWindow("dualSub");
+  };
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || event.repeat || event.isComposing) return;
+      // 팝업을 닫는 Escape 입력으로 뒤의 창까지 닫지 않는다.
+      if (document.querySelector('[role="dialog"][data-state="open"], [role="menu"][data-state="open"], [aria-modal="true"]')) return;
+      escapeCloseRef.current();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, []);
+
   const handleOutsidePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     outsidePressRef.current = null;
     if (isClickThrough || state === null || !event.isPrimary || event.button !== 0 || !isOutsideTarget(event.target)) return;
@@ -909,6 +942,8 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
                 SLOT_CLASS[item.slot],
                 role === "sub" && !minimized ? styles.slotSubExpanded : undefined,
                 roleChangedWindowIds.has(windowId) ? styles.slotRoleChanged : undefined,
+                sequencedWindowMotions.get(windowId) === "lower" ? styles.slotLowerThenMove : undefined,
+                sequencedWindowMotions.get(windowId) === "raise" ? styles.slotMoveThenRaise : undefined,
                 aloneEdgeClass,
                 windowId === switchFrontId ? styles.slotFront : undefined,
                 minimized && isMinimizedLifted ? styles.slotLifted : undefined,

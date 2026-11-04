@@ -30,6 +30,7 @@
 //     "창 액션은 전부 applyWindowAction을 거친다"는 단일 진입점을 유지한다.
 //   - 역할을 가리키는 식별자가 필요하면 WindowRole("single"|"main"|"sub")을 그대로 쓴다.
 //     구조가 같다고 동의어 타입을 새로 만들지 않는다.
+import { encodeRecordContentKey, type RecordWindowTarget } from "../RecordWindow/types";
 import { encodeEditContentKey, type EditWindowTarget } from "../EditWindow/types";
 import { encodeFileContentKey, type FileWindowContent } from "../FileWindow/types";
 
@@ -450,11 +451,13 @@ export function normalizeRoles<T>(
 export type WindowOpenRequest =
   | { type: "card"; cardId: string }
   | { type: "file"; content: FileWindowContent }
-  | { type: "edit"; target: EditWindowTarget };
+  | { type: "edit"; target: EditWindowTarget }
+  | { type: "record"; target: RecordWindowTarget };
 
 export function encodeWindowOpenRequest(request: WindowOpenRequest): string {
   if (request.type === "card") return request.cardId;
   if (request.type === "file") return encodeFileContentKey(request.content);
+  if (request.type === "record") return encodeRecordContentKey(request.target);
   return encodeEditContentKey(request.target);
 }
 

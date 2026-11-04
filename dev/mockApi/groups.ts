@@ -92,9 +92,20 @@ export function findMockCardTitle(cardId: string): string | null {
   return cards().find((card) => card.id === cardId)?.title ?? null;
 }
 export function handleGroupRequest(method: string | undefined, url: URL, body: unknown, isManager = process.env.MOCK_MANAGER !== "false"): Result | null {
+  if (url.pathname === "/saved-records" && method === "GET") {
+    const skip = Number(url.searchParams.get("skip") ?? 0);
+    if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
+    const visible = state.savedRecords.flatMap((saved) => {
+      const card = cards().find((card) => card.records.some((record) => record.id === saved.id && !record.deleted));
+      const record = card?.records.find((record) => record.id === saved.id);
+      return card && record ? [{ ...saved, cardId: card.id, cardTitle: card.title, content: record.content }] : [];
+    }).sort((a, b) => b.savedAt.localeCompare(a.savedAt) || b.id - a.id);
+    const { items, ...meta } = page(visible, skip, 10);
+    return ok({ ...meta, records: items.map(({ id: recordId, ...record }) => ({ ...record, recordId })) });
+  }
   const match = url.pathname.match(/^\/(manager\/)?groups\/(\d+)(?:\/(.*))?$/);
   if (!match) return null;
-  if (Number(match[2]) !== state.groupInfo.id) return fail("그룹을 찾을 수 없습니다.", 404);
+  if (![state.groupInfo.id, 2].includes(Number(match[2]))) return fail("그룹을 찾을 수 없습니다.", 404);
   const route = (match[3] ?? "").split("/").map(decodeURIComponent);
   const path = route.join("/");
   const input: Input = body && typeof body === "object" && !Array.isArray(body) ? body as Input : {};
@@ -117,7 +128,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     if (path === "info") {
       const s = summary();
       return ok({
-        id: s.id, title: s.title, description: s.description, category: s.category, status: s.status,
+        id: Number(match[2]), title: Number(match[2]) === 2 ? "다른 그룹 목업" : s.title, description: s.description, category: s.category, status: s.status,
         requesterInfo: {
           userRole: !s.isMember ? "NONE" : s.leaderUserId === 1 ? "LEADER" : "MEMBER",
           isBookmarked: s.isBookmarked, isInChatRoom: s.isMember && s.hasChatRoom && s.isChatParticipant,
@@ -503,7 +514,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       }
       if (record.deleted) return fail("삭제된 기록은 보관할 수 없습니다.");
       if (!state.savedRecords.some((saved) => saved.id === record.id)) {
-        state.savedRecords.unshift({ type: record.type, id: record.id, content: record.content,
+        state.savedRecords.unshift({ groupId: Number(match[2]), groupName: Number(match[2]) === 2 ? "다른 그룹 목업" : info.title, type: record.type, id: record.id, content: record.content,
           cardId: card.id, cardTitle: card.title, authorName: record.authorName, createdAt: record.createdAt, savedAt: now() });
       }
       return ok();
