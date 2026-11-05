@@ -3,15 +3,17 @@ import { isAxiosError } from "axios";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { GroupChatApi } from "../../../../../api/public/group/GroupChatApi";
 import { useGroupAction } from "../../../../../hooks/group/useGroupAction";
-import { Box, IconButton, ScrollArea, Text, Textarea } from "@chakra-ui/react";
-import { File, MessageCircle, MessageCirclePlus, Plus, Send, Smile, X } from "lucide-react";
+import { Box, Button, IconButton, ScrollArea, Text, Textarea } from "@chakra-ui/react";
+import { File, MessageCirclePlus, Plus, RefreshCw, Send, Smile, X } from "lucide-react";
 import { ChangeEvent, DragEvent, KeyboardEvent, ReactNode, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
 import AppTooltip from "../../../../../components/AppTooltip";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
+import SimpleIcon from "../../../../../components/SimpleIcon";
 import { DateFormats, formatDate } from "../../../../../util/date";
+import { discordChannelUrl, openDiscordChannel } from "../../../../../util/openDiscordChannel";
 import { draggableFileProps, hasFileDrag, readDraggedFile, type DraggedFile } from "../../../../../util/draggableFile";
 import { fileApi } from "../../actions";
 import styles from "./style.module.css";
@@ -20,16 +22,17 @@ const EmojiPicker = lazy(() => import("../../../../../components/EmojiPicker"));
 
 type Props = {
   isMember: boolean;
+  isLeader: boolean;
   // 채팅방 존재·참여 여부는 그룹 정보 조회 값을 쓴다.
   hasChatRoom: boolean;
+  chatRoomUrl: string | null;
   isChatParticipant: boolean;
   // 중단·종료 그룹에서는 메시지를 보낼 수 없다.
   isWritable: boolean;
   groupId: number;
-  onTabChange: (id: string) => void;
 };
 
-// 실제 눌리는 버튼이 아니라, 정보 탭에 있는 버튼이 어떻게 생겼는지 보여주는 축소 모형이다.
+// 안내 문구 안에서 버튼 모양을 보여주는 축소 모형이다.
 function ButtonPreview({ icon, label }: { icon: ReactNode; label: string }) {
   return (
     <Box
@@ -49,21 +52,6 @@ function ButtonPreview({ icon, label }: { icon: ReactNode; label: string }) {
     >
       {icon} {label}
     </Box>
-  );
-}
-
-// "정보 탭"처럼, 밑줄이 있고 누르면 정보 탭으로 이동하는 텍스트.
-function InfoTabLink({ onTabChange }: { onTabChange: (id: string) => void }) {
-  return (
-    <Text
-      as="span"
-      textDecoration="underline"
-      cursor="pointer"
-      _hover={{ color: "brand.600" }}
-      onClick={() => onTabChange("info")}
-    >
-      정보 탭
-    </Text>
   );
 }
 
@@ -111,13 +99,14 @@ function DateDivider({ value }: { value: string }) {
  * 각 컨테이너의 레이아웃 스타일(크기·flex·간격)은 style.module.css에 두고, 컴포넌트에는
  * 데이터에 따라 달라지는 것(뱃지 색, 아이콘 등)만 인라인으로 남긴다.
  */
-export default function GroupChat({ groupId, isMember, hasChatRoom, isChatParticipant, isWritable, onTabChange }: Props) {
+export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, chatRoomUrl, isChatParticipant, isWritable }: Props) {
+  const discordUrl = discordChannelUrl(chatRoomUrl);
   const action = useGroupAction(groupId);
   const messagesQuery = useInfiniteQuery({
     queryKey: ["group-detail", groupId, "chat-messages"],
     queryFn: ({ pageParam, signal }) => GroupChatApi.listGroupDiscordMessagesPage(groupId, pageParam, signal),
-    initialPageParam: 0,
-    getNextPageParam: (last) => last.hasMore && last.receivedCount > 0 ? last.skip + last.receivedCount : undefined,
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.hasMore ? last.nextBefore ?? undefined : undefined,
     enabled: isMember && hasChatRoom,
   });
   // 첫 페이지가 최신 범위다. 이전 페이지를 앞에 붙이고, 조회 사이에 새 메시지가 생겨 범위가 겹친 메시지는 한 번만 둔다.
@@ -365,19 +354,72 @@ export default function GroupChat({ groupId, isMember, hasChatRoom, isChatPartic
     );
   }
 
-  if (hasChatRoom && messagesQuery.isPending) return <ContentSkeleton />;
-  if (messagesQuery.isError) return <Text role="alert">채팅을 불러오지 못했습니다.</Text>;
+  const chatHeader = (
+    <Box display="flex" flexDirection="column" gap="3" mb={4} pr="15px" width="100%">
+      {!isChatParticipant && (
+        <Text fontSize="sm" color="gray.500">
+          사이트 채팅만 가능합니다.{" "}
+          <ButtonPreview icon={<SimpleIcon slug="discord" size={10} />} label="디스코드 참여" />
+          {" "} 해야 디스코드에서 그룹 채널이 보입니다.
+        </Text>
+      )}
+      <Box display="flex" alignItems="center" gap="2" width="100%">
+        <Button size="sm" variant="outline" flex="1" minW={0}
+          disabled={action.isPending || (isChatParticipant ? !discordUrl : !isWritable)}
+          title={isChatParticipant && !discordUrl ? "Discord 채널 주소를 불러오지 못했습니다." : undefined}
+          onClick={() => {
+            if (!isChatParticipant) {
+              action.mutate(() => GroupChatApi.joinGroupDiscordChannel(groupId), {
+                onSuccess: () => toast.success("디스코드에 참여했습니다."),
+              });
+              return;
+            }
+            if (discordUrl && !openDiscordChannel(discordUrl)) {
+              window.open(discordUrl, "_blank", "noopener,noreferrer");
+            }
+          }}>
+          <SimpleIcon slug="discord" size={16} /> {isChatParticipant ? "디스코드 열기" : "디스코드 참여"}
+        </Button>
+        <AppTooltip content="채팅 새로고침">
+          <IconButton
+            size="sm"
+            variant="outline"
+            flexShrink={0}
+            aria-label="채팅 새로고침"
+            loading={messagesQuery.isFetching}
+            disabled={messagesQuery.isFetching}
+            onClick={() => { void messagesQuery.refetch(); }}
+          >
+            <RefreshCw size={16} />
+          </IconButton>
+        </AppTooltip>
+      </Box>
+    </Box>
+  );
 
   if (!hasChatRoom) {
     return (
-      <Text fontSize="sm" color="gray.500" mx="15px">
-        채팅방이 아직 없습니다.<br/>
-        채팅방은 그룹장이 <InfoTabLink onTabChange={onTabChange} />의{" "}
-        <ButtonPreview icon={<MessageCirclePlus size={10} />} label="채팅방 생성" /> 버튼으로
-        생성할 수 있습니다.
-      </Text>
+      <Box className={styles.container} gap="3" pr="15px">
+        <Text fontSize="sm" color="gray.500">
+          채팅방이 아직 없습니다.{!isLeader && " 그룹장이 생성할 수 있습니다."}
+        </Text>
+        {isLeader && (
+          <Button size="sm" variant="outline" width="100%"
+            loading={action.isPending}
+            disabled={action.isPending || !isWritable}
+            onClick={() => action.mutate(() => GroupChatApi.createGroupDiscordChannel(groupId), {
+              onSuccess: () => toast.success("채팅방을 만들고 참여했습니다."),
+            })}
+          >
+            <MessageCirclePlus size={16} /> 채팅방 생성
+          </Button>
+        )}
+      </Box>
     );
   }
+
+  if (messagesQuery.isPending) return <Box className={styles.container}>{chatHeader}<ContentSkeleton /></Box>;
+  if (messagesQuery.isError) return <Box className={styles.container}>{chatHeader}<Text role="alert">채팅을 불러오지 못했습니다.</Text></Box>;
 
   return (
     <Box
@@ -393,13 +435,7 @@ export default function GroupChat({ groupId, isMember, hasChatRoom, isChatPartic
           <span>파일을 놓아 첨부</span>
         </div>
       )}
-      <Text fontSize="sm" color="gray.500" mb={4}>
-        {isChatParticipant ? "디스코드 채팅방에 참여 중입니다." : <>
-          &ensp;디스코드에서 채팅방을 보려면 <InfoTabLink onTabChange={onTabChange} />의{" "}
-          <ButtonPreview icon={<MessageCircle size={10} />} label="채팅 참여" /> 버튼을 눌러야
-          참여가 됩니다.
-        </>}
-      </Text>
+      {chatHeader}
       <ScrollArea.Root className={styles.messages} size="sm" variant="hover">
         <ScrollArea.Viewport ref={viewportRef} h="100%" className={styles.viewport}>
           {/* 높이 0인 sticky 앵커 — 흐름 공간을 전혀 차지하지 않아서(음수 margin으로 상쇄할

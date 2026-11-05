@@ -36,15 +36,17 @@ function prepareHtml(content: string, hideMedia: boolean): string {
     accordion.replaceWith(details);
   }
 
-  // 기존 사이트의 이미지/파일은 현재 사이트의 레거시 파일 경로로 요청한다.
+  // 같은 출처의 기존 경로로 요청한다. Spring이 기존 파일 테이블을 조회해 리다이렉션한다.
   for (const element of body.querySelectorAll("[src], [href], [poster]")) {
     for (const attribute of ["src", "href", "poster"]) {
       const value = element.getAttribute(attribute);
       if (!value || value.startsWith("#")) continue;
       try {
         const url = new URL(value, window.location.origin);
-        if (/^\/(?:image|file)\//.test(url.pathname)) {
-          element.setAttribute(attribute, `/legacy${url.pathname}${url.search}${url.hash}`);
+        const isSiteUrl = url.origin === window.location.origin
+          || ["khlug.org", "www.khlug.org"].includes(url.hostname);
+        if (isSiteUrl && /^\/(?:image|file)\//.test(url.pathname)) {
+          element.setAttribute(attribute, `${url.pathname}${url.search}${url.hash}`);
         }
       }
       catch { element.removeAttribute(attribute); }

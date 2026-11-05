@@ -40,8 +40,8 @@ export default function RecordWindow({ binding, target, currentGroupId, onOpenCa
     queryFn: ({ pageParam, signal }) => GroupArchiveApi.listSavedRecordsPage(pageParam, signal),
     initialPageParam: 0,
     getNextPageParam: (last) => {
-      const next = last.skip + last.receivedCount;
-      return last.receivedCount > 0 && next < last.totalCount ? next : undefined;
+      const next = last.page + 1;
+      return last.receivedCount > 0 && next * 10 < last.totalCount ? next : undefined;
     },
   });
   const savedAt = savedQuery.data?.pages.flatMap((page) => page.records)

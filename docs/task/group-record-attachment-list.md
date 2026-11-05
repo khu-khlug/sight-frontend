@@ -30,7 +30,7 @@ type: frontend
 
 ## 데이터 및 연동
 
-별도 API 없이 기록 조회 응답의 `files`(`id`, `fileId`, `url`, `name`, `size`, `contentType`)를 그대로 쓴다.
+별도 API 없이 기록 조회 응답의 `files`(`id`, `fileId`, `url`, `name`, `size`, `contentType`)를 쓴다. `url`은 그룹 열람 권한으로 접근하는 영구 주소이며 서버가 Presigned GET URL로 리다이렉션한다. 주소 만료 때문에 기록을 재조회하지 않는다.
 
 ## 사용자 보호 및 개인정보
 
@@ -50,7 +50,7 @@ type: frontend
 
 ## 연동 계약
 
-- [그룹 API 공통 사항의 조회 응답 파일 매핑](../../../sight-spring-backend/docs/plans/group/global.md#조회-응답의-파일-매핑)
+- [그룹 API 공통 사항의 조회 응답 첨부 파일 목록](../../../sight-spring-backend/docs/plans/group/global.md#조회-응답의-첨부-파일-목록)
 
 ## 진행 상태
 

@@ -10,6 +10,7 @@ import { useRef, useState } from "react";
 import Collapse from "../../../../../components/Collapse";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
+import { cn } from "../../../../../util/cn";
 import { encodeDraftOpenHash } from "../../EditWindow/types";
 import RecordViewer from "../../RecordViewer";
 import { groupSavedRecords } from "../../savedRecords";
@@ -43,8 +44,8 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
     queryFn: ({ pageParam, signal }) => GroupArchiveApi.listDeletedGroupCardsPage(groupId, pageParam, signal),
     initialPageParam: 0,
     getNextPageParam: (last) => {
-      const next = last.skip + last.receivedCount;
-      return last.receivedCount > 0 && next < last.totalCount ? next : undefined;
+      const next = last.page + 1;
+      return last.receivedCount > 0 && next * 20 < last.totalCount ? next : undefined;
     },
   });
   // 보관한 기록은 그룹에 관계없이 사용자 기준으로 10개씩 받는다.
@@ -53,8 +54,8 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
     queryFn: ({ pageParam, signal }) => GroupArchiveApi.listSavedRecordsPage(pageParam, signal),
     initialPageParam: 0,
     getNextPageParam: (last) => {
-      const next = last.skip + last.receivedCount;
-      return last.receivedCount > 0 && next < last.totalCount ? next : undefined;
+      const next = last.page + 1;
+      return last.receivedCount > 0 && next * 10 < last.totalCount ? next : undefined;
     },
   });
   const autosaveQuery = useQuery({ queryKey: ["group-detail", groupId, "autosave-metadata"], queryFn: () => AutosaveApi.getMetadata(groupId) });
@@ -200,7 +201,7 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
                         </Select.Positioner>
                       </Portal>
                     </Select.Root>
-                    <Button size="sm" _disabled={{ color: "gray.500" }} disabled={!targetListId || action.isPending} onClick={() => targetListId && action.mutate(() => GroupArchiveApi.restoreGroupCard(groupId, card.id, { targetListId }), { onSuccess: () => { setSelectedCardId(null); setTargetListId(null); } })}>
+                    <Button size="sm" _disabled={{ color: "gray.500" }} disabled={!targetListId || action.isPending} onClick={() => targetListId && action.mutate(() => GroupArchiveApi.restoreGroupCard(groupId, card.id, { targetListId }), { onSuccess: () => { setSelectedCardId(null); setTargetListId(null); void queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }); } })}>
                       복구하기
                     </Button>
                   </Box>
@@ -224,7 +225,7 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
           {savedRecords.length === 0 && <Text fontSize="sm" color="gray.500">보관한 기록이 없습니다.</Text>}
           {/* 서버가 최근 보관순으로 준다. */}
           {savedRecords.map((record) => (
-              <Box key={record.id} className={styles.savedRecord}>
+              <Box key={record.id} className={cn(styles.savedRecord, (record.isDeleted || record.isCardDeleted) && styles.savedRecordDeleted)}>
                 <Text fontSize="sm" color="gray.500" className={styles.recordMeta}>
                   {record.groupName}<br />
                   <CreditCard size={14} className={styles.icon} />{record.cardTitle} · {record.authorName} 작성

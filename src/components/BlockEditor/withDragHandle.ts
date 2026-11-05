@@ -20,7 +20,7 @@ const GRIP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="24
  *
  * - 원래 블록의 DOM은 기존 NodeView(this.parent)가 있으면 그것을, 없으면 renderHTML(toDOM)
  *   결과를 그대로 쓴다. 그래서 textAlign 같은 속성이나 제목 레벨별 태그가 원래대로 나온다.
- * - 저장되는 HTML은 renderHTML로 나오므로 NodeView를 바꿔도 getHTML()과 뷰어는 달라지지 않는다.
+ * - 저장되는 JSON은 문서 노드에서 얻으므로 NodeView의 드래그 핸들은 저장 본문에 들어가지 않는다.
  * - 핸들은 data-drag-handle 요소이고, 포인터 이동에서 블록을 NodeSelection으로 만들어
  *   통째로 옮긴다. 휠 입력을 받기 위해 HTML 드래그는 쓰지 않는다. spec.draggable은 켜지 않는다 — 켜면
  *   ProseMirror가 글 위 mousedown에서도 블록 전체를 드래그 대상으로 잡는다.

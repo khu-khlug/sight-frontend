@@ -9,6 +9,7 @@ export const GroupInfoApi = {
       id: info.id, title: info.title, category: info.category, status: info.status, visibility: info.visibility,
       isLeader: requesterInfo.userRole === "LEADER", isMember: requesterInfo.userRole !== "NONE",
       hasChatRoom: info.hasChatRoom, isChatParticipant: requesterInfo.isInChatRoom, isBookmarked: requesterInfo.isBookmarked,
+      chatRoomUrl: info.chatRoomUrl ?? null,
       memberCount: info.memberCount, description: info.description ?? "", interests: info.interests ?? [],
       techStack: info.techStack ?? [], allowJoin: info.allowJoin, repositoryUrls: info.repositoryUrls ?? [],
       hasPublishedPortfolio: exposure.isPortfolioPublished,

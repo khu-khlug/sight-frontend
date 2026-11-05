@@ -117,7 +117,7 @@ export default function Dashboard({
   });
   const cohortQuery = useQuery({
     queryKey: ["group-detail", groupInfo.id, "report-context"],
-    queryFn: () => GroupExposureApi.getActivityReportContext(groupInfo.id),
+    queryFn: () => GroupExposureApi.getActivityReportContext(),
     enabled: showContent && activeId === "development",
   });
   const repoViewportRef = useRef<HTMLDivElement>(null);
@@ -231,11 +231,12 @@ export default function Dashboard({
                   // ScrollArea가 아니라 .tabArea가 준 높이를 그대로 GroupChat에 넘긴다.
                   <GroupChat
                     isMember={groupInfo.isMember}
+                    isLeader={groupInfo.isLeader}
                     hasChatRoom={groupInfo.hasChatRoom}
+                    chatRoomUrl={groupInfo.chatRoomUrl}
                     isChatParticipant={groupInfo.isChatParticipant}
                     isWritable={groupInfo.status === GroupStatus.PROGRESS}
                     groupId={groupInfo.id}
-                    onTabChange={handleTabChange}
                   />
                 ) : activeId === "search" ? (
                   // 검색 탭도 마찬가지 — 라벨 필터/검색대상/검색창은 고정, 검색결과만 스크롤돼야

@@ -1,4 +1,3 @@
-import { getHTMLFromFragment } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { NodeSelection, Plugin, PluginKey } from "@tiptap/pm/state";
@@ -270,7 +269,7 @@ export function submitMediaUrl(editor: Editor, id: string, kind: MediaKind, url:
   });
 }
 
-// 저장·임시저장·보내기에 쓰는 본문 HTML — 아직 내용이 정해지지 않은 박스는 문서에 남기지 않는다.
+// 저장·임시저장·보내기에 쓰는 Tiptap JSON — 아직 내용이 정해지지 않은 박스는 문서에 남기지 않는다.
 export function serializeContent(editor: Editor): string {
   const ranges: { from: number; to: number }[] = [];
   editor.state.doc.descendants((node, pos) => {
@@ -278,10 +277,10 @@ export function serializeContent(editor: Editor): string {
     ranges.push({ from: pos, to: pos + node.nodeSize });
     return false;
   });
-  if (!ranges.length) return editor.getHTML();
+  if (!ranges.length) return JSON.stringify(editor.getJSON());
   const tr = editor.state.tr;
   for (const range of ranges.reverse()) tr.delete(range.from, range.to);
-  return getHTMLFromFragment(tr.doc.content, editor.schema);
+  return JSON.stringify(tr.doc.toJSON());
 }
 
 const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);

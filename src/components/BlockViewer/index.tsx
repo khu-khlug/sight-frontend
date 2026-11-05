@@ -1,3 +1,4 @@
+import { parseBlockContent, withoutMedia } from "../BlockContent/document";
 import type { JSONContent } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { memo, useEffect, useMemo, useRef, type DragEvent } from "react";
@@ -25,6 +26,8 @@ type Props = {
 
 // 기존 일반 텍스트 기록은 HTML로 해석하지 않고 줄바꿈을 유지한다.
 function normalizeContent(content: string, hideMedia: boolean): string | JSONContent {
+  const parsed = parseBlockContent(content);
+  if (typeof parsed !== "string") return hideMedia ? withoutMedia(parsed) : parsed;
   if (/^\s*<(?:p|h[1-6]|ul|ol|blockquote|details|pre|table|hr|img|audio|video|div)(?:\s|\/?>)/i.test(content)) {
     if (!hideMedia) return content;
     // template 내부는 비활성 문서다. 뷰어가 노드를 만들기 전에 첨부 요소를 제거한다.

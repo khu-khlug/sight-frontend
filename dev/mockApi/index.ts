@@ -17,6 +17,7 @@ const KANBAN_COVER_DEMO_SVG = readFileSync(path.join(ASSETS_DIR, "kanban-cover-d
 // 운영진 페이지(/manage/...)를 바로 볼 수 있게 기본은 운영진이다. MOCK_MANAGER=false로 시작하면 일반 회원이고,
 // 개발 탭에서 런타임에 토글할 수 있게 let로 둔다.
 let mockManager = process.env.MOCK_MANAGER !== "false";
+let usePersonalGithubUsage = false;
 
 // 채팅 전송처럼 multipart로 오는 요청을 { content, attachments } 객체로 바꾼다. 첨부 파일은 data URL로 둔다.
 async function parseMultipart(raw: Buffer, contentType: string) {
@@ -138,7 +139,11 @@ export function mockApi(): Plugin {
             ? await parseMultipart(raw, contentType)
             : raw.length ? JSON.parse(raw.toString("utf8")) : undefined;
           const result = handleRepositoryRequest(request.method, url, body) ?? handleAutosaveRequest(request.method, url, body, findMockCardTitle) ?? handleGroupRequest(request.method, url, body, mockManager);
-          if (result) { sendJson(response, result.status, result.body); return; }
+          if (result) {
+            if ("headers" in result && result.headers) { response.writeHead(result.status, result.headers as Record<string, string>); response.end(); }
+            else sendJson(response, result.status, result.body);
+            return;
+          }
         // 그룹 쪽(groups.ts의 "mock-scenario" PATCH)과 같은 패턴 — 현재 사용자는 그룹에 속하지
         // 않는 전역 상태라 groups.ts가 아니라 여기서 직접 들고 있는다. 개발 탭(GroupDevelopment)
         // 이 이 값을 바꿔 "내가 운영진인지"를 토글할 수 있게 한다.
@@ -146,9 +151,12 @@ export function mockApi(): Plugin {
           const input = body && typeof body === "object" ? body as { manager?: unknown } : {};
           if (typeof input.manager === "boolean") mockManager = input.manager;
           sendJson(response, 204, undefined);
-        } else if (request.method === "PUT" && route === "/group/user-preference") {
-          // 목업은 그냥 받아서 저장 없이 성공만 돌려준다 — 실패 시 롤백 UX는 프런트에서
-          // 네트워크 에러나 의도적으로 끊어서 확인한다.
+        } else if (request.method === "GET" && route === "/groups/user-preference") {
+          sendJson(response, 200, { usePersonalGithubUsage });
+        } else if (request.method === "PATCH" && route === "/groups/user-preference") {
+          const input = body && typeof body === "object" ? body as { usePersonalGithubUsage?: unknown } : {};
+          if (typeof input.usePersonalGithubUsage !== "boolean") { sendJson(response, 400, { message: "개인 사용량 설정을 확인해 주세요." }); return; }
+          usePersonalGithubUsage = input.usePersonalGithubUsage;
           sendJson(response, 204, undefined);
         } else if (request.method === "GET" && route === "/users/@me") {
           sendJson(response, 200, currentUser(mockManager));

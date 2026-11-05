@@ -2,7 +2,8 @@ import { GroupSettingsApi } from "../../../../../api/public/group/GroupSettingsA
 import { UserPublicApi } from "../../../../../api/public/user";
 import { useGroupAction } from "../../../../../hooks/group/useGroupAction";
 import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/browser/useUnsavedChangesBeforeUnload";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { BookOpen, Circle, CircleHelp, LogOut, RefreshCw, Settings2, ShieldAlert, SquarePen, X } from "lucide-react";
@@ -101,6 +102,10 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
   const action = useGroupAction(info.id);
   const [showStatus, setShowStatus] = useState(false);
   const [showPersonalSettings, setShowPersonalSettings] = useState(false);
+  const { data: currentUser } = useCurrentUser();
+  const queryClient = useQueryClient();
+  const preferenceKey = ["user-preference", currentUser?.id];
+  const preferenceQuery = useQuery({ queryKey: preferenceKey, queryFn: UserPublicApi.getPreference, enabled: !!currentUser && showPersonalSettings });
   const [showManagerSettings, setShowManagerSettings] = useState(false);
   // 패널이 닫히면 미리보기 값을 마지막 저장값으로 되돌린다.
   const [draft, setDraft] = useState<PersonalSettingsDraft>(() => ({
@@ -112,6 +117,13 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
   const savedSettingsRef = useRef(draft);
   const draftRef = useRef(draft);
   const previewActiveRef = useRef(false);
+  useEffect(() => {
+    if (!preferenceQuery.data || previewActiveRef.current) return;
+    const saved = { ...savedSettingsRef.current, usePersonalGithub: preferenceQuery.data.usePersonalGithubUsage };
+    savedSettingsRef.current = saved;
+    draftRef.current = saved;
+    setDraft(saved);
+  }, [preferenceQuery.data]);
   const personalSettingsGuardChangeRef = useRef(onUnsavedPersonalSettingsGuardChange);
   personalSettingsGuardChangeRef.current = onUnsavedPersonalSettingsGuardChange;
   const applyPersonalSettings = useCallback((settings: PersonalSettingsDraft) => {
@@ -146,7 +158,7 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
 
   // 상태 갱신 함수 안에서 부모 상태를 변경하지 않고, 같은 이벤트에서 미리보기를 반영한다.
   const updateDraft = (updater: (current: PersonalSettingsDraft) => PersonalSettingsDraft) => {
-    if (preferenceMutation.isPending) return;
+    if (preferenceMutation.isPending || !preferenceQuery.isSuccess) return;
     const next = updater(draftRef.current);
     draftRef.current = next;
     setDraft(next);
@@ -169,6 +181,7 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
       usePersonalGithubUsage: usePersonalGithub,
     }),
     onSuccess: (_data, usePersonalGithub) => {
+      queryClient.setQueryData(preferenceKey, { usePersonalGithubUsage: usePersonalGithub });
       const saved = { dualWindowEnabled: groupPagePreferences.getSnapshot().dualWindowEnabled, usePersonalGithub };
       savedSettingsRef.current = saved;
       draftRef.current = saved;
@@ -182,7 +195,7 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
   useUnsavedChangesBeforeUnload(preferenceMutation.isPending);
   const handleSavePersonalSettings = () => {
     // 로컬 저장은 서버 요청과 독립적이다. GitHub 저장 실패로 듀얼 설정을 되돌리지 않는다.
-    if (preferenceMutation.isPending) return;
+    if (preferenceMutation.isPending || !preferenceQuery.isSuccess) return;
     groupPagePreferences.update({ dualWindowEnabled: draft.dualWindowEnabled });
     savedSettingsRef.current = { ...savedSettingsRef.current, dualWindowEnabled: draft.dualWindowEnabled };
     onDualWindowEnabledChange(null);
@@ -315,6 +328,9 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
         <div className={styles.statusActions} data-open={showPersonalSettings} aria-hidden={!showPersonalSettings}>
           <div className={styles.statusActionContent}>
             <p className={styles.statusHint}>변경한 설정은 즉시 임시 적용됩니다. 저장하지 않고 패널을 닫으면 원래 설정으로 돌아갑니다.</p>
+            {preferenceQuery.isPending && <p role="status">개인 설정을 불러오는 중입니다.</p>}
+            {preferenceQuery.isError && <p role="alert">개인 설정을 불러오지 못했습니다. <button type="button" onClick={() => { void preferenceQuery.refetch(); }}>다시 시도</button></p>}
+            <fieldset disabled={!preferenceQuery.isSuccess || preferenceMutation.isPending} style={{ border: 0, margin: 0, padding: 0 }}>
             <SettingToggleRow label="듀얼 윈도우 기능 사용" description="두 개의 창을 나란히 사용할 수 있습니다. 끄면 한 개의 창만 사용합니다." isRightSelected={draft.dualWindowEnabled} {...booleanToggleSides((value) => updateDraft((current) => ({ ...current, dualWindowEnabled: value })))} />
             {/* 그룹 단위가 아니라 전역 설정 — 멤버 마이페이지가 아직 마이그레이션 전이라 임시로 여기 둔다. */}
             <SettingToggleRow
@@ -324,9 +340,10 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
               {...booleanToggleSides((value) => updateDraft((current) => ({ ...current, usePersonalGithub: value })))}
             />
             {/* 취소/저장 버튼은 그룹 정보 변경 패널(GroupInfoEditor)과 같은 .footer/.cancelButton/.saveButton 스타일을 그대로 쓴다. */}
+            </fieldset>
             <div className={styles.footer}>
               <button type="button" className={styles.cancelButton} onClick={handleCancelPersonalSettings}>취소</button>
-              <button type="button" className={styles.saveButton} disabled={preferenceMutation.isPending} onClick={handleSavePersonalSettings}>저장</button>
+              <button type="button" className={styles.saveButton} disabled={preferenceMutation.isPending || !preferenceQuery.isSuccess} onClick={handleSavePersonalSettings}>저장</button>
             </div>
           </div>
         </div>

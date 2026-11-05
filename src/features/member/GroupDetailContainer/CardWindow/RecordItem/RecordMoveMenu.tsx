@@ -36,7 +36,7 @@ function MoveTargetList({ groupId, list, cardId, disabled, onPick }: {
     if (isLoading) return;
     setIsLoading(true);
     setIsError(false);
-    KanbanApi.listGroupCards(groupId, list.id, cards.length)
+    KanbanApi.listGroupCards(groupId, list.id, Math.floor(cards.length / 15))
       .then((page) => {
         setTotalCount(page.totalCount);
         setCards((previous) => [...previous, ...page.cards.filter((card) => !previous.some((item) => item.id === card.id))]);
@@ -73,8 +73,8 @@ export default function RecordMoveMenu({ groupId, cardId, disabled, onMove }: Pr
     queryFn: ({ pageParam, signal }) => KanbanApi.listGroupLists(groupId, pageParam, signal),
     initialPageParam: 0,
     getNextPageParam: (last) => {
-      const next = last.skip + last.receivedCount;
-      return last.receivedCount > 0 && next < last.totalCount ? next : undefined;
+      const next = last.page + 1;
+      return last.receivedCount > 0 && next * 10 < last.totalCount ? next : undefined;
     },
     enabled: open,
     gcTime: 0,

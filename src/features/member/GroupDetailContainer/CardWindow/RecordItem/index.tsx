@@ -1,8 +1,8 @@
 import { Box, ScrollArea, Text } from "@chakra-ui/react";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
-import { resolveRecordContent, siteFileDrag } from "../../EditWindow/recordFiles";
+import { registerSiteFiles, siteFileDrag } from "../../EditWindow/recordFiles";
 import { Archive, Clock, Hash, History, MoreHorizontal, PenLine, RotateCcw, SquarePen, Trash2, BriefcaseBusiness, Paperclip } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import type { RecordDto } from "../../../../../api/public/group/KanbanApi";
@@ -257,7 +257,7 @@ export default function RecordItem({ className, locationLabel, groupId, cardId, 
       </Box>
       {showFiles && !record.isDeleted && <RecordFileList files={record.files} />}
       {!record.isDeleted && (
-        <RecordViewer type={record.type} content={resolveRecordContent(record.content, record.files, groupId)} getDraggedFile={siteFileDrag} className={styles.content} defaultCodeWrap={pageState.textWrap} onOpenCard={onOpenCard} />
+        <RecordBody groupId={groupId} record={record} className={styles.content} defaultCodeWrap={pageState.textWrap} onOpenCard={onOpenCard} />
       )}
     </SkeletonWrapper>
   );
@@ -296,4 +296,9 @@ function RecordFileList({ files }: { files: RecordDto["files"] }) {
       <HoverScrollbar orientation="horizontal" />
     </ScrollArea.Root>
   );
+}
+
+function RecordBody({ groupId, record, ...props }: Omit<ComponentProps<typeof RecordViewer>, "type" | "content" | "getDraggedFile"> & { groupId: number; record: RecordDto }) {
+  useEffect(() => { registerSiteFiles(record.files, groupId); }, [record.files, groupId]);
+  return <RecordViewer {...props} type={record.type} content={record.content} getDraggedFile={siteFileDrag} />;
 }

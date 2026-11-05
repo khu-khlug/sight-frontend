@@ -22,14 +22,19 @@ export type KanbanListDto = {
   cardCount: number;
   cards: KanbanCardDto[];
 };
-// 목록 응답 공통 형태. 다음 시작 위치는 skip + receivedCount다.
-type PageMeta = { skip: number; totalCount: number; receivedCount: number };
+// 고정 크기 목록은 0부터 시작하는 페이지 번호를 사용한다.
+type PageMeta = { page: number; totalCount: number; receivedCount: number };
 export type KanbanListPageDto = PageMeta & { lists: KanbanListDto[] };
 export type KanbanCardPageDto = PageMeta & { cards: KanbanCardDto[] };
 export type KanbanCardDetailDto = KanbanCardDto & { listId: string; listTitle: string; description: string; recordSort: RecordSort };
 export type CardCoverImageUploadLinkDto = { url: string; fileUploadId: string };
 export type CardCoverImageInput = { coverImageUrl: string | null } | { fileUploadId: string };
 export type RecordType = "tiptap" | "legacy";
+export function normalizeRecordType(type: string): RecordType {
+  if (type.toUpperCase() === "LEGACY") return "legacy";
+  if (type.toUpperCase() === "TIPTAP") return "tiptap";
+  throw new Error("기록 본문 형식을 확인할 수 없습니다.");
+}
 export type RecordDto = {
   type: RecordType;
   id: number;
@@ -43,25 +48,25 @@ export type RecordDto = {
   isInUserArchive: boolean;
   files: RecordFileDto[];
 };
-// url은 업로드가 끝난 파일의 읽기 링크이며, 업로드되지 않았으면 null이다.
+// url은 업로드가 끝난 파일의 영구 읽기 주소이며, 업로드되지 않았으면 null이다.
 export type RecordFileDto = { id: string; fileId: string; url: string | null; name: string; size: number; contentType: string };
 export type RecordWithCardDto = RecordDto & { cardId: string; cardTitle: string; listId: string; listTitle: string };
 export type RecordSort = "NEWEST" | "OLDEST" | "RECENTLY_UPDATED";
 // 기록 본문이 참조하는 파일 하나. 새 파일은 fileId가 null이고 name·size·contentType을 함께 보낸다.
 export type RecordFileInput = { id: string; fileId: string | null; name: string; size: number; contentType: string };
-// 새 파일마다 서버가 백엔드 파일 아이디와 PUT 업로드 주소를 돌려준다.
-export type RecordUploadDto = { id: string; fileId: string; uploadUrl: string };
+// 새 파일마다 파일 아이디·영구 읽기 주소와 임시 PUT 업로드 주소를 돌려준다.
+export type RecordUploadDto = { id: string; fileId: string; url: string; uploadUrl: string };
 export type RecordFilesUploadedResultDto = { fileId: string; isSuccess: boolean; reason: "NOT_FOUND" | "FORBIDDEN" | "DELETED" | "NOT_UPLOADED" | null };
 // 기록 정렬은 카드마다 저장되는 공통 설정이다. 카드 정보 변경으로 바꾸고, 기록 목록은 서버가 그 설정으로 정렬한다.
 export type RecordSortOrder = RecordSort;
-export type RecordPageDto = PageMeta & { records: RecordDto[] };
+export type RecordPageDto = { offset: number; totalCount: number; receivedCount: number } & { records: RecordDto[] };
 
 export const KanbanApi = {
-  async listGroupLists(groupId: number, skip = 0, signal?: AbortSignal): Promise<KanbanListPageDto> {
-    return (await apiV2Client.get<KanbanListPageDto>(`/groups/${groupId}/lists`, { params: { skip }, signal })).data;
+  async listGroupLists(groupId: number, page = 0, signal?: AbortSignal): Promise<KanbanListPageDto> {
+    return (await apiV2Client.get<KanbanListPageDto>(`/groups/${groupId}/lists`, { params: { page }, signal })).data;
   },
-  async listGroupCards(groupId: number, listId: string, skip: number, signal?: AbortSignal): Promise<KanbanCardPageDto> {
-    return (await apiV2Client.get<KanbanCardPageDto>(`/groups/${groupId}/lists/${encodeURIComponent(listId)}/cards`, { params: { skip }, signal })).data;
+  async listGroupCards(groupId: number, listId: string, page: number, signal?: AbortSignal): Promise<KanbanCardPageDto> {
+    return (await apiV2Client.get<KanbanCardPageDto>(`/groups/${groupId}/lists/${encodeURIComponent(listId)}/cards`, { params: { page }, signal })).data;
   },
   async getGroupCard(groupId: number, cardId: string): Promise<KanbanCardDetailDto> {
     return (await apiV2Client.get<KanbanCardDetailDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`)).data;
@@ -126,11 +131,12 @@ export const KanbanApi = {
     await apiV2Client.delete(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`);
   },
   async listGroupRecordsPage(groupId: number, cardId: string, input: {
-    skip: number; limit: number; includeDeleted: boolean;
+    offset: number; limit: number; includeDeleted: boolean;
   }, signal?: AbortSignal): Promise<RecordPageDto> {
-    return (await apiV2Client.get<RecordPageDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, {
-      params: { skip: input.skip, limit: input.limit, includeDeleted: input.includeDeleted }, signal,
+    const page = (await apiV2Client.get<RecordPageDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, {
+      params: { offset: input.offset, limit: input.limit, includeDeleted: input.includeDeleted }, signal,
     })).data;
+    return { ...page, records: page.records.map((record) => ({ ...record, type: normalizeRecordType(record.type) })) };
   },
   async archiveGroupRecord(groupId: number, recordId: number): Promise<void> {
     await apiV2Client.delete(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`);
@@ -148,10 +154,12 @@ export const KanbanApi = {
     await apiV2Client.put(`/groups/${groupId}/records/${encodeURIComponent(recordId)}/portfolio`, input);
   },
   async getGroupRecord(groupId: number, recordId: number): Promise<RecordWithCardDto | null> {
-    return (await apiV2Client.get<RecordWithCardDto>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`)).data;
+    const record = (await apiV2Client.get<RecordWithCardDto | null>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`)).data;
+    return record ? { ...record, type: normalizeRecordType(record.type) } : null;
   },
   async createGroupRecord(groupId: number, cardId: string, input: { content: string; files: RecordFileInput[] }): Promise<RecordDto & { uploads: RecordUploadDto[] }> {
-    return (await apiV2Client.post<RecordDto & { uploads: RecordUploadDto[] }>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, input)).data;
+    const record = (await apiV2Client.post<RecordDto & { uploads: RecordUploadDto[] }>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, input)).data;
+    return { ...record, type: normalizeRecordType(record.type) };
   },
   async updateGroupRecord(groupId: number, recordId: number, input: { content: string; files: RecordFileInput[] }): Promise<{ uploads: RecordUploadDto[] }> {
     return (await apiV2Client.patch<{ uploads: RecordUploadDto[] }>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`, input)).data;
@@ -161,6 +169,7 @@ export const KanbanApi = {
     const response = await apiV2Client.post<{ results: RecordFilesUploadedResultDto[] }>(`/groups/${groupId}/records/files/uploaded`, { fileIds }, {
       validateStatus: (status) => status === 200 || status === 206 || status === 400,
     });
+    if (!Array.isArray(response.data.results)) throw new Error("첨부 파일의 업로드 완료 처리를 하지 못했습니다.");
     return response.data.results;
   },
 };

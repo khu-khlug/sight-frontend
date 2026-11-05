@@ -104,6 +104,10 @@
   overflow-wrap: anywhere;
 }
 
+.savedRecordDeleted {
+  background: var(--chakra-colors-gray-200);
+}
+
 .cardLink {
   color: inherit;
   text-decoration: underline;

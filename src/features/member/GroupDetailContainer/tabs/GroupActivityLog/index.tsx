@@ -37,8 +37,8 @@ export default function GroupActivityLog({ groupId, onOpenCard }: Props) {
     queryFn: ({ pageParam, signal }) => GroupActivityLogApi.listGroupLogsPage(groupId, pageParam, signal),
     initialPageParam: 0,
     getNextPageParam: (last) => {
-      const next = last.skip + last.receivedCount;
-      return last.receivedCount > 0 && next < last.totalCount ? next : undefined;
+      const next = last.page + 1;
+      return last.receivedCount > 0 && next * 50 < last.totalCount ? next : undefined;
     },
   });
   const logs = logsQuery.data?.pages.flatMap((page) => page.logs) ?? [];

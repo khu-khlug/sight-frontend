@@ -8,11 +8,11 @@ export type ActivityLogEntryDto = {
   logData: Record<string, unknown>;
   createdAt: string;
 };
-export type ActivityLogPageDto = { skip: number; totalCount: number; receivedCount: number; logs: ActivityLogEntryDto[] };
+export type ActivityLogPageDto = { page: number; totalCount: number; receivedCount: number; logs: ActivityLogEntryDto[] };
 
 export const GroupActivityLogApi = {
   // 최신 로그부터 50개씩 받는다.
-  async listGroupLogsPage(groupId: number, skip: number, signal?: AbortSignal): Promise<ActivityLogPageDto> {
-    return (await apiV2Client.get<ActivityLogPageDto>(`/groups/${groupId}/logs`, { params: { skip }, signal })).data;
+  async listGroupLogsPage(groupId: number, page: number, signal?: AbortSignal): Promise<ActivityLogPageDto> {
+    return (await apiV2Client.get<ActivityLogPageDto>(`/groups/${groupId}/logs`, { params: { page }, signal })).data;
   },
 };

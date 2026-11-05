@@ -36,7 +36,7 @@ type Props = {
   groupStatus: GroupStatus;
   cards: KanbanCardDto[];
   // 저장 응답의 새 파일 업로드 정보를 돌려준다.
-  onCreateRecord: (cardId: string, content: string, files: RecordFileInput[]) => Promise<RecordUploadDto[]>;
+  onCreateRecord: (cardId: string, content: string, files: RecordFileInput[]) => Promise<{ id: number; uploads: RecordUploadDto[] }>;
   onUpdateRecord: (cardId: string, recordId: string, content: string, files: RecordFileInput[]) => Promise<RecordUploadDto[]>;
 };
 
@@ -65,18 +65,19 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
 
   // 에디터에 넣어 줄 시작 본문이다. 입력할 때마다 바뀌지 않는다 — 입력 중인 본문은 에디터가 들고 있고,
   // 저장이 필요한 순간에만 editorHandle로 직렬화해서 가져온다.
-  // 첨부 파일 식별자와 읽기 링크·업로드 대기 파일을 편집기 밖에서 관리한다.
+  // 첨부 파일 연결 정보와 업로드 대기 파일을 편집기 밖에서 관리한다.
   const [fileTracker] = useState(() => new RecordFileTracker());
+  useEffect(() => () => fileTracker.dispose(), [fileTracker]);
   const [initialContent, setInitialContent] = useState(() => {
     fileTracker.reset(recordQuery.data?.files);
-    return fileTracker.fromServer(recordQuery.data?.content ?? "");
+    return recordQuery.data?.content ?? "";
   });
   const [recordInitialized, setRecordInitialized] = useState(() => target.kind === "new" || !!recordQuery.data);
   // 직접 진입은 원문 조회 후 한 번만 초기화한다. 재조회로 작성 중인 내용을 덮어쓰지 않는다.
   useEffect(() => {
     if (!recordInitialized && target.kind === "record" && recordQuery.data) {
       fileTracker.reset(recordQuery.data.files);
-      setInitialContent(fileTracker.fromServer(recordQuery.data.content));
+      setInitialContent(recordQuery.data.content);
       setRecordInitialized(true);
     }
   }, [fileTracker, recordInitialized, target.kind, recordQuery.data]);
@@ -96,8 +97,8 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
   // 에디터가 아직 없거나 이미 해제된 시점(창 교체 직전의 마지막 저장 등)에는 마지막으로 읽은 본문을 쓴다.
   const lastContent = useRef(initialContent);
   const getContent = useCallback(() => {
-    const html = editorHandle.current?.getHTML();
-    if (html !== undefined) lastContent.current = html;
+    const content = editorHandle.current?.getContent();
+    if (content !== undefined) lastContent.current = content;
     return lastContent.current;
   }, []);
 
@@ -107,16 +108,19 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
     serverEnabled: groupStatus !== GroupStatus.SUCCESS && groupStatus !== GroupStatus.FAIL,
     cardId,
     recordId: recordId === null ? null : Number(recordId),
-    // 임시저장에는 서버 형식(식별자 토큰)의 본문과 파일 배열을 보낸다.
+    // 임시저장에는 영구 주소가 담긴 JSON 본문과 파일 배열을 보낸다.
     getContent: () => fileTracker.toServer(getContent()).content,
     getFiles: () => fileTracker.toServer(getContent()).files,
-    onUploads: (uploads) => { void fileTracker.applyUploads(groupId, uploads).catch((error: Error) => toast.error(error.message)); },
+    onUploads: async (uploads) => {
+      await fileTracker.applyUploads(groupId, uploads);
+      editorHandle.current?.replaceFileUrls(fileTracker.replacements());
+    },
     isDirty,
     ready: recordInitialized,
     autoload: target.autoloadDraft ?? false,
     onRestore: (content, files) => {
       fileTracker.merge(files);
-      setInitialContent(fileTracker.fromServer(content));
+      setInitialContent(content);
       setHasInput(true);
     },
     // 입력이 잠잠해지면 그동안 바뀐 제목을 목차에 반영한다.
@@ -153,30 +157,49 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
     closeEditor();
   };
 
-  const handleSubmit = async (html: string) => {
+  const createdRecordId = useRef<string | null>(null);
+
+  const handleSubmit = async (document: string) => {
     if (!cardId) return;
     if (isSaving || isClosing) return;
-    const { content, files } = fileTracker.toServer(html);
+    let content: string;
+    let files: RecordFileInput[];
+    try { ({ content, files } = fileTracker.toServer(document, "submit")); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "첨부 파일을 확인해 주세요."); return; }
     // 서버는 UTF-8 기준 1 MiB를 넘는 기록 본문을 받지 않는다. 보내기 전에 막고 입력은 그대로 둔다.
     if (new TextEncoder().encode(content).length > MAX_RECORD_CONTENT_BYTES) {
       toast.error("기록 본문이 너무 깁니다. 1MB 이하로 줄여 주세요.");
       return;
     }
     setIsSaving(true);
-    draft.pause();
     try {
-      const uploads = recordId
-        ? await onUpdateRecord(cardId, recordId, content, files)
-        : await onCreateRecord(cardId, content, files);
-      // 기록은 이미 저장됐으므로, 파일 업로드가 일부 실패해도 알리기만 하고 창은 닫는다.
-      await fileTracker.applyUploads(groupId, uploads).catch((error: Error) => toast.error(error.message));
+      await draft.pause();
+      // 진행 중이던 임시저장이 파일 ID를 발급했을 수 있으므로 완료 후 다시 읽는다.
+      ({ content, files } = fileTracker.toServer(getContent(), "submit"));
+      if (new TextEncoder().encode(content).length > MAX_RECORD_CONTENT_BYTES) throw new Error("기록 본문이 너무 깁니다. 1MB 이하로 줄여 주세요.");
+      let savedRecordId = recordId ?? createdRecordId.current;
+      let uploads: RecordUploadDto[];
+      if (savedRecordId) uploads = await onUpdateRecord(cardId, savedRecordId, content, files);
+      else {
+        const created = await onCreateRecord(cardId, content, files);
+        savedRecordId = String(created.id);
+        createdRecordId.current = savedRecordId;
+        uploads = created.uploads;
+      }
+      await fileTracker.applyUploads(groupId, uploads);
+      editorHandle.current?.replaceFileUrls(fileTracker.replacements());
+      const final = fileTracker.toServer(getContent(), "complete");
+      if (new TextEncoder().encode(final.content).length > MAX_RECORD_CONTENT_BYTES) throw new Error("기록 본문이 너무 깁니다. 1MB 이하로 줄여 주세요.");
+      if (final.content !== content || uploads.length) {
+        await onUpdateRecord(cardId, savedRecordId, final.content, final.files);
+      }
       // 삭제 실패 때문에 이미 제출한 기록을 다시 제출하지 않도록 한다.
       await draft.clear().catch(() => undefined);
       setHasInput(false);
       closeEditor();
-    } catch {
-      draft.resume();
-      // useGroupAction이 오류를 표시한다. 입력 내용과 창은 유지해 재시도할 수 있게 한다.
+    } catch (error) {
+      draft.resume(createdRecordId.current ? Number(createdRecordId.current) : undefined);
+      toast.error(error instanceof Error ? error.message : "저장을 완료하지 못했습니다. 다시 시도해 주세요.");
     } finally {
       setIsSaving(false);
     }
@@ -185,7 +208,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
   // 항상 최신 handleSubmit을 부르는 안정된 함수를 넘긴다.
   const submitRef = useRef(handleSubmit);
   submitRef.current = handleSubmit;
-  const stableSubmit = useCallback((html: string) => submitRef.current(html), []);
+  const stableSubmit = useCallback((content: string) => submitRef.current(content), []);
 
   // 본문에 넣는 파일은 바로 올리지 않는다. 편집기에는 blob 주소로 보여 주고, 저장 응답의 업로드 정보로 올린다.
   const uploadRecordMedia = useCallback(async (file: File) => fileTracker.addLocal(file), [fileTracker]);

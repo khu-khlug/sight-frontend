@@ -22,7 +22,7 @@ type Options = {
   // 본문이 참조하는 첨부 파일 전체. 임시저장 요청에 함께 보낸다.
   getFiles?: () => RecordFileInput[];
   // 임시저장 응답의 새 파일 업로드 정보를 받는다.
-  onUploads?: (uploads: RecordUploadDto[]) => void;
+  onUploads?: (uploads: RecordUploadDto[]) => Promise<void>;
   isDirty: boolean;
   ready: boolean;
   autoload: boolean;
@@ -33,13 +33,13 @@ type Options = {
 type Session = {
   changed: () => void;
   flush: (leaving?: boolean) => Promise<void>;
-  pause: () => void;
-  resume: () => void;
+  pause: () => Promise<void>;
+  resume: (recordId?: number) => void;
   clear: () => Promise<void>;
 };
 
 function signature(draft: AutosaveTarget & { content: string }): string {
-  return JSON.stringify([draft.cardId, draft.recordId, draft.content]);
+  return JSON.stringify([draft.cardId, draft.recordId, draft.content, "files" in draft ? draft.files : []]);
 }
 
 // 새 기록은 카드로, 기존 기록 수정은 기록으로 같은 대상인지 본다(기록은 다른 카드로 옮겨졌을 수 있다).
@@ -59,6 +59,8 @@ function readLocal(key: string): LocalDraft | null {
       || (item.recordId !== null && typeof item.recordId !== "number") || typeof item.content !== "string"
       || !Array.isArray(item.files) || typeof item.updatedAt !== "string" || Number.isNaN(Date.parse(item.updatedAt))
       || typeof item.savedAt !== "number") return null;
+    const document = JSON.parse(item.content);
+    if (!document || document.type !== "doc") return null;
     return item as LocalDraft;
   } catch {
     return null;
@@ -101,6 +103,7 @@ export function useRecordDraft(options: Options) {
       ?? (typeof local?.serverSavedAt === "number" ? local.serverSavedAt : 0);
     let wroteToServer = false;
     let draftUpdatedAt = Date.now();
+    let savedRecordId = latest.current.recordId;
     let observedVersion = versionRef.current;
     setIsSaved(false);
     setError(null);
@@ -108,7 +111,7 @@ export function useRecordDraft(options: Options) {
     // ready가 된 뒤에만 세션이 돌므로 cardId는 정해져 있다.
     const snapshot = (): AutosaveInput => ({
       cardId: latest.current.cardId ?? "",
-      recordId: latest.current.recordId,
+      recordId: savedRecordId,
       content: latest.current.getContent(),
       files: latest.current.getFiles?.() ?? [],
       updatedAt: new Date(draftUpdatedAt).toISOString(),
@@ -124,8 +127,8 @@ export function useRecordDraft(options: Options) {
     const needsSave = () => checked && needsLocalSave();
     const saveLocal = () => {
       if (!needsLocalSave()) return false;
-      const draft = snapshot();
       try {
+        const draft = snapshot();
         const stored: LocalDraft = { ...draft, groupId: latest.current.groupId, savedAt: Date.now(), serverSavedAt: lastSavedAt };
         localStorage.setItem(storageKey, JSON.stringify(stored));
         localSignature = signature(draft);
@@ -134,14 +137,15 @@ export function useRecordDraft(options: Options) {
         return true;
       } catch {
         localSignature = null;
-        if (active) setError("로컬 임시저장에 실패했습니다.");
+        if (active) setError("임시저장을 준비하지 못했습니다. 업로드하지 못한 파일은 다시 첨부해 주세요.");
         return false;
       }
     };
     const scheduleServer = (retry = false) => {
       clearTimeout(serverTimer);
       if (!active || !needsSave() || debounceTimer !== undefined || inFlight) return;
-      const current = signature(snapshot());
+      let current: string;
+      try { current = signature(snapshot()); } catch { return; }
       if (current !== localSignature || current === serverSignature) return;
       lastSavedAt = serverSavedTimes.get(storageKey) ?? lastSavedAt;
       const wait = retry ? SERVER_INTERVAL_MS : Math.max(0, lastSavedAt + SERVER_INTERVAL_MS - Date.now());
@@ -149,16 +153,18 @@ export function useRecordDraft(options: Options) {
     };
     const send = async (force: boolean, leaving: boolean): Promise<void> => {
       if (!needsLocalSave() || (!checked && !force)) return;
+      let draft: AutosaveInput;
+      try { draft = snapshot(); }
+      catch (error) { if (active) setError(error instanceof Error ? error.message : "임시저장을 준비하지 못했습니다."); return; }
       if (inFlight) {
         // 같은 내용을 중복 전송하지 않는다. 다른 내용은 기존 요청 뒤에 보낸다.
-        if (signature(snapshot()) === inFlightSignature && (!leaving || inFlightLeaving)) return inFlight;
+        if (signature(draft) === inFlightSignature && (!leaving || inFlightLeaving)) return inFlight;
         if (!force) return;
         await inFlight;
         return send(force, leaving);
       }
       if (latest.current.serverEnabled === false || !latest.current.cardId) return;
       const sentVersion = versionRef.current;
-      const draft = snapshot();
       const current = signature(draft);
       lastSavedAt = serverSavedTimes.get(storageKey) ?? lastSavedAt;
       if (current === serverSignature) return;
@@ -172,9 +178,20 @@ export function useRecordDraft(options: Options) {
       wroteToServer = true;
       let failed = false;
       inFlight = AutosaveApi.save(latest.current.groupId, draft, { leaving })
-        .then((uploads) => {
-          if (uploads.length) latest.current.onUploads?.(uploads);
-          serverSignature = current;
+        .then(async (uploads) => {
+          await latest.current.onUploads?.(uploads);
+          if (cleared) return;
+          let savedSignature = current;
+          let completed = snapshot();
+          // 업로드 중 새 파일이 들어와도 ID·주소 반영을 끝낸 뒤에만 저장 완료로 본다.
+          while (signature(completed) !== savedSignature && !cleared) {
+            const followup = await AutosaveApi.save(latest.current.groupId, completed, { leaving });
+            savedSignature = signature(completed);
+            await latest.current.onUploads?.(followup);
+            completed = snapshot();
+          }
+          serverSignature = savedSignature;
+          saveLocal();
           lastSavedAt = Date.now();
           serverSavedTimes.set(storageKey, lastSavedAt);
           // 입력 본문은 덮어쓰지 않고 다음 창/새로고침에서도 전송 간격을 유지한다.
@@ -185,12 +202,13 @@ export function useRecordDraft(options: Options) {
           }
           if (active && !cleared) {
             // 전송 중에 입력이 더 있었다면 지금 내용은 서버에 없으므로 뱃지를 띄우지 않는다.
-            if (versionRef.current === sentVersion) setIsSaved(true);
+            if (versionRef.current === sentVersion || signature(snapshot()) === serverSignature) setIsSaved(true);
             setError(null);
           }
         })
         .catch(() => {
           failed = true;
+          saveLocal();
           if (active && !cleared) setError("서버 임시저장에 실패했습니다.");
         })
         .finally(() => {
@@ -227,8 +245,14 @@ export function useRecordDraft(options: Options) {
     const session: Session = {
       changed,
       flush,
-      pause: () => { saveLocal(); paused = true; stopTimers(); },
-      resume: () => { paused = false; changed(); },
+      pause: async () => { saveLocal(); paused = true; stopTimers(); await inFlight; },
+      resume: (recordId) => {
+        if (recordId !== undefined) savedRecordId = recordId;
+        paused = false;
+        changed();
+        saveLocal();
+        scheduleServer();
+      },
       clear: async () => {
         cleared = true;
         stopTimers();
@@ -263,7 +287,8 @@ export function useRecordDraft(options: Options) {
       )) return;
 
       // 서버 본문은 복구를 선택한 뒤에만 요청한다.
-      const draft = useLocal ? readLocal(storageKey) : await AutosaveApi.get(latest.current.groupId);
+      const serverDraft = await AutosaveApi.get(latest.current.groupId);
+      const draft = useLocal ? readLocal(storageKey) : serverDraft;
       if (!canRestore()) return;
       if (!draft || draft.cardId !== metadata.cardId || draft.recordId !== metadata.recordId || draft.updatedAt !== metadata.updatedAt) {
         setError("임시저장이 변경되었습니다. 편집창을 다시 열어 최신 초안을 확인하세요.");
@@ -279,8 +304,13 @@ export function useRecordDraft(options: Options) {
       draftUpdatedAt = draft.cardId === latest.current.cardId ? restoredAt : Math.max(Date.now(), restoredAt + 1);
       observedVersion = versionRef.current;
       latest.current = { ...latest.current, isDirty: true };
-      // 서버 임시저장은 파일 매핑(읽기 링크)을 함께 준다. 로컬 초안은 매핑 없이 본문만 복구한다.
-      latest.current.onRestore(draft.content, useLocal ? undefined : (draft as { files?: RecordFileDto[] }).files);
+      // 본문은 그대로 복원하며 파일 배열은 연결 관리에 사용한다.
+      // 로컬 요청에는 완료 상태가 없으므로 같은 대상의 서버 파일 정보로 보완한다.
+      const serverFiles = serverDraft && isSameTarget(serverDraft, draft) ? serverDraft.files : [];
+      latest.current.onRestore(draft.content, (draft.files ?? []).map((file) => {
+        const stored = serverFiles.find((entry) => entry.id === file.id && (file.fileId === null || entry.fileId === file.fileId));
+        return stored ?? { ...file, url: "url" in file ? file.url as string | null : null };
+      }) as RecordFileDto[]);
     };
     void restore().catch(() => {
       if (!active || paused || cleared) return;
@@ -314,8 +344,8 @@ export function useRecordDraft(options: Options) {
   useEffect(() => { sessionRef.current?.changed(); }, [options.isDirty]);
 
   const flush = useCallback(() => sessionRef.current?.flush() ?? Promise.resolve(), []);
-  const pause = useCallback(() => sessionRef.current?.pause(), []);
-  const resume = useCallback(() => sessionRef.current?.resume(), []);
+  const pause = useCallback(() => sessionRef.current?.pause() ?? Promise.resolve(), []);
+  const resume = useCallback((recordId?: number) => sessionRef.current?.resume(recordId), []);
   const clear = useCallback(() => sessionRef.current?.clear() ?? Promise.resolve(), []);
   // 글자마다 호출된다 — 본문은 직렬화하지 않고 입력이 있었다는 사실과 타이머만 갱신한다.
   const touch = useCallback(() => {

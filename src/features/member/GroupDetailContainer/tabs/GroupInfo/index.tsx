@@ -21,7 +21,6 @@ import GitRepoBadge from "../../../../../components/GitRepoBadge";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
 import TechBadge from "../../../../../components/TechBadge";
 import { GroupInterestLabel, GroupVisibilityLabel, GroupStatus } from "../../../../../constant";
-import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
 import { GROUP_INTEREST_ICON, GroupInfo as GroupInfoData } from "./types";
 
 type Props = {
@@ -36,13 +35,14 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
   const action = useGroupAction(info.id);
   const queryClient = useQueryClient();
   const isBookmarked = info.isBookmarked;
-  const currentUserQuery = useCurrentUser();
   const isLeader = info.isLeader;
   const showCreateChatRoom = isLeader && !info.hasChatRoom;
   const handleJoinChat = () => {
-    const memberId = currentUserQuery.data?.id;
-    if (memberId === undefined) return;
-    action.mutate(() => GroupChatApi.joinGroupDiscordChannel(info.id, memberId), {
+    if (info.isChatParticipant) {
+      onTabChange("discord");
+      return;
+    }
+    action.mutate(() => GroupChatApi.joinGroupDiscordChannel(info.id), {
       onSuccess: () => { toast.success("채팅에 참여했습니다."); onTabChange("discord"); },
     });
   };
@@ -185,13 +185,13 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
               flex="1"
               size="sm"
               variant="outline"
-              disabled={action.isPending || !info.hasChatRoom || info.isChatParticipant || info.status !== GroupStatus.PROGRESS}
-              onClick={info.hasChatRoom && !info.isChatParticipant ? handleJoinChat : undefined}
+              disabled={action.isPending || !info.hasChatRoom || (!info.isChatParticipant && info.status !== GroupStatus.PROGRESS)}
+              onClick={handleJoinChat}
               transition="background-color 150ms ease, transform 100ms ease"
               _hover={{ bg: "var(--main-color)", color: "white", borderColor: "var(--main-color)" }}
               _active={{ transform: "scale(0.97)" }}
             >
-              <MessageCircle size={16} /> 채팅 참여
+              <MessageCircle size={16} /> {info.isChatParticipant ? "채팅 열기" : "채팅 참여"}
             </Button>
           )
         ) : (

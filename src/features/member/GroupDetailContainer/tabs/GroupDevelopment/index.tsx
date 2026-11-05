@@ -21,8 +21,8 @@ type Props = {
 
 const DEFAULT_COHORT: OpenSeminarCohort = {
   id: "development-seminar",
-  seminarDate: new Date(new Date().getFullYear(), 11, 1).toISOString(),
-  year: new Date().getFullYear(),
+  scheduledAt: new Date(new Date().getFullYear(), 11, 1).toISOString(),
+  endAt: new Date(new Date().getFullYear(), 11, 2).toISOString(),
   isSummerSeason: false,
   isSpeakAfter: false,
 };
@@ -85,6 +85,24 @@ export default function GroupDevelopment({ info, isPending, onInfoChange, openCo
           {isManager ? "운영진 해제" : "운영진으로 전환"}
         </button>
       </div>
+      <label className={styles.row}>
+        <span>채팅방 있음</span>
+        <input
+          type="checkbox"
+          checked={info.hasChatRoom}
+          disabled={isPending}
+          onChange={(event) => onInfoChange({ hasChatRoom: event.target.checked })}
+        />
+      </label>
+      <label className={styles.row}>
+        <span>채팅 참여 중</span>
+        <input
+          type="checkbox"
+          checked={info.isChatParticipant}
+          disabled={isPending || !info.hasChatRoom || !info.isMember}
+          onChange={(event) => onInfoChange({ isChatParticipant: event.target.checked })}
+        />
+      </label>
       <label className={styles.row}>
         <span>열린 활동보고</span>
         <input

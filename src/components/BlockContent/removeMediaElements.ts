@@ -9,9 +9,9 @@ export function removeMediaElements(root: ParentNode): void {
   // 레거시 본문은 파일 블록 대신 다운로드 링크로 첨부 파일을 저장하기도 한다.
   for (const link of root.querySelectorAll("a[href]")) {
     const href = link.getAttribute("href") ?? "";
-    let isFile = href.startsWith("sightfile:") || link.hasAttribute("download");
+    let isFile = link.hasAttribute("download");
     try {
-      isFile ||= /^\/(?:legacy\/)?file\//.test(new URL(href, window.location.origin).pathname);
+      isFile ||= /^\/(?:file\/|groups\/[^/]+\/files\/)/.test(new URL(href, window.location.origin).pathname);
     } catch { /* 주소를 해석할 수 없는 일반 링크는 그대로 둔다. */ }
     if (isFile) link.remove();
   }

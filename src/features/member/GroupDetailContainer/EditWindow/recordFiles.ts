@@ -1,127 +1,120 @@
+import type { JSONContent } from "@tiptap/core";
 import { KanbanApi, type RecordFileDto, type RecordFileInput, type RecordUploadDto } from "../../../../api/public/group/KanbanApi";
 import type { DraggedFile } from "../../../../util/draggableFile";
 
-/*
- * 기록 본문의 첨부 파일. 서버는 본문을 파싱하지 않으므로, 본문에는 실제 주소 대신 기록 안에서만 유일한
- * 식별자 토큰("sightfile:<식별자>")을 넣고, 식별자와 백엔드 파일 아이디의 대응은 요청의 files 배열로 보낸다.
- * 편집 중에는 편집기가 바로 보여 줄 수 있게 토큰 대신 읽기 링크(새 파일은 blob 주소)를 넣어 두고,
- * 서버로 보낼 때 토큰으로, 받을 때 주소로 바꾼다.
- */
-const TOKEN_PREFIX = "sightfile:";
-const token = (id: string) => `${TOKEN_PREFIX}${id}`;
-const replaceAll = (text: string, from: string, to: string) => text.split(from).join(to);
-
-// file·uploadUrl은 아직 올리지 못한 새 파일에만 있다. 올리기에 실패하면 다음 저장 때 같은 주소로 다시 올린다.
-type TrackedFile = RecordFileInput & { url: string | null; file?: File; uploadUrl?: string };
-
+type TrackedFile = RecordFileInput & { url: string | null; completed: boolean; previewUrl?: string; file?: File; uploadUrl?: string; sent?: boolean };
 let sequence = 0;
-// 기존 기록의 식별자와 겹치지 않으면 된다. 시각과 순번을 섞어 한 기록 안에서 유일하게 만든다.
-const createFileId = () => `f-${Date.now().toString(36)}-${(sequence += 1).toString(36)}`;
-
-/*
- * 화면에 보여 준 기록 첨부 파일의 읽기 링크 → 그룹·백엔드 파일. 그 링크를 편집창에 끌어 놓으면 같은 그룹 파일은
- * 다시 올리지 않고 백엔드 파일 아이디로 참조한다. 읽기 링크는 만료되므로 본문에 링크를 그대로 넣지 않기 위해서다.
- */
+const createFileId = () => `f-${Date.now().toString(36)}-${++sequence}`;
 const siteFiles = new Map<string, { groupId: number; file: RecordFileDto }>();
+const canonical = (url: string) => {
+  try { return new URL(url, window.location.origin).href; }
+  catch { return url; }
+};
 
-export function findSiteFile(url: string): { groupId: number; file: RecordFileDto } | undefined {
-  return siteFiles.get(url);
+export function registerSiteFiles(files: RecordFileDto[] | undefined, groupId: number): void {
+  for (const file of files ?? []) if (file.url) siteFiles.set(canonical(file.url), { groupId, file });
 }
-
-// 기록 뷰어의 본문 이미지를 끌 때 쓴다. 사이트에 저장된 기록 첨부 파일만 앱 안 파일 요소로 끌고, 외부 주소는 기본 끌기로 둔다.
+export function findSiteFile(url: string) { return siteFiles.get(canonical(url)); }
 export function siteFileDrag(url: string): DraggedFile | null {
-  const file = siteFiles.get(url)?.file;
+  const file = findSiteFile(url)?.file;
   return file?.url ? { url: file.url, name: file.name, size: file.size, contentType: file.contentType } : null;
-}
-
-// 조회 응답의 본문을 화면에 보여 줄 때 토큰을 읽기 링크로 바꾼다. 업로드가 끝나지 않은 파일은 토큰을 그대로 둔다.
-export function resolveRecordContent(content: string, files: RecordFileDto[] | undefined, groupId: number): string {
-  let resolved = content;
-  for (const file of files ?? []) {
-    if (!file.url) continue;
-    siteFiles.set(file.url, { groupId, file });
-    resolved = replaceAll(resolved, token(file.id), file.url);
-  }
-  return resolved;
 }
 
 export class RecordFileTracker {
   private files = new Map<string, TrackedFile>();
+  private uploading: Promise<void> | null = null;
+  private referencedIds = new Set<string>();
 
   reset(files: RecordFileDto[] | undefined) {
-    for (const file of this.files.values()) if (file.file && file.url) URL.revokeObjectURL(file.url);
-    this.files = new Map((files ?? []).map((file) => [file.id, {
-      id: file.id, fileId: file.fileId, name: file.name, size: file.size, contentType: file.contentType, url: file.url,
-    }]));
+    this.dispose();
+    this.files = new Map((files ?? []).map((file) => [file.id, { ...file, completed: file.url !== null }]));
   }
-
-  // 임시저장을 불러올 때 그 임시저장의 파일 매핑을 더한다. 같은 식별자는 새 값으로 바꾼다.
+  dispose() {
+    for (const file of this.files.values()) if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+  }
   merge(files: RecordFileDto[] | undefined) {
-    for (const file of files ?? []) {
-      this.files.set(file.id, { id: file.id, fileId: file.fileId, name: file.name, size: file.size, contentType: file.contentType, url: file.url });
-    }
+    for (const file of files ?? []) this.files.set(file.id, { ...file, completed: file.url !== null });
   }
-
-  // 편집기에 새 파일을 넣을 때 쓴다. 올리지 않고 blob 주소를 돌려주며, 실제 업로드는 저장 응답을 받은 뒤에 한다.
   addLocal(file: File): string {
     const id = createFileId();
-    const url = URL.createObjectURL(file);
-    this.files.set(id, { id, fileId: null, name: file.name, size: file.size, contentType: file.type || "application/octet-stream", url, file });
-    return url;
+    const previewUrl = URL.createObjectURL(file);
+    this.files.set(id, { id, fileId: null, name: file.name, size: file.size, contentType: file.type || "application/octet-stream", url: null, completed: false, previewUrl, file });
+    return previewUrl;
   }
-
-  // 같은 그룹의 업로드된 파일을 참조로 넣는다. 이미 참조 중인 파일이면 그 항목의 링크를 그대로 쓴다.
   addExisting(file: RecordFileDto & { url: string }): string {
-    for (const tracked of this.files.values()) {
-      if (tracked.fileId === file.fileId && tracked.url) return tracked.url;
-    }
+    for (const tracked of this.files.values()) if (tracked.fileId === file.fileId && tracked.url) return tracked.url;
     const id = createFileId();
-    this.files.set(id, { id, fileId: file.fileId, name: file.name, size: file.size, contentType: file.contentType, url: file.url });
+    this.files.set(id, { ...file, id, completed: true });
     return file.url;
   }
 
-  // 서버에서 받은 본문을 편집기에 넣을 형태로 바꾼다.
-  fromServer(content: string): string {
-    let resolved = content;
-    for (const file of this.files.values()) if (file.url) resolved = replaceAll(resolved, token(file.id), file.url);
-    return resolved;
-  }
-
-  // 편집기 본문을 서버로 보낼 형태로 바꾸고, 본문이 참조하는 파일 전체를 files 배열로 만든다.
-  toServer(html: string): { content: string; files: RecordFileInput[] } {
-    let content = html;
-    const files: RecordFileInput[] = [];
-    for (const file of this.files.values()) {
-      if (file.url && content.includes(file.url)) content = replaceAll(content, file.url, token(file.id));
-      if (content.includes(token(file.id))) {
-        files.push({ id: file.id, fileId: file.fileId, name: file.name, size: file.size, contentType: file.contentType });
+  // JSON의 주소 속성만 처리하며 조회 본문에 파일 배열의 URL을 주입하지 않는다.
+  toServer(content: string, validation: "draft" | "submit" | "complete" = "draft"): { content: string; files: RecordFileInput[] } {
+    const document: JSONContent = content.trim() ? JSON.parse(content) : { type: "doc", content: [{ type: "paragraph" }] };
+    const referenced = new Map<string, RecordFileInput>();
+    const visit = (node: JSONContent) => {
+      const attrs = node.attrs;
+      if (attrs) {
+        for (const key of ["src", "href"]) {
+          if (!(key in attrs)) continue;
+          const source: unknown = attrs[key];
+          const file = typeof attrs.recordFileId === "string" ? this.files.get(attrs.recordFileId) : undefined;
+          const tracked = file ?? [...this.files.values()].find((entry) => typeof source === "string" && !!source
+            && (source === entry.previewUrl || (entry.url && canonical(source) === canonical(entry.url))));
+          if (tracked) {
+            if (validation !== "draft" && !tracked.completed && !tracked.file) throw new Error("업로드하지 못한 파일을 지운 뒤 다시 첨부해 주세요.");
+            if (validation === "complete" && !tracked.completed) throw new Error("첨부 파일 업로드가 끝나지 않았습니다. 다시 저장해 주세요.");
+            attrs.recordFileId = tracked.id;
+            attrs.fileId = tracked.fileId;
+            attrs[key] = tracked.url ?? (tracked.fileId && typeof source === "string" && !source.startsWith("blob:") ? source : "");
+            const { id, fileId, name, size, contentType } = tracked;
+            referenced.set(id, { id, fileId, name, size, contentType });
+            break;
+          }
+          if (typeof source === "string" && source.startsWith("blob:")) attrs[key] = "";
+        }
       }
-    }
-    return { content, files };
+      node.content?.forEach(visit);
+      node.marks?.forEach(visit);
+    };
+    visit(document);
+    this.referencedIds = new Set(referenced.keys());
+    return { content: JSON.stringify(document), files: [...referenced.values()] };
+  }
+  replacements(): { from: string; to: string }[] {
+    return [...this.files.values()].flatMap((file) => file.previewUrl && file.url ? [{ from: file.previewUrl, to: file.url }] : []);
   }
 
-  // 저장 응답의 업로드 정보로 새 파일을 올리고 서버에 알린다. 반영된 fileId는 다음 저장부터 함께 보낸다.
   async applyUploads(groupId: number, uploads: RecordUploadDto[] | undefined): Promise<void> {
     for (const upload of uploads ?? []) {
       const file = this.files.get(upload.id);
-      if (!file) continue;
-      file.fileId = upload.fileId;
-      file.uploadUrl = upload.uploadUrl;
+      if (file) { file.fileId = upload.fileId; file.url = upload.url; file.uploadUrl = upload.uploadUrl; }
     }
-    const uploaded: string[] = [];
+    const next = (this.uploading ?? Promise.resolve()).catch(() => undefined).then(() => this.uploadPending(groupId));
+    this.uploading = next;
+    try { await next; } finally { if (this.uploading === next) this.uploading = null; }
+  }
+  private async uploadPending(groupId: number): Promise<void> {
+    const ready: TrackedFile[] = [];
     let failed = false;
     for (const file of this.files.values()) {
+      if (!this.referencedIds.has(file.id)) continue;
       if (!file.file || !file.uploadUrl || !file.fileId) continue;
-      const response = await fetch(file.uploadUrl, { method: "PUT", body: file.file }).catch(() => null);
-      if (!response?.ok) { failed = true; continue; }
-      uploaded.push(file.fileId);
-      file.file = undefined;
-      file.uploadUrl = undefined;
+      if (!file.sent) {
+        const response = await fetch(file.uploadUrl, { method: "PUT", body: file.file }).catch(() => null);
+        if (!response?.ok) { failed = true; continue; }
+        file.sent = true;
+      }
+      ready.push(file);
     }
-    if (uploaded.length) {
-      const results = await KanbanApi.notifyRecordFilesUploaded(groupId, uploaded);
-      if (results.some((result) => !result.isSuccess)) failed = true;
+    if (ready.length) {
+      const results = await KanbanApi.notifyRecordFilesUploaded(groupId, ready.map((file) => file.fileId!));
+      for (const file of ready) {
+        const result = results.find((item) => item.fileId === file.fileId);
+        if (result?.isSuccess) { file.completed = true; file.file = undefined; file.uploadUrl = undefined; }
+        else { failed = true; if (result?.reason === "NOT_UPLOADED") file.sent = false; }
+      }
     }
-    if (failed) throw new Error("일부 첨부 파일을 올리지 못했습니다.");
+    if (failed) throw new Error("일부 첨부 파일을 올리지 못했습니다. 다시 저장해 주세요.");
   }
 }

@@ -114,12 +114,12 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
   const recordsQuery = useInfiniteQuery({
     queryKey: ["group-detail", groupId, "kanban", card.id, "records", sortOrder, showDeleted],
     queryFn: ({ pageParam, signal }) => KanbanApi.listGroupRecordsPage(groupId, card.id, {
-      skip: pageParam, limit: 10, includeDeleted: showDeleted,
+      offset: pageParam, limit: 10, includeDeleted: showDeleted,
     }, signal),
     initialPageParam: 0,
-    getNextPageParam: (lastPage, _pages, lastOffset) => {
-      const nextOffset = lastOffset + lastPage.records.length;
-      return lastPage.records.length > 0 && nextOffset < lastPage.totalCount ? nextOffset : undefined;
+    getNextPageParam: (lastPage) => {
+      const nextOffset = lastPage.offset + lastPage.receivedCount;
+      return lastPage.receivedCount > 0 && nextOffset < lastPage.totalCount ? nextOffset : undefined;
     },
   });
   const records = useMemo(() => recordsQuery.data?.pages.flatMap((page) => page.records) ?? [], [recordsQuery.data]);

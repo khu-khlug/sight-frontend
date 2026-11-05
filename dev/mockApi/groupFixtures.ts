@@ -18,6 +18,8 @@ export interface MockRecord { type: "tiptap" | "legacy"; id: number; authorName:
 export type MockRecordFile = { id: string; fileId: string; name: string; size: number; contentType: string }
 export interface MockCard { id: string; title: string; description: string; portfolio: boolean; authorName: string; authorUserId: number; assigneeName: string | null; assigneeUserId: number | null; inheritedFrom: string | null; coverImageUrl: string | null; labels: LabelColor[]; disabled: boolean; createdAt: string; records: MockRecord[]; recordSort?: "NEWEST" | "OLDEST" | "RECENTLY_UPDATED" }
 export interface MockList { id: string; title: string; description: string; cards: MockCard[] }
+// 표시·이동 흐름용 예시이며 실제 Discord 채널이 아니다.
+export const MOCK_CHAT_ROOM_URL = "https://discord.com/channels/1343604778059694122/1343604778059694123";
 const dummyGroupInfo: GroupInfo = {
   id: 1,
   title: "SIGHT 리뉴얼 프로젝트",
@@ -27,6 +29,7 @@ const dummyGroupInfo: GroupInfo = {
   leaderUserId: 1,
   isMember: true,
   hasChatRoom: true,
+  chatRoomUrl: MOCK_CHAT_ROOM_URL,
   isChatParticipant: true,
   isBookmarked: true,
   memberCount: 6,
@@ -114,6 +117,8 @@ const dummySavedRecords: SavedRecord[] = Array.from({ length: 24 }, (_, index) =
   return {
     groupId: index % 3 === 0 ? 2 : 1,
     groupName: index % 3 === 0 ? "다른 그룹 목업" : dummyGroupInfo.title,
+    isDeleted: index === 1 || index === 3,
+    isCardDeleted: index === 2 || index === 3,
     id: nextMockRecordId(),
     type: "tiptap" as const,
     content: SAVED_RECORD_CONTENTS[index % SAVED_RECORD_CONTENTS.length],
@@ -168,7 +173,7 @@ const dummyChatMessages: ChatMessage[] = CHAT_MESSAGES.map((content, index) => {
   ).toISOString();
 
   return {
-    id: `chat-${index + 1}`,
+    id: String(index + 1),
     authorName: member.name,
     content,
     createdAt,
@@ -187,39 +192,633 @@ const LONG_RECORD_PARAGRAPHS = [
   "신규 합류한 팀원 온보딩을 진행했습니다. 코드베이스 구조와 컨벤션 문서를 같이 훑어봤고, 첫 태스크로 작은 UI 버그 하나를 배정했습니다. 질문이 많았던 부분은 WindowLayer의 듀얼 모드 슬롯 상태 관리였는데, 다이어그램을 하나 더 그려서 문서에 추가하기로 했습니다.",
 ];
 
-// 에디터가 지원하는 블록·마크를 한 번씩 전부 담은 기록(editor.getHTML() 형식) — 드래그 핸들 등
+// 에디터가 지원하는 블록·마크를 한 번씩 전부 담은 기록(Tiptap JSON 형식) — 드래그 핸들 등
 // 블록 단위 동작을 확인하는 용도라 리스트1 카드2에만 둔다. 오디오·유튜브는 외부 주소라 오프라인에선 안 뜬다.
-const ALL_ELEMENTS_RECORD_HTML = [
-  "<h1>제목 1</h1>",
-  "<h2>제목 2</h2>",
-  "<h3>제목 3</h3>",
-  "<h4>제목 4</h4>",
-  "<h5>제목 5</h5>",
-  "<h6>제목 6</h6>",
-  "<p>일반 문단입니다. <strong>굵게</strong>, <em>기울임</em>, <u>밑줄</u>, <s>취소선</s>, <mark>하이라이트</mark>, <code>인라인 코드</code>, 위첨자 x<sup>2</sup>, 아래첨자 H<sub>2</sub>O, <a href=\"https://example.com\">링크</a>, <span style=\"color: #e03131\">글자색</span>, <span style=\"background-color: #ffec99\">배경색</span>, 인라인 수식 <span data-type=\"inline-math\" data-latex=\"E=mc^2\"></span> 를 한 줄에 담았습니다.</p>",
-  "<p style=\"text-align: center\">가운데 정렬 문단</p>",
-  "<p style=\"text-align: right\">오른쪽 정렬 문단</p>",
-  "<p style=\"text-align: justify\">양쪽 정렬 문단입니다. 줄이 길어져서 여러 줄로 넘어가야 정렬 차이가 보이므로 문장을 조금 길게 이어 씁니다. 줄이 길어져서 여러 줄로 넘어가야 정렬 차이가 보입니다.</p>",
-  "<ul><li><p>글머리 목록 1</p></li><li><p>글머리 목록 2</p><ul><li><p>중첩 항목</p></li></ul></li></ul>",
-  "<ol><li><p>순서 목록 1</p></li><li><p>순서 목록 2</p></li></ol>",
-  "<ul data-type=\"taskList\"><li data-type=\"taskItem\" data-checked=\"true\"><label><input type=\"checkbox\" checked=\"checked\"><span></span></label><div><p>완료한 할 일</p></div></li><li data-type=\"taskItem\" data-checked=\"false\"><label><input type=\"checkbox\"><span></span></label><div><p>남은 할 일</p></div></li></ul>",
-  "<blockquote><p>인용문입니다.</p><blockquote><p>중첩 인용문입니다.</p></blockquote></blockquote>",
-  "<details><summary>접는 블록 제목</summary><div data-type=\"detailsContent\"><p>접는 블록 안의 본문입니다.</p></div></details>",
-  "<pre><code class=\"language-typescript\">const greet = (name: string) => `안녕하세요, ${name}님`;\nconsole.log(greet(\"sight\"));</code></pre>",
-  "<div data-type=\"block-math\" data-latex=\"\\int_0^1 x^2\\,dx = \\frac{1}{3}\"></div>",
-  "<hr>",
-  "<table><tbody><tr><th colspan=\"1\" rowspan=\"1\"><p>이름</p></th><th colspan=\"1\" rowspan=\"1\"><p>역할</p></th></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>홍길동</p></td><td colspan=\"1\" rowspan=\"1\"><p>그룹장</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>김철수</p></td><td colspan=\"1\" rowspan=\"1\"><p>멤버</p></td></tr></tbody></table>",
-  "<img src=\"/__mock-api/assets/kanban-cover-demo.svg\" alt=\"이미지 예시\">",
-  "<audio src=\"https://www.w3schools.com/html/horse.ogg\" controls></audio>",
-  "<div data-youtube-video><iframe src=\"https://www.youtube.com/embed/dQw4w9WgXcQ\" width=\"640\" height=\"360\"></iframe></div>",
-  "<p>마지막 문단입니다.</p>",
-].join("");
+const ALL_ELEMENTS_RECORD_JSON = JSON.stringify({
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "level": 1
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "제목 1"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "제목 2"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "level": 3
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "제목 3"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "level": 4
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "제목 4"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "level": 5
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "제목 5"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "level": 6
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "제목 6"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "일반 문단입니다. "
+        },
+        {
+          "type": "text",
+          "text": "굵게",
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "text",
+          "text": "기울임",
+          "marks": [
+            {
+              "type": "italic"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "text",
+          "text": "밑줄",
+          "marks": [
+            {
+              "type": "underline"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "text",
+          "text": "취소선",
+          "marks": [
+            {
+              "type": "strike"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "text",
+          "text": "하이라이트",
+          "marks": [
+            {
+              "type": "highlight"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "text",
+          "text": "인라인 코드",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", 위첨자 x"
+        },
+        {
+          "type": "text",
+          "text": "2",
+          "marks": [
+            {
+              "type": "superscript"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", 아래첨자 H"
+        },
+        {
+          "type": "text",
+          "text": "2",
+          "marks": [
+            {
+              "type": "subscript"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "O, "
+        },
+        {
+          "type": "text",
+          "text": "링크",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "https://example.com"
+              }
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "text",
+          "text": "글자색",
+          "marks": [
+            {
+              "type": "textStyle",
+              "attrs": {
+                "color": "#e03131"
+              }
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "text",
+          "text": "배경색",
+          "marks": [
+            {
+              "type": "textStyle",
+              "attrs": {
+                "backgroundColor": "#ffec99"
+              }
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", 인라인 수식 "
+        },
+        {
+          "type": "inlineMath",
+          "attrs": {
+            "latex": "E=mc^2"
+          }
+        },
+        {
+          "type": "text",
+          "text": " 를 한 줄에 담았습니다."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "textAlign": "center"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "가운데 정렬 문단"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "textAlign": "right"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "오른쪽 정렬 문단"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "textAlign": "justify"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "양쪽 정렬 문단입니다. 줄이 길어져서 여러 줄로 넘어가야 정렬 차이가 보이므로 문장을 조금 길게 이어 씁니다. 줄이 길어져서 여러 줄로 넘어가야 정렬 차이가 보입니다."
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "content": [
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "글머리 목록 1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "글머리 목록 2"
+                }
+              ]
+            },
+            {
+              "type": "bulletList",
+              "content": [
+                {
+                  "type": "listItem",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "중첩 항목"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "orderedList",
+      "content": [
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "순서 목록 1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "순서 목록 2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "taskList",
+      "content": [
+        {
+          "type": "taskItem",
+          "attrs": {
+            "checked": true
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "완료한 할 일"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "taskItem",
+          "attrs": {
+            "checked": false
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "남은 할 일"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "blockquote",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "인용문입니다."
+            }
+          ]
+        },
+        {
+          "type": "blockquote",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "중첩 인용문입니다."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "details",
+      "content": [
+        {
+          "type": "detailsSummary",
+          "content": [
+            {
+              "type": "text",
+              "text": "접는 블록 제목"
+            }
+          ]
+        },
+        {
+          "type": "detailsContent",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "접는 블록 안의 본문입니다."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "language": "typescript"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "const greet = (name: string) => `안녕하세요, ${name}님`;\nconsole.log(greet(\"sight\"));"
+        }
+      ]
+    },
+    {
+      "type": "blockMath",
+      "attrs": {
+        "latex": "\\int_0^1 x^2\\,dx = \\frac{1}{3}"
+      }
+    },
+    {
+      "type": "horizontalRule"
+    },
+    {
+      "type": "table",
+      "content": [
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableHeader",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "이름"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "역할"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "홍길동"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "그룹장"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "김철수"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "멤버"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "src": "/__mock-api/assets/kanban-cover-demo.svg",
+        "alt": "이미지 예시"
+      }
+    },
+    {
+      "type": "audio",
+      "attrs": {
+        "src": "https://www.w3schools.com/html/horse.ogg"
+      }
+    },
+    {
+      "type": "youtube",
+      "attrs": {
+        "src": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        "width": 640,
+        "height": 360
+      }
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "마지막 문단입니다."
+        }
+      ]
+    }
+  ]
+});
 
 function createLongMockRecords(listIndex: number, cardIndex: number, member: { name: string; userId: number }): MockRecord[] {
   const baseTime = Date.parse("2026-08-01T00:00:00Z") + (listIndex * 10 + cardIndex) * 86400000;
   // 리스트 1 카드 3은 카드 창 기록 이어 불러오기(10개 단위)를 확인할 수 있게 기록을 45개 둔다.
   const contents = listIndex === 0 && cardIndex === 1
-    ? [ALL_ELEMENTS_RECORD_HTML, ...LONG_RECORD_PARAGRAPHS]
+    ? [ALL_ELEMENTS_RECORD_JSON, ...LONG_RECORD_PARAGRAPHS]
     : Array.from({ length: 45 }, (_, index) => `${index + 1}번째 기록. ${LONG_RECORD_PARAGRAPHS[index % LONG_RECORD_PARAGRAPHS.length]}`);
   return contents.map((content, index) => ({
     type: "tiptap" as const,
@@ -296,11 +895,11 @@ const dummyLists: MockList[] = Array.from({ length: 25 }, (_, listIndex) => ({
 }));
 
 // 사이트에 올린 첨부 파일이 있는 기록. 목업 서버가 시작할 때 이 파일들을 업로드가 끝난 상태로 등록한다(groups.ts).
-const MOCK_ATTACHMENT_IMAGE = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"160\"><rect width=\"320\" height=\"160\" fill=\"#dbeafe\"/><text x=\"160\" y=\"88\" font-size=\"20\" text-anchor=\"middle\" fill=\"#1e3a8a\">화면 설계 시안</text></svg>";
+const MOCK_ATTACHMENT_IMAGE = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6XcAAAAASUVORK5CYII=";
 const MOCK_ATTACHMENT_TEXT = "SIGHT 리뉴얼 회의록\n- 칸반 이어 불러오기 확인\n- 첨부 파일 보기 확인\n";
 const byteLength = (text: string) => new TextEncoder().encode(text).length;
 export const MOCK_UPLOADED_RECORD_FILES: (MockRecordFile & { data: string })[] = [
-  { id: "f-mock-image", fileId: "mock-record-file-image", name: "화면 설계 시안.svg", size: byteLength(MOCK_ATTACHMENT_IMAGE), contentType: "image/svg+xml", data: MOCK_ATTACHMENT_IMAGE },
+  { id: "f-mock-image", fileId: "mock-record-file-image", name: "화면 설계 시안.png", size: Buffer.byteLength(MOCK_ATTACHMENT_IMAGE, "base64"), contentType: "image/png", data: MOCK_ATTACHMENT_IMAGE },
   { id: "f-mock-text", fileId: "mock-record-file-text", name: "회의록.txt", size: byteLength(MOCK_ATTACHMENT_TEXT), contentType: "text/plain", data: MOCK_ATTACHMENT_TEXT },
 ];
 {
@@ -309,13 +908,13 @@ export const MOCK_UPLOADED_RECORD_FILES: (MockRecordFile & { data: string })[] =
   const [image, textFile] = MOCK_UPLOADED_RECORD_FILES;
   card.records.push({
     type: "tiptap", id: nextMockRecordId(), authorName: card.authorName, authorUserId: card.authorUserId,
-    content: [
-      "<p>사이트에 올린 첨부 파일이 있는 기록입니다.</p>",
-      `<img src="sightfile:${image.id}" alt="${image.name}">`,
-      `<div data-type="file-attachment" data-src="sightfile:${textFile.id}" data-name="${textFile.name}" data-size="${textFile.size}" data-content-type="${textFile.contentType}"></div>`,
-      "<p>아래 이미지는 외부 주소라 첨부 파일 목록에 나오지 않습니다.</p>",
-      "<img src=\"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Public_domain_cat_photo_on_the_streets.jpg/960px-Public_domain_cat_photo_on_the_streets.jpg\" alt=\"외부 이미지\">",
-    ].join(""),
+    content: JSON.stringify({ type: "doc", content: [
+      { type: "paragraph", content: [{ type: "text", text: "사이트에 올린 첨부 파일이 있는 기록입니다." }] },
+      { type: "image", attrs: { src: `/__mock-api/groups/1/files/${image.fileId}`, alt: image.name, recordFileId: image.id, fileId: image.fileId, width: 320, height: 160 } },
+      { type: "fileAttachment", attrs: { src: `/__mock-api/groups/1/files/${textFile.fileId}`, name: textFile.name, size: textFile.size, contentType: textFile.contentType, recordFileId: textFile.id, fileId: textFile.fileId } },
+      { type: "paragraph", content: [{ type: "text", text: "아래 이미지는 외부 주소라 첨부 파일 목록에 나오지 않습니다." }] },
+      { type: "image", attrs: { src: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Public_domain_cat_photo_on_the_streets.jpg/960px-Public_domain_cat_photo_on_the_streets.jpg", alt: "외부 이미지" } },
+    ] }),
     createdAt, updatedAt: createdAt, deleted: false,
     files: MOCK_UPLOADED_RECORD_FILES.map(({ data: _data, ...file }) => file),
   });
@@ -324,8 +923,8 @@ export const MOCK_UPLOADED_RECORD_FILES: (MockRecordFile & { data: string })[] =
 // 세미나 접수 기간은 그룹이 아니라 운영진이 클럽 전체 단위로 연다 — 지금은 열려있다고 가정.
 const dummyOpenSeminarCohort: OpenSeminarCohort = {
   id: "seminar-2026-2",
-  seminarDate: "2026-12-05T10:00:00Z",
-  year: 2026,
+  scheduledAt: "2026-12-05T10:00:00Z",
+  endAt: "2026-12-05T14:00:00Z",
   isSummerSeason: false,
   isSpeakAfter: true,
 };
@@ -334,10 +933,9 @@ const dummyActivityReports: ActivityReport[] = [
   {
     id: "s3",
     seminarId: "seminar-2026-2",
-    fileName: "report-2026-2.pdf",
     seminarDate: "2026-12-05T10:00:00Z",
-    isSummerSeason: false,
-    isSpeakAfter: true,
+    seminarIsSummerSeason: false,
+    seminarIsSpeakAfter: true,
     isPresentation: false,
     reportFileUrl: "/__mock-api/demo-files/활동보고서-2026-2.pdf",
     createdAt: "2026-09-25T10:00:00Z",
@@ -345,10 +943,9 @@ const dummyActivityReports: ActivityReport[] = [
   {
     id: "s1",
     seminarId: "seminar-2026-1",
-    fileName: "report-2026-1.pdf",
     seminarDate: "2026-06-10T10:00:00Z",
-    isSummerSeason: true,
-    isSpeakAfter: false,
+    seminarIsSummerSeason: true,
+    seminarIsSpeakAfter: false,
     isPresentation: true,
     reportFileUrl: "/__mock-api/demo-files/SIGHT-리뉴얼-발표자료.pdf",
     createdAt: "2026-06-10T10:00:00Z",
@@ -356,10 +953,9 @@ const dummyActivityReports: ActivityReport[] = [
   {
     id: "s2",
     seminarId: "seminar-2025-2",
-    fileName: "report-2025-2.pdf",
     seminarDate: "2025-12-05T10:00:00Z",
-    isSummerSeason: false,
-    isSpeakAfter: true,
+    seminarIsSummerSeason: false,
+    seminarIsSpeakAfter: true,
     isPresentation: false,
     reportFileUrl: "/__mock-api/demo-files/활동보고서-2025-2.pdf",
     createdAt: "2025-12-05T10:00:00Z",
@@ -389,7 +985,7 @@ export function createGroupFixture() {
     card?.records.push({
       id: saved.id, authorName: saved.authorName, authorUserId, content: saved.content,
       type: saved.type,
-      createdAt: saved.createdAt, updatedAt: saved.createdAt, deleted: false,
+      createdAt: saved.createdAt, updatedAt: saved.createdAt, deleted: saved.isDeleted,
     });
   }
   // 제공받은 기록 #113908의 real_content 원문이다. 첫 카드에서 기존 Tiptap 기록과 함께 표시한다.
@@ -409,8 +1005,16 @@ export function createGroupFixture() {
     content: `<div class="real_content">${legacyRecordContent}</div>${legacyRecordAttachments}`,
     createdAt: "2026-10-08T23:42:20+09:00", updatedAt: "2026-10-08T23:42:20+09:00", deleted: false,
   });
+  const asJson = (content: string) => {
+    try { if (JSON.parse(content).type === "doc") return content; } catch { /* 일반 텍스트 예시. */ }
+    return JSON.stringify({ type: "doc", content: content.split(/\r?\n/).map((text) => ({ type: "paragraph", content: text ? [{ type: "text", text }] : [] })) });
+  };
+  for (const list of data.lists) for (const card of list.cards) for (const record of card.records) {
+    if (record.type === "tiptap") record.content = asJson(record.content);
+  }
+  for (const saved of data.savedRecords) if (saved.type === "tiptap") saved.content = asJson(saved.content);
   const fileCard = data.lists[0].cards[1];
   const fileRecord = fileCard.records.find((record) => record.files?.length);
-  if (fileRecord) data.savedRecords.unshift({ groupId: 1, groupName: data.groupInfo.title, id: fileRecord.id, type: fileRecord.type, content: fileRecord.content, cardId: fileCard.id, cardTitle: fileCard.title, authorName: fileRecord.authorName, createdAt: fileRecord.createdAt, savedAt: "2026-10-09T00:00:00Z" });
+  if (fileRecord) data.savedRecords.unshift({ groupId: 1, groupName: data.groupInfo.title, isDeleted: false, isCardDeleted: false, id: fileRecord.id, type: fileRecord.type, content: fileRecord.content, cardId: fileCard.id, cardTitle: fileCard.title, authorName: fileRecord.authorName, createdAt: fileRecord.createdAt, savedAt: "2026-10-09T00:00:00Z" });
   return data;
 }

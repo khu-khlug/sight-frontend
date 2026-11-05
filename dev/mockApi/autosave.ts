@@ -41,7 +41,7 @@ export function handleAutosaveRequest(
     if (draft && Date.parse(input.updatedAt) < Date.parse(draft.updatedAt)) {
       return { status: 409, body: { message: "더 최신 임시저장이 있습니다." } };
     }
-    const registered = registerRecordFiles(input.files ?? []);
+    const registered = registerRecordFiles(input.files ?? [], groupId);
     if (!registered) return { status: 400, body: { message: "첨부 파일 정보를 확인해주세요." } };
     draft = { groupId, cardId: input.cardId, cardTitle, recordId: input.recordId as number | null, content: input.content, updatedAt: input.updatedAt, files: registered.files };
     return { status: 200, body: { uploads: registered.uploads } };

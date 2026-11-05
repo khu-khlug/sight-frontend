@@ -1,18 +1,34 @@
 import { randomUUID } from "node:crypto";
-import { GroupStatus } from "../../src/constant";
+import { GroupStatus, GroupVisibility } from "../../src/constant";
 import type { OpenSeminarCohortDto } from "../../src/api/public/group/GroupExposureApi";
 import { getGroupRepositoryUrlError, GROUP_REPOSITORY_SEPARATOR, MAX_GROUP_REPOSITORIES } from "../../src/util/groupRepositoryUrls";
 import { getGroupDelimitedValuesError } from "../../src/util/groupDelimitedValues";
-import { createGroupFixture, MOCK_UPLOADED_RECORD_FILES, nextMockRecordId, type MockCard, type MockRecordFile } from "./groupFixtures";
+import { createGroupFixture, MOCK_CHAT_ROOM_URL, MOCK_UPLOADED_RECORD_FILES, nextMockRecordId, type MockCard, type MockRecordFile } from "./groupFixtures";
 
-type Result = { status: number; body?: unknown };
+type Result = { status: number; body?: unknown; headers?: Record<string, string> };
 type Input = Record<string, unknown>;
 const state = createGroupFixture();
+// 삭제한 카드의 원본 기록을 유지해 보관 목록 조회·해제 및 카드 복구에 사용한다.
+const deletedCards = new Map<string, MockCard>();
+for (const saved of state.savedRecords.filter((record) => record.isCardDeleted)) {
+  const list = state.lists.find((list) => list.cards.some((card) => card.id === saved.cardId));
+  const card = list?.cards.find((card) => card.id === saved.cardId);
+  if (!list || !card) continue;
+  list.cards.splice(list.cards.indexOf(card), 1);
+  deletedCards.set(card.id, card);
+  state.archivedCards.unshift({ id: card.id, title: card.title, authorName: card.authorName, recordCount: card.records.length, createdAt: card.createdAt, deletedAt: "2026-10-10T00:00:00Z" });
+}
 let openCohort: OpenSeminarCohortDto | null = state.openSeminarCohort;
 // inline: 기록 본문의 <img>/<audio>가 바로 재생할 수 있게 다운로드(attachment) 대신 원래 형식으로 내려준다.
-export const uploads = new Map<string, { fileName: string; contentType: string; data?: Buffer; used: boolean; inline?: boolean }>();
+export const uploads = new Map<string, { fileName: string; contentType: string; data?: Buffer; used: boolean; inline?: boolean; groupId?: number; uploaded?: boolean; purpose?: "record" | "cover" | "report" }>();
 for (const file of MOCK_UPLOADED_RECORD_FILES) {
-  uploads.set(file.fileId, { fileName: file.name, contentType: file.contentType, data: Buffer.from(file.data), used: true, inline: true });
+  uploads.set(file.fileId, { fileName: file.name, contentType: file.contentType, data: Buffer.from(file.data, file.contentType === "image/png" ? "base64" : "utf8"), used: true, inline: true, groupId: 1, uploaded: true, purpose: "record" });
+}
+for (const card of state.lists.flatMap((list) => list.cards)) {
+  if (card.coverImageUrl === "/__mock-api/assets/kanban-cover-demo.svg") {
+    const image = MOCK_UPLOADED_RECORD_FILES[0];
+    card.coverImageUrl = `/__mock-api/groups/1/files/${image.fileId}`;
+  }
 }
 const ok = (body?: unknown): Result => ({ status: body === undefined ? 204 : 200, body });
 const fail = (message: string, status = 400): Result => ({ status, body: { message } });
@@ -50,10 +66,10 @@ function recordView(record: MockCard["records"][number]) {
     isInUserArchive: state.savedRecords.some((saved) => saved.id === record.id), files: (record.files ?? []).map(recordFileView) };
 }
 // 요청의 files 배열을 검사해 새 파일은 업로드 기록을 만들고 업로드 주소를 돌려준다. 잘못된 항목이 있으면 null이다.
-export function registerRecordFiles(input: unknown): { files: MockRecordFile[]; uploads: { id: string; fileId: string; uploadUrl: string }[] } | null {
+export function registerRecordFiles(input: unknown, groupId: number): { files: MockRecordFile[]; uploads: { id: string; fileId: string; url: string; uploadUrl: string }[] } | null {
   if (!Array.isArray(input)) return null;
   const files: MockRecordFile[] = [];
-  const created: { id: string; fileId: string; uploadUrl: string }[] = [];
+  const created: { id: string; fileId: string; url: string; uploadUrl: string }[] = [];
   const ids = new Set<string>();
   for (const entry of input) {
     if (!entry || typeof entry !== "object") return null;
@@ -64,9 +80,9 @@ export function registerRecordFiles(input: unknown): { files: MockRecordFile[]; 
     let fileId = item.fileId;
     if (fileId === null) {
       fileId = id();
-      uploads.set(fileId as string, { fileName: item.name, contentType: item.contentType, used: false, inline: true });
-      created.push({ id: item.id, fileId: fileId as string, uploadUrl: `/__mock-api/uploads/${fileId}` });
-    } else if (typeof fileId !== "string" || !uploads.has(fileId)) {
+      uploads.set(fileId as string, { fileName: item.name, contentType: item.contentType, used: false, inline: true, groupId, uploaded: false, purpose: "record" });
+      created.push({ id: item.id, fileId: fileId as string, url: `/__mock-api/groups/${groupId}/files/${fileId}`, uploadUrl: `/__mock-api/uploads/${fileId}` });
+    } else if (typeof fileId !== "string" || uploads.get(fileId)?.groupId !== groupId || uploads.get(fileId)?.purpose !== "record") {
       return null;
     }
     files.push({ id: item.id, fileId: fileId as string, name: item.name, size: item.size, contentType: item.contentType });
@@ -75,11 +91,44 @@ export function registerRecordFiles(input: unknown): { files: MockRecordFile[]; 
 }
 // 업로드가 끝난 파일만 읽기 링크를 준다.
 export function recordFileView(file: MockRecordFile) {
-  return { ...file, url: uploads.get(file.fileId)?.data ? `/__mock-api/uploads/${file.fileId}` : null };
+  return { ...file, url: uploads.get(file.fileId)?.uploaded ? `/__mock-api/groups/${uploads.get(file.fileId)!.groupId}/files/${file.fileId}` : null };
 }
-function page<T>(items: T[], skip: number, size: number) {
-  const slice = items.slice(skip, skip + size);
-  return { skip, totalCount: items.length, receivedCount: slice.length, items: slice };
+function recordText(record: MockCard["records"][number]): string {
+  if (record.type === "legacy") return record.content.replace(/<[^>]*>/g, " ");
+  try {
+    type TextNode = { text?: string; type?: string; attrs?: { latex?: string }; content?: TextNode[] };
+    const walk = (node: TextNode): string => {
+      if (node.type === "text") return node.text ?? "";
+      if (node.type === "inlineMath" || node.type === "blockMath") return node.attrs?.latex ?? "";
+      if (node.type === "hardBreak") return "\n";
+      const body = (node.content ?? []).map(walk).join("");
+      return body + (["paragraph", "heading", "codeBlock", "tableCell", "tableHeader", "detailsSummary"].includes(node.type ?? "") ? "\n" : "");
+    };
+    return walk(JSON.parse(record.content)).replace(/\s+/g, " ").trim();
+  } catch { return record.content; }
+}
+function page<T>(items: T[], page: number, size: number) {
+  const offset = page * size;
+  const slice = items.slice(offset, offset + size);
+  return { page, totalCount: items.length, receivedCount: slice.length, items: slice };
+}
+
+// 목록의 기준은 보관 연결이다. 원본이 보드에서 빠져도 보관한 항목을 누락하지 않는다.
+function savedRecordViews() {
+  const allCards = [...cards(), ...deletedCards.values()];
+  return state.savedRecords.map((saved) => {
+    const card = allCards.find((card) => card.records.some((record) => record.id === saved.id));
+    const record = card?.records.find((record) => record.id === saved.id);
+    return {
+      ...saved,
+      cardId: card?.id ?? saved.cardId,
+      cardTitle: card?.title ?? saved.cardTitle,
+      content: record?.content ?? saved.content,
+      isDeleted: record?.deleted ?? saved.isDeleted,
+      isCardDeleted: card ? deletedCards.has(card.id)
+        : state.archivedCards.some((card) => card.id === saved.cardId) || saved.isCardDeleted,
+    };
+  }).sort((a, b) => b.savedAt.localeCompare(a.savedAt) || b.id - a.id);
 }
 function newCard(title: string): MockCard {
   return { id: id(), title, description: "", portfolio: false, authorName: "테스트 회원", authorUserId: 1,
@@ -92,15 +141,11 @@ export function findMockCardTitle(cardId: string): string | null {
   return cards().find((card) => card.id === cardId)?.title ?? null;
 }
 export function handleGroupRequest(method: string | undefined, url: URL, body: unknown, isManager = process.env.MOCK_MANAGER !== "false"): Result | null {
+  if (method === "GET" && url.pathname === "/seminars/current") return ok(openCohort);
   if (url.pathname === "/saved-records" && method === "GET") {
-    const skip = Number(url.searchParams.get("skip") ?? 0);
-    if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
-    const visible = state.savedRecords.flatMap((saved) => {
-      const card = cards().find((card) => card.records.some((record) => record.id === saved.id && !record.deleted));
-      const record = card?.records.find((record) => record.id === saved.id);
-      return card && record ? [{ ...saved, cardId: card.id, cardTitle: card.title, content: record.content }] : [];
-    }).sort((a, b) => b.savedAt.localeCompare(a.savedAt) || b.id - a.id);
-    const { items, ...meta } = page(visible, skip, 10);
+    const pageNumber = Number(url.searchParams.get("page") ?? 0);
+    if (!Number.isSafeInteger(pageNumber) || pageNumber < 0) return fail("조회 범위를 확인해주세요.");
+    const { items, ...meta } = page(savedRecordViews(), pageNumber, 10);
     return ok({ ...meta, records: items.map(({ id: recordId, ...record }) => ({ ...record, recordId })) });
   }
   const match = url.pathname.match(/^\/(manager\/)?groups\/(\d+)(?:\/(.*))?$/);
@@ -113,13 +158,30 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
   const member = info.isMember;
   const leader = member && info.leaderUserId === 1;
 
+  if (route[0] === "files" && route.length === 2 && (method === "GET" || method === "HEAD")) {
+    const viewer = member || info.visibility === GroupVisibility.PUBLIC
+      || info.visibility === GroupVisibility.MEMBER_ONLY || (isManager && info.visibility === GroupVisibility.MANAGER_ONLY);
+    if (!viewer) return fail("그룹 열람 권한이 없습니다.", 403);
+    const file = uploads.get(route[1]);
+    if (!file || file.groupId !== Number(match[2]) || file.purpose === "report" || !file.uploaded || !file.data) return fail("파일을 찾을 수 없습니다.", 404);
+    return { status: 302, headers: { Location: `/__mock-api/uploads/${route[1]}`, "Cache-Control": "private, no-store" } };
+  }
+
   // 개발용 제어 요청은 현재 사용자와 서버 상태를 목업에서 변경한다.
   if (method === "PATCH" && path === "mock-scenario") {
     if (input.info && typeof input.info === "object") {
       const changes = input.info as Input;
       if (changes.status === GroupStatus.STOP && info.status !== GroupStatus.PROGRESS) return fail("진행 중인 그룹만 중단할 수 있습니다.", 409);
       if (changes.leaderUserId !== undefined && !state.members.some((m) => m.userId === changes.leaderUserId)) return fail("그룹 멤버만 그룹장이 될 수 있습니다.", 409);
+      for (const key of ["hasChatRoom", "isChatParticipant"]) {
+        if (key in changes && typeof changes[key] !== "boolean") return fail("채팅 상태를 확인해주세요.");
+      }
+      const hasChatRoom = changes.hasChatRoom ?? info.hasChatRoom;
+      const isMember = changes.isMember ?? info.isMember;
+      if (changes.isChatParticipant === true && (!hasChatRoom || !isMember)) return fail("그룹원이며 채팅방이 있어야 참여 상태를 설정할 수 있습니다.", 409);
       Object.assign(info, changes, { id: 1 });
+      info.chatRoomUrl = info.hasChatRoom ? info.chatRoomUrl ?? MOCK_CHAT_ROOM_URL : null;
+      if (!info.hasChatRoom || !info.isMember) info.isChatParticipant = false;
     }
     if ("openCohort" in input) openCohort = input.openCohort as OpenSeminarCohortDto | null;
     return ok();
@@ -140,21 +202,22 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
         exposure: { isPortfolioPublished: s.hasPublishedPortfolio, portfolioListCount: s.portfolioListCount,
           portfolioCardCount: s.portfolioCardCount, seminarCount: s.seminarCount, reportCount: s.reportCount },
         hasChatRoom: s.hasChatRoom,
+        chatRoomUrl: s.hasChatRoom ? s.chatRoomUrl ?? MOCK_CHAT_ROOM_URL : null,
       });
     }
     if (path === "lists") {
-      const skip = Number(url.searchParams.get("skip") ?? 0);
-      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
-      const { items, ...meta } = page(state.lists, skip, 10);
+      const pageNumber = Number(url.searchParams.get("page") ?? 0);
+      if (!Number.isSafeInteger(pageNumber) || pageNumber < 0) return fail("조회 범위를 확인해주세요.");
+      const { items, ...meta } = page(state.lists, pageNumber, 10);
       return ok({ ...meta, lists: items.map((list) => ({ id: list.id, title: list.title, description: list.description,
         cardCount: list.cards.length, cards: list.cards.slice(0, 15).map(cardSummary) })) });
     }
     if (route[0] === "lists" && route[2] === "cards" && route.length === 3) {
       const list = state.lists.find((l) => l.id === route[1]);
       if (!list) return fail("리스트를 찾을 수 없습니다.", 404);
-      const skip = Number(url.searchParams.get("skip") ?? 0);
-      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
-      const { items, ...meta } = page(list.cards, skip, 15);
+      const pageNumber = Number(url.searchParams.get("page") ?? 0);
+      if (!Number.isSafeInteger(pageNumber) || pageNumber < 0) return fail("조회 범위를 확인해주세요.");
+      const { items, ...meta } = page(list.cards, pageNumber, 15);
       return ok({ ...meta, cards: items.map(cardSummary) });
     }
     if (route[0] === "cards" && route.length === 2) {
@@ -169,35 +232,36 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
         recordCount: cards().reduce((sum, card) => sum + card.records.filter((record) => record.authorUserId === m.userId && !record.deleted).length, 0) };
     }) });
     if (path === "logs") {
-      const skip = Number(url.searchParams.get("skip") ?? 0);
-      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
-      const { items, ...meta } = page(state.activityLogs, skip, 50);
+      const pageNumber = Number(url.searchParams.get("page") ?? 0);
+      if (!Number.isSafeInteger(pageNumber) || pageNumber < 0) return fail("조회 범위를 확인해주세요.");
+      const { items, ...meta } = page(state.activityLogs, pageNumber, 50);
       return ok({ ...meta, logs: items.map((log, index) => ({
-        id: skip + index + 1, actor: { userId: 1, name: log.memberName },
+        id: pageNumber * 50 + index + 1, actor: { userId: 1, name: log.memberName },
         logType: "LEGACY", logData: { html: log.message }, createdAt: log.createdAt,
       })) });
     }
     if (path === "deleted-cards" || path === "saved-records") {
-      const skip = Number(url.searchParams.get("skip") ?? 0);
-      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
+      const pageNumber = Number(url.searchParams.get("page") ?? 0);
+      if (!Number.isSafeInteger(pageNumber) || pageNumber < 0) return fail("조회 범위를 확인해주세요.");
       if (path === "deleted-cards") {
-        const { items, ...meta } = page(state.archivedCards, skip, 20);
+        const { items, ...meta } = page(state.archivedCards, pageNumber, 20);
         return ok({ ...meta, cards: items });
       }
-      const { items, ...meta } = page(state.savedRecords, skip, 10);
+      const { items, ...meta } = page(savedRecordViews(), pageNumber, 10);
       return ok({ ...meta, records: items.map(({ id: recordId, ...record }) => ({ ...record, recordId, files: [] })) });
     }
-    if (path === "activity-report-context") return ok(openCohort);
-    if (path === "activity-reports") return ok(state.activityReports);
+    if (path === "activity-reports") return ok({ reports: state.activityReports });
     if (path === "chat-messages") {
       if (!member) return fail("그룹원만 채팅을 볼 수 있습니다.", 403);
       if (!info.hasChatRoom) return fail("그룹 채팅방이 없습니다.");
-      const skip = Number(url.searchParams.get("skip") ?? 0);
-      if (!Number.isSafeInteger(skip) || skip < 0) return fail("조회 범위를 확인해주세요.");
-      // 최신 메시지부터 skip개를 건너뛴 50개를 오래된 순으로 돌려준다.
-      const end = Math.max(0, state.chatMessages.length - skip);
-      const messages = state.chatMessages.slice(Math.max(0, end - 50), end);
-      return ok({ skip, receivedCount: messages.length, hasMore: end - messages.length > 0, messages });
+      const before = url.searchParams.get("before");
+      if (before !== null && (!/^[0-9]+$/.test(before) || BigInt(before) > 9223372036854775807n)) return fail("조회 범위를 확인해주세요.");
+      // 커서보다 이전인 메시지 중 최신 50개를 오래된 순으로 돌려준다.
+      const eligible = before === null ? state.chatMessages : state.chatMessages.filter((message) => BigInt(message.id) < BigInt(before));
+      const end = eligible.length;
+      const messages = eligible.slice(Math.max(0, end - 50), end);
+      const hasMore = end > messages.length;
+      return ok({ nextBefore: hasMore ? messages[0].id : null, receivedCount: messages.length, hasMore, messages });
     }
     if (path === "search") {
       const keyword = text(url.searchParams.get("keyword")).toLocaleLowerCase();
@@ -211,7 +275,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       type SearchRow = { listId: string; listTitle: string; cardId: string; cardTitle: string; recordId: number | null; matchedText: string | null };
       const results = state.lists.flatMap((list) => list.cards.flatMap((card): SearchRow[] => {
         const base = { listId: list.id, listTitle: list.title, cardId: card.id, cardTitle: card.title };
-        if (target === "record") return card.records.filter((r) => r.content.toLocaleLowerCase().includes(keyword)).map((r) => ({ ...base, recordId: r.id, matchedText: r.content }));
+        if (target === "record") return card.records.filter((r) => !r.deleted && recordText(r).toLocaleLowerCase().includes(keyword)).map((r) => ({ ...base, recordId: r.id, matchedText: recordText(r) }));
         const value = target === "author" ? card.authorName : card.title;
         return value.toLocaleLowerCase().includes(keyword) ? [{ ...base, recordId: null, matchedText: target === "author" ? card.authorName : null }] : [];
       }));
@@ -222,9 +286,8 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       const card = cards().find((c) => c.id === route[1]);
       if (!card) return fail("카드를 찾을 수 없습니다.", 404);
       // 단건 조회의 기존 역방향 탐색은 전체 배열을 사용한다. 카드 창은 명시적으로 페이지를 요청한다.
-      if (!url.searchParams.has("limit")) return ok(card.records);
-      const offset = Number(url.searchParams.get("skip") ?? 0);
-      const limit = Number(url.searchParams.get("limit"));
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const limit = Number(url.searchParams.get("limit") ?? 10);
       const sortOrder = { NEWEST: "newest", OLDEST: "oldest", RECENTLY_UPDATED: "recentlyUpdated" }[card.recordSort ?? "NEWEST"];
       const includeDeleted = url.searchParams.get("includeDeleted") ?? "true";
       if (!Number.isInteger(offset) || offset < 0 || !Number.isInteger(limit) || limit < 1 || limit > 100) {
@@ -242,8 +305,8 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
             : right.createdAt.localeCompare(left.createdAt);
         return order || left.id - right.id;
       });
-      const { items, ...meta } = page(records, offset, limit);
-      return ok({ ...meta, records: items.map(recordView) });
+      const items = records.slice(offset, offset + limit);
+      return ok({ offset, totalCount: records.length, receivedCount: items.length, records: items.map(recordView) });
     }
     if (route[0] === "records" && route.length === 2) {
       const card = cards().find((c) => c.records.some((r) => String(r.id) === route[1]));
@@ -332,7 +395,9 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
   }
   if (path === "chat-room" && method === "POST") {
     if (!leader) return fail("그룹장 권한이 필요합니다.", 403);
-    info.hasChatRoom = true; info.isChatParticipant = true; return changed("채팅방을 만들었습니다.");
+    info.hasChatRoom = true;
+    info.chatRoomUrl ??= MOCK_CHAT_ROOM_URL;
+    info.isChatParticipant = true; return changed("채팅방을 만들었습니다.");
   }
   if (path === "chat-room/join" && method === "POST") {
     if (!info.hasChatRoom || info.isChatParticipant) return fail("채팅방 참여 정보를 확인해주세요.");
@@ -343,27 +408,30 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     const attachments = Array.isArray(input.attachments) ? input.attachments : [];
     if (!text(input.content) && !attachments.length) return fail("메시지를 입력해주세요.");
     if (attachments.some((a) => !a || typeof a.name !== "string" || typeof a.url !== "string")) return fail("첨부파일을 확인해주세요.");
-    const message = { id: id(), authorName: "테스트 회원", content: text(input.content), createdAt: now(), attachments };
+    const messageId = (state.chatMessages.reduce((max, message) => BigInt(message.id) > max ? BigInt(message.id) : max, 0n) + 1n).toString();
+    const message = { id: messageId, authorName: "테스트 회원", content: text(input.content), createdAt: now(), attachments };
     state.chatMessages.push(message); return ok(message);
   }
   if (path === "portfolio" && ["POST", "DELETE"].includes(method ?? "")) {
     if (!leader) return fail("그룹장 권한이 필요합니다.", 403);
     info.hasPublishedPortfolio = method === "POST"; return changed("포트폴리오 공개 상태를 변경했습니다.");
   }
-  if (route[0] === "activity-reports") return reportRequest(method, route, input, leader);
+  if (route[0] === "activity-reports") return reportRequest(method, route, input, leader, Number(match[2]));
   if (route[0] === "deleted-cards" && route[2] === "restore" && method === "POST") {
     const index = state.archivedCards.findIndex((c) => c.id === route[1]);
     const list = state.lists.find((l) => l.id === input.targetListId);
     if (index < 0 || !list) return fail("카드 또는 리스트를 찾을 수 없습니다.", 404);
     const archived = state.archivedCards.splice(index, 1)[0];
-    const card = newCard(archived.title);
+    const preserved = deletedCards.get(archived.id);
+    const card = preserved ?? newCard(archived.title);
     const archivedAuthorUserId = state.members.find((m) => m.name === archived.authorName)?.userId ?? 1;
     Object.assign(card, { id: archived.id, authorName: archived.authorName, authorUserId: archivedAuthorUserId, createdAt: archived.createdAt,
-      records: Array.from({ length: archived.recordCount }, () => ({
+      records: preserved?.records ?? Array.from({ length: archived.recordCount }, () => ({
         type: "tiptap" as const,
         id: nextMockRecordId(), authorName: archived.authorName, authorUserId: archivedAuthorUserId,
-        content: "보관된 기록입니다.", createdAt: now(), updatedAt: now(), deleted: false,
+        content: JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "보관된 기록입니다." }] }] }), createdAt: now(), updatedAt: now(), deleted: false,
       })) });
+    deletedCards.delete(card.id);
     list.cards.push(card); return changed("카드를 복원했습니다.");
   }
   if (info.status !== GroupStatus.PROGRESS && info.status !== GroupStatus.STOP) return fail("종료된 그룹에서는 변경할 수 없습니다.", 409);
@@ -403,7 +471,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     // activity-report와 같은 범용 uploads 맵/서빙 경로(/__mock-api/uploads/:id)를 그대로
     // 재사용한다 — 업로드 메커니즘 자체는 어떤 파일이든 동일하다.
     const fileUploadId = id();
-    uploads.set(fileUploadId, { fileName: text(input.fileName), contentType: text(input.contentType), used: false });
+    uploads.set(fileUploadId, { fileName: text(input.fileName), contentType: text(input.contentType), used: false, groupId: Number(match[2]), purpose: "cover", inline: true });
     return ok({ fileUploadId, url: `/__mock-api/uploads/${fileUploadId}` });
   }
   if (route[0] === "cards" && route.length === 3 && ["PUT", "PATCH", "POST", "DELETE"].includes(method ?? "") && route[2] !== "records") {
@@ -442,7 +510,8 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       if (typeof input.fileUploadId === "string") {
         const upload = uploads.get(input.fileUploadId);
         if (!upload) return fail("업로드한 파일을 찾을 수 없습니다.", 404);
-        card.coverImageUrl = `/__mock-api/uploads/${input.fileUploadId}`; return changed("카드 커버 이미지를 변경했습니다.");
+        upload.used = true; upload.uploaded = true;
+        card.coverImageUrl = `/__mock-api/groups/${match[2]}/files/${input.fileUploadId}`; return changed("카드 커버 이미지를 변경했습니다.");
       }
       return fail("이미지 정보를 확인해주세요.");
     }
@@ -477,6 +546,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     const card = source?.cards.find((c) => c.id === route[1]);
     if (!source || !card) return fail("카드를 찾을 수 없습니다.", 404);
     source.cards.splice(source.cards.indexOf(card), 1);
+    deletedCards.set(card.id, card);
     state.archivedCards.unshift({ id: card.id, title: card.title, authorName: card.authorName, recordCount: card.records.length, createdAt: card.createdAt, deletedAt: now() });
     return changed("카드를 삭제했습니다.");
   }
@@ -486,7 +556,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     if (!card) return fail("카드를 찾을 수 없습니다.", 404);
     if (card.disabled) return fail("읽기 전용 카드에는 기록할 수 없습니다.", 403);
     if (typeof input.content !== "string" || !input.content.trim()) return fail("기록 내용을 입력해주세요.");
-    const registered = registerRecordFiles(input.files);
+    const registered = registerRecordFiles(input.files, Number(match[2]));
     if (!registered) return fail("첨부 파일 정보를 확인해주세요.");
     const timestamp = now();
     const record: MockCard["records"][number] = { type: "tiptap" as const, id: nextMockRecordId(), authorName: "테스트 회원", authorUserId: 1, content: input.content, createdAt: timestamp, updatedAt: timestamp, deleted: false };
@@ -498,12 +568,18 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
   if (path === "records/files/uploaded" && method === "POST") {
     const fileIds = Array.isArray(input.fileIds) ? [...new Set(input.fileIds)] : [];
     if (!fileIds.length || fileIds.some((fileId) => typeof fileId !== "string")) return fail("파일 아이디를 확인해주세요.");
-    const results = fileIds.map((fileId) => ({ fileId, isSuccess: uploads.has(fileId as string), reason: uploads.has(fileId as string) ? null : "NOT_FOUND" }));
+    const results = fileIds.map((fileId) => {
+      const upload = uploads.get(fileId as string);
+      if (!upload || upload.groupId !== Number(match[2]) || upload.purpose !== "record") return { fileId, isSuccess: false, reason: "NOT_FOUND" };
+      if (!upload.data) return { fileId, isSuccess: false, reason: "NOT_UPLOADED" };
+      upload.uploaded = true;
+      return { fileId, isSuccess: true, reason: null };
+    });
     const successCount = results.filter((result) => result.isSuccess).length;
     return { status: successCount === results.length ? 200 : successCount ? 206 : 400, body: { results } };
   }
   if (route[0] === "records" && route.length >= 2) {
-    const card = cards().find((c) => c.records.some((r) => String(r.id) === route[1]));
+    const card = [...cards(), ...deletedCards.values()].find((c) => c.records.some((r) => String(r.id) === route[1]));
     const record = card?.records.find((r) => String(r.id) === route[1]);
     if (!card || !record) return fail("기록을 찾을 수 없습니다.", 404);
     if (method === "PUT" && route.length === 3 && route[2] === "archive") {
@@ -512,13 +588,14 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
         state.savedRecords = state.savedRecords.filter((saved) => saved.id !== record.id);
         return ok();
       }
-      if (record.deleted) return fail("삭제된 기록은 보관할 수 없습니다.");
+      if (record.deleted || deletedCards.has(card.id)) return fail("삭제된 기록이나 삭제된 카드의 기록은 보관할 수 없습니다.");
       if (!state.savedRecords.some((saved) => saved.id === record.id)) {
-        state.savedRecords.unshift({ groupId: Number(match[2]), groupName: Number(match[2]) === 2 ? "다른 그룹 목업" : info.title, type: record.type, id: record.id, content: record.content,
+        state.savedRecords.unshift({ groupId: Number(match[2]), groupName: Number(match[2]) === 2 ? "다른 그룹 목업" : info.title, isDeleted: false, isCardDeleted: false, type: record.type, id: record.id, content: record.content,
           cardId: card.id, cardTitle: card.title, authorName: record.authorName, createdAt: record.createdAt, savedAt: now() });
       }
       return ok();
     }
+    if (deletedCards.has(card.id)) return fail("삭제된 카드의 기록은 변경할 수 없습니다.");
     if (method === "PUT" && route.length === 3 && route[2] === "portfolio") {
       if (typeof input.isInPortfolio !== "boolean") return fail("선택 값을 확인해주세요.");
       if (card.disabled || record.deleted) return fail("이 기록은 바꿀 수 없습니다.");
@@ -542,7 +619,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       if (record.type === "legacy") return fail("레거시 기록은 아직 수정할 수 없습니다.", 403);
       if (card.disabled || record.deleted) return fail("이 기록을 수정할 수 없습니다.", 403);
       if (typeof input.content !== "string" || !input.content.trim()) return fail("기록 내용을 입력해주세요.");
-      const registered = registerRecordFiles(input.files);
+      const registered = registerRecordFiles(input.files, Number(match[2]));
       if (!registered) return fail("첨부 파일 정보를 확인해주세요.");
       record.content = input.content;
       record.files = registered.files;
@@ -560,13 +637,13 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
   return fail("지원하지 않는 그룹 요청입니다.", 404);
 }
 
-function reportRequest(method: string | undefined, route: string[], input: Input, leader: boolean): Result {
+function reportRequest(method: string | undefined, route: string[], input: Input, leader: boolean, groupId: number): Result {
   if (!leader) return fail("그룹장 권한이 필요합니다.", 403);
   const cohort = openCohort;
   if (!cohort) return fail("현재 활동보고서 접수 기간이 아닙니다.", 409);
   if (route[1] === "upload-link" && method === "POST") {
     if (!text(input.fileName) || !text(input.contentType)) return fail("파일 정보를 확인해주세요.");
-    const fileUploadId = id(); uploads.set(fileUploadId, { fileName: text(input.fileName), contentType: text(input.contentType), used: false });
+    const fileUploadId = id(); uploads.set(fileUploadId, { fileName: text(input.fileName), contentType: text(input.contentType), used: false, groupId, purpose: "report" });
     return ok({ fileUploadId, url: `/__mock-api/uploads/${fileUploadId}` });
   }
   const report = state.activityReports.find((r) => String(r.id) === route[1]);
@@ -578,14 +655,14 @@ function reportRequest(method: string | undefined, route: string[], input: Input
   const upload = typeof input.fileUploadId === "string" ? uploads.get(input.fileUploadId) : undefined;
   if ((method === "POST" || input.fileUploadId !== undefined) && (!upload?.data || upload.used)) return fail("파일을 먼저 업로드해주세요.");
   if (method === "POST") {
-    if (input.seminarId !== cohort.id || typeof input.isPresentation !== "boolean") return fail("접수 회차와 발표 여부를 확인해주세요.");
+    if (typeof input.isPresentation !== "boolean") return fail("발표 여부를 확인해주세요.");
     if (state.activityReports.some((r) => r.seminarId === cohort.id)) return fail("이미 제출한 활동보고서가 있습니다.", 409);
-    state.activityReports.unshift({ id: id(), seminarId: cohort.id, seminarDate: cohort.seminarDate,
-      isSummerSeason: cohort.isSummerSeason, isSpeakAfter: cohort.isSpeakAfter,
-      isPresentation: input.isPresentation, fileName: upload!.fileName, reportFileUrl: `/__mock-api/uploads/${input.fileUploadId}`, createdAt: now() });
+    state.activityReports.unshift({ id: id(), seminarId: cohort.id, seminarDate: cohort.scheduledAt,
+      seminarIsSummerSeason: cohort.isSummerSeason, seminarIsSpeakAfter: cohort.isSpeakAfter,
+      isPresentation: input.isPresentation, reportFileUrl: `/__mock-api/uploads/${input.fileUploadId}`, createdAt: now() });
   } else if (report) {
     if (typeof input.isPresentation === "boolean") report.isPresentation = input.isPresentation;
-    if (upload) { report.fileName = upload.fileName; report.reportFileUrl = `/__mock-api/uploads/${input.fileUploadId}`; }
+    if (upload) report.reportFileUrl = `/__mock-api/uploads/${input.fileUploadId}`;
   }
   if (upload) upload.used = true;
   return changed("활동보고서를 저장했습니다.");

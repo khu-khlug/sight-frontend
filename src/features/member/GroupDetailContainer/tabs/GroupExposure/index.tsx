@@ -13,6 +13,7 @@ import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/browser/useU
 import type { FileWindowContent } from "../../FileWindow/types";
 import { GroupInfo as GroupInfoData } from "../GroupInfo/types";
 import {
+  activityReportFileName,
   ACTIVITY_REPORT_TYPE_LABEL,
   ActivityReport,
   SEASON_LABEL,
@@ -44,7 +45,7 @@ const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
  */
 export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Props) {
   const action = useGroupAction(info.id);
-  const contextQuery = useQuery({ queryKey: ["group-detail", info.id, "report-context"], queryFn: () => GroupExposureApi.getActivityReportContext(info.id) });
+  const contextQuery = useQuery({ queryKey: ["group-detail", info.id, "report-context"], queryFn: () => GroupExposureApi.getActivityReportContext() });
   const reportsQuery = useQuery({ queryKey: ["group-detail", info.id, "reports"], queryFn: () => GroupExposureApi.listActivityReports(info.id) });
   const openCohort = contextQuery.data;
   const localReports = reportsQuery.data ?? [];
@@ -64,7 +65,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
       )
     : undefined;
   const displayedFileName = file?.name ?? (!isFileRemoved && currentReport
-    ? currentReport.fileName
+    ? activityReportFileName(currentReport)
     : null);
   const isCancelling = Boolean(currentReport && isFileRemoved && !file);
   const canSubmit = Boolean(openCohort && (
@@ -122,7 +123,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
       if (currentReport) {
         await GroupExposureApi.updateActivityReport(info.id, currentReport.id, { isPresentation, fileUploadId });
       } else if (fileUploadId) {
-        await GroupExposureApi.submitActivityReport(info.id, { isPresentation, fileUploadId, seminarId: openCohort.id });
+        await GroupExposureApi.submitActivityReport(info.id, { isPresentation, fileUploadId });
       }
     }, { onSuccess: () => {
       setFile(null);
@@ -201,7 +202,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
         <Box mb={4}>
             <Text as="div" fontSize="sm" color="gray.500" mb={2}>
               <Text color="brand.500" mb={1}><Strong>접수 중 </Strong></Text>
-            {openCohort.year}년 · {SEASON_LABEL[openCohort.isSummerSeason ? "summer" : "winter"]} ·{" "}
+            {new Date(openCohort.scheduledAt).getFullYear()}년 · {SEASON_LABEL[openCohort.isSummerSeason ? "summer" : "winter"]} ·{" "}
             {SPEAK_ORDER_LABEL[openCohort.isSpeakAfter ? "after" : "before"]}
           </Text>
           {isLeader && (
