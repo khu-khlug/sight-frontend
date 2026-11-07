@@ -2,8 +2,9 @@
 // 전역 변수 하나로 그 "회원별 슬롯 하나"를 흉내낸다. 슬롯이 경로의 그룹 것일 때만 돌려준다.
 import { recordFileView, registerRecordFiles } from "./groups";
 import type { MockRecordFile } from "./groupFixtures";
+import { isIntegerId } from "../../src/util/integerId";
 
-type MockDraft = { groupId: number; cardId: string; cardTitle: string; recordId: number | null; content: string; updatedAt: string; files: MockRecordFile[] };
+type MockDraft = { groupId: string; cardId: string; cardTitle: string; recordId: string | null; content: string; updatedAt: string; files: MockRecordFile[] };
 
 let draft: MockDraft | null = null;
 
@@ -15,7 +16,8 @@ export function handleAutosaveRequest(
 ): { status: number; body?: unknown } | null {
   const match = url.pathname.match(/^\/groups\/(\d+)\/records\/draft(\/meta)?$/);
   if (!match) return null;
-  const groupId = Number(match[1]);
+  const groupId = match[1];
+  if (!isIntegerId(groupId)) return { status: 400, body: { message: "그룹 ID를 확인해주세요." } };
   const mine = draft && draft.groupId === groupId ? draft : null;
   const meta = (value: MockDraft) => ({
     isNewRecord: value.recordId === null, cardId: value.cardId, cardTitle: value.cardTitle,
@@ -32,8 +34,8 @@ export function handleAutosaveRequest(
   }
   if (method === "PUT") {
     const input = body && typeof body === "object" ? body as Record<string, unknown> : {};
-    if (typeof input.cardId !== "string" || typeof input.content !== "string" || typeof input.updatedAt !== "string"
-      || Number.isNaN(Date.parse(input.updatedAt)) || (input.recordId !== null && typeof input.recordId !== "number")) {
+    if (!isIntegerId(input.cardId) || typeof input.content !== "string" || typeof input.updatedAt !== "string"
+      || Number.isNaN(Date.parse(input.updatedAt)) || (input.recordId !== null && !isIntegerId(input.recordId))) {
       return { status: 400, body: { message: "임시저장 요청을 확인해주세요." } };
     }
     const cardTitle = findCardTitle(input.cardId);
@@ -43,7 +45,7 @@ export function handleAutosaveRequest(
     }
     const registered = registerRecordFiles(input.files ?? [], groupId);
     if (!registered) return { status: 400, body: { message: "첨부 파일 정보를 확인해주세요." } };
-    draft = { groupId, cardId: input.cardId, cardTitle, recordId: input.recordId as number | null, content: input.content, updatedAt: input.updatedAt, files: registered.files };
+    draft = { groupId, cardId: input.cardId, cardTitle, recordId: input.recordId as string | null, content: input.content, updatedAt: input.updatedAt, files: registered.files };
     return { status: 200, body: { uploads: registered.uploads } };
   }
   if (method === "DELETE") {

@@ -10,10 +10,10 @@ import type { ChatMessageDto as ChatMessage } from "../../src/api/public/group/G
 import type { ActivityReportDto as ActivityReport, OpenSeminarCohortDto as OpenSeminarCohort } from "../../src/api/public/group/GroupExposureApi";
 import type { CardLabelDto as LabelColor } from "../../src/api/public/group/KanbanApi";
 import { legacyRecordAttachments, legacyRecordContent } from "./legacyRecordContent";
-// 기록 아이디는 백엔드처럼 숫자다. 목업 전체에서 이 함수로만 새 아이디를 만든다.
-let mockRecordSeq = 1;
-export const nextMockRecordId = () => mockRecordSeq++;
-export interface MockRecord { type: "tiptap" | "legacy"; id: number; authorName: string; authorUserId: number; content: string; createdAt: string; updatedAt: string; deleted: boolean; isInPortfolio?: boolean; files?: MockRecordFile[] }
+import { nextMockIntegerId } from "./integerId";
+export const MOCK_OTHER_GROUP_ID = "906558544281600001";
+export const nextMockRecordId = nextMockIntegerId;
+export interface MockRecord { type: "tiptap" | "legacy"; id: string; authorName: string; authorUserId: number; content: string; createdAt: string; updatedAt: string; deleted: boolean; isInPortfolio?: boolean; files?: MockRecordFile[] }
 // 기록 본문이 참조하는 첨부 파일. fileId는 uploads 맵의 키다.
 export type MockRecordFile = { id: string; fileId: string; name: string; size: number; contentType: string }
 export interface MockCard { id: string; title: string; description: string; portfolio: boolean; authorName: string; authorUserId: number; assigneeName: string | null; assigneeUserId: number | null; inheritedFrom: string | null; coverImageUrl: string | null; labels: LabelColor[]; disabled: boolean; createdAt: string; records: MockRecord[]; recordSort?: "NEWEST" | "OLDEST" | "RECENTLY_UPDATED" }
@@ -21,7 +21,7 @@ export interface MockList { id: string; title: string; description: string; card
 // 표시·이동 흐름용 예시이며 실제 Discord 채널이 아니다.
 export const MOCK_CHAT_ROOM_URL = "https://discord.com/channels/1343604778059694122/1343604778059694123";
 const dummyGroupInfo: GroupInfo = {
-  id: 1,
+  id: "1",
   title: "SIGHT 리뉴얼 프로젝트",
   category: GroupCategory.PROJECT,
   status: GroupStatus.PROGRESS,
@@ -71,7 +71,7 @@ const dummyMembers: GroupMember[] = [
 
 const dummyArchivedCards: ArchivedCard[] = [
   {
-    id: "a1",
+    id: "100001",
     title: "구 로그인 페이지 리디자인",
     authorName: "이코드",
     recordCount: 4,
@@ -79,7 +79,7 @@ const dummyArchivedCards: ArchivedCard[] = [
     deletedAt: "2026-09-28T13:20:00Z",
   },
   {
-    id: "a2",
+    id: "100002",
     title: "Redis 캐시 도입 검토",
     authorName: "김리더",
     recordCount: 2,
@@ -87,7 +87,7 @@ const dummyArchivedCards: ArchivedCard[] = [
     deletedAt: "2026-09-29T09:00:00Z",
   },
   {
-    id: "a3",
+    id: "100003",
     title: "다크 모드 시안",
     authorName: "박디자인",
     recordCount: 6,
@@ -95,7 +95,7 @@ const dummyArchivedCards: ArchivedCard[] = [
     deletedAt: "2026-09-27T18:45:00Z",
   },
   ...Array.from({ length: 15 }, (_, index) => ({
-    id: `archive-demo-${index + 1}`,
+    id: String(100004 + index),
     title: `이전 스프린트 작업 ${index + 1}`,
     authorName: dummyMembers[index % dummyMembers.length].name,
     recordCount: (index % 5) + 1,
@@ -115,7 +115,7 @@ const dummySavedRecords: SavedRecord[] = Array.from({ length: 24 }, (_, index) =
   const listIndex = index % 8;
   const cardIndex = index % ((listIndex % 4) + 3);
   return {
-    groupId: index % 3 === 0 ? 2 : 1,
+    groupId: index % 3 === 0 ? MOCK_OTHER_GROUP_ID : "1",
     groupName: index % 3 === 0 ? "다른 그룹 목업" : dummyGroupInfo.title,
     isDeleted: index === 1 || index === 3,
     isCardDeleted: index === 2 || index === 3,
@@ -144,7 +144,7 @@ const dummyActivityLogs: ActivityLogEntry[] = Array.from({ length: 24 }, (_, ind
   const createdAt = new Date(Date.parse("2026-09-25T12:00:00Z") - index * 3 * 60 * 60 * 1000).toISOString();
 
   return {
-    id: `log-${index + 1}`,
+    id: nextMockIntegerId(),
     memberName: member.name,
     message,
     createdAt,
@@ -990,7 +990,7 @@ export function createGroupFixture() {
   }
   // 제공받은 기록 #113908의 real_content 원문이다. 첫 카드에서 기존 Tiptap 기록과 함께 표시한다.
   data.lists[0].cards[0].records.push({
-    type: "legacy", id: 113908, authorName: "구자웅", authorUserId: 1,
+    type: "legacy", id: "113908", authorName: "구자웅", authorUserId: 1,
     content: `<h1>구상</h1>
 
 <p>어떤 책들이 있는지 저장.</p>
@@ -1001,7 +1001,7 @@ export function createGroupFixture() {
     createdAt: "2026-03-20T11:08:32+09:00", updatedAt: "2026-03-20T11:08:32+09:00", deleted: false,
   });
   data.lists[0].cards[0].records.push({
-    type: "legacy", id: 118953, authorName: "구자웅", authorUserId: 1,
+    type: "legacy", id: "118953", authorName: "구자웅", authorUserId: 1,
     content: `<div class="real_content">${legacyRecordContent}</div>${legacyRecordAttachments}`,
     createdAt: "2026-10-08T23:42:20+09:00", updatedAt: "2026-10-08T23:42:20+09:00", deleted: false,
   });
@@ -1015,6 +1015,6 @@ export function createGroupFixture() {
   for (const saved of data.savedRecords) if (saved.type === "tiptap") saved.content = asJson(saved.content);
   const fileCard = data.lists[0].cards[1];
   const fileRecord = fileCard.records.find((record) => record.files?.length);
-  if (fileRecord) data.savedRecords.unshift({ groupId: 1, groupName: data.groupInfo.title, isDeleted: false, isCardDeleted: false, id: fileRecord.id, type: fileRecord.type, content: fileRecord.content, cardId: fileCard.id, cardTitle: fileCard.title, authorName: fileRecord.authorName, createdAt: fileRecord.createdAt, savedAt: "2026-10-09T00:00:00Z" });
+  if (fileRecord) data.savedRecords.unshift({ groupId: "1", groupName: data.groupInfo.title, isDeleted: false, isCardDeleted: false, id: fileRecord.id, type: fileRecord.type, content: fileRecord.content, cardId: fileCard.id, cardTitle: fileCard.title, authorName: fileRecord.authorName, createdAt: fileRecord.createdAt, savedAt: "2026-10-09T00:00:00Z" });
   return data;
 }
