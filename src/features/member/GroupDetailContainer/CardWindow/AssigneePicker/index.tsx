@@ -6,7 +6,7 @@ import { GroupMemberListApi } from "../../../../../api/public/group/GroupMemberL
 import styles from "./style.module.css";
 
 type Props = {
-  groupId: number;
+  groupId: string;
   onSelect: (userId: number | null) => void;
   ariaLabel: string;
   triggerClassName: string;

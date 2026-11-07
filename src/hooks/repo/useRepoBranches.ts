@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GroupRepositoryApi } from "../../api/public/group/GroupRepositoryApi";
 import { repoQueryOptions } from "./repoQueryOptions";
 
-export function useRepoBranches(groupId: number, url: string | null) {
+export function useRepoBranches(groupId: string, url: string | null) {
   return useQuery({
     ...repoQueryOptions,
     queryKey: ["repo-branches", url, groupId],

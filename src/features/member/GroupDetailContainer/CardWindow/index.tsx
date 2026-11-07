@@ -50,7 +50,7 @@ const hello = "world";
 
 type Props = {
   binding: WindowBinding;
-  groupId: number;
+  groupId: string;
   card: KanbanCardDto;
   listTitle: string;
   isPortfolioPublished: boolean;
@@ -138,7 +138,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
       onToggleMinimize();
       return;
     }
-    if (records.some((record) => String(record.id) === focusRecordId)) {
+    if (records.some((record) => record.id === focusRecordId)) {
       contentRef.current
         ?.querySelector<HTMLElement>(`[data-record-id="${CSS.escape(focusRecordId)}"]`)
         ?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -156,7 +156,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     onRecordFocused();
   }, [focusRecordId, minimized, onToggleMinimize, records, hasNextPage, isFetching, isFetchingNextPage, isFetchNextPageError, isError, fetchNextPage, onRecordFocused]);
   const handleToggleRecordDeleted = (recordId: string) => {
-    const record = records.find((item) => String(item.id) === recordId);
+    const record = records.find((item) => item.id === recordId);
     if (!record) return;
     if (record.isDeleted) onRestoreRecord(recordId); else onDeleteRecord(recordId);
   };
@@ -562,9 +562,9 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 canArchive={!isGroupEnded && !isGroupStopped}
                 isPortfolioPublished={isPortfolioPublished}
                 onToggleDeleted={handleToggleRecordDeleted}
-                onEdit={() => onOpenEditRecord(String(record.id))}
+                onEdit={() => onOpenEditRecord(record.id)}
                 onOpenCard={onOpenCard}
-                highlighted={String(record.id) === highlightedRecordId}
+                highlighted={record.id === highlightedRecordId}
                 onHighlightEnd={() => setHighlightedRecordId(null)}
               />
             ))

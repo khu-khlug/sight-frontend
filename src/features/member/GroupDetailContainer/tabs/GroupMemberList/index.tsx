@@ -14,7 +14,7 @@ import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
 import { GroupMember } from "./types";
 
 type Props = {
-  groupId: number;
+  groupId: string;
   category: GroupCategory;
 };
 

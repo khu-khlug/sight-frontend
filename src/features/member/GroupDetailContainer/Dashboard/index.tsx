@@ -46,7 +46,7 @@ type Props = {
   enabledFilters: Set<LabelFilterKey>;
   onToggleFilter: (key: LabelFilterKey) => void;
   onOpenFile: (content: FileWindowContent) => void;
-  onOpenRecord: (groupId: number, recordId: number) => void;
+  onOpenRecord: (groupId: string, recordId: string) => void;
   onOpenCard: (cardId: string) => void;
   // GroupSettings(개인설정 탭)에 그대로 전달한다 — 실제 싱글/듀얼 강제는 WindowLayer가 하고,
   // 여기서는 그 설정의 공통 조상으로서 체크박스 상태만 전달한다.

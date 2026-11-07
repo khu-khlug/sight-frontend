@@ -27,7 +27,7 @@ type Props = {
   isPortfolioPublished?: boolean;
   // 중단·종료 그룹에서는 개인 보관·보관 해제와 기록 포트폴리오 변경을 할 수 없다.
   canArchive?: boolean;
-  groupId: number;
+  groupId: string;
   cardId: string;
   record: RecordDto;
   disabled?: boolean;
@@ -117,12 +117,12 @@ export default function RecordItem({ className, locationLabel, groupId, cardId, 
 
   const handleDelete = () => {
     if (window.confirm("기록을 삭제하시겠습니까? 삭제한 기록은 나중에 복구할 수 있습니다.")) {
-      onToggleDeleted?.(String(record.id));
+      onToggleDeleted?.(record.id);
     }
   };
   const handleRestore = () => {
     if (window.confirm("기록을 복구하시겠습니까?")) {
-      onToggleDeleted?.(String(record.id));
+      onToggleDeleted?.(record.id);
     }
   };
   const metaItemsContent = (
@@ -298,7 +298,7 @@ function RecordFileList({ files }: { files: RecordDto["files"] }) {
   );
 }
 
-function RecordBody({ groupId, record, ...props }: Omit<ComponentProps<typeof RecordViewer>, "type" | "content" | "getDraggedFile"> & { groupId: number; record: RecordDto }) {
+function RecordBody({ groupId, record, ...props }: Omit<ComponentProps<typeof RecordViewer>, "type" | "content" | "getDraggedFile"> & { groupId: string; record: RecordDto }) {
   useEffect(() => { registerSiteFiles(record.files, groupId); }, [record.files, groupId]);
   return <RecordViewer {...props} type={record.type} content={record.content} getDraggedFile={siteFileDrag} />;
 }

@@ -29,7 +29,7 @@ type Props = {
   isChatParticipant: boolean;
   // 중단·종료 그룹에서는 메시지를 보낼 수 없다.
   isWritable: boolean;
-  groupId: number;
+  groupId: string;
 };
 
 // 안내 문구 안에서 버튼 모양을 보여주는 축소 모형이다.

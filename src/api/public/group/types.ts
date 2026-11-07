@@ -2,7 +2,7 @@ import type { GroupCategory, GroupInterest, GroupStatus, GroupVisibility, Specia
 
 // 정보·설정·활동공개·개발용 API에서 함께 사용하는 그룹 정보 타입.
 export type GroupInfoDto = {
-  id: number;
+  id: string;
   title: string;
   category: GroupCategory;
   status: GroupStatus;
@@ -34,7 +34,7 @@ export type GroupInfoDto = {
 
 // 그룹 정보 조회 API의 응답 형태. GroupInfoApi가 화면용 GroupInfoDto로 바꾼다.
 export type GroupInfoResponseDto = {
-  id: number;
+  id: string;
   title: string;
   description: string | null;
   category: GroupCategory;

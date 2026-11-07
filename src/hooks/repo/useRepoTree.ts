@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GroupRepositoryApi, type RepoTreeTarget } from "../../api/public/group/GroupRepositoryApi";
 import { repoQueryOptions } from "./repoQueryOptions";
 
-export function useRepoTree(groupId: number, url: string | null, target: RepoTreeTarget | null) {
+export function useRepoTree(groupId: string, url: string | null, target: RepoTreeTarget | null) {
   return useQuery({
     ...repoQueryOptions,
     queryKey: ["repo-tree", url, target, groupId],

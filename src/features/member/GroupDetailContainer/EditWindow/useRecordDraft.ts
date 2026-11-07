@@ -2,21 +2,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RecordFileDto, RecordFileInput, RecordUploadDto } from "../../../../api/public/group/KanbanApi";
 import { AutosaveApi, type AutosaveInput, type AutosaveTarget } from "../../../../api/public/group/AutosaveApi";
 import { useCurrentUser } from "../../../../hooks/user/useCurrentUser";
+import { isIntegerId } from "../../../../util/integerId";
 
 const LOCAL_DEBOUNCE_MS = 1000;
 const SERVER_INTERVAL_MS = 10_000;
 const serverSavedTimes = new Map<string, number>();
 
 // 로컬 초안은 서버 요청과 같은 형식이다. 서버는 경로로 그룹을 정하므로 로컬에는 그룹 아이디를 함께 둔다.
-type LocalDraft = AutosaveInput & { groupId: number; savedAt: number; serverSavedAt?: number };
+type LocalDraft = AutosaveInput & { groupId: string; savedAt: number; serverSavedAt?: number };
 type Options = {
-  groupId: number;
+  groupId: string;
   // false면 서버 임시저장을 보내지 않는다. 종료 그룹은 서버 임시저장을 받지 않는다.
   serverEnabled?: boolean;
   // 작성 중인 카드. 기존 기록 수정은 기록을 조회한 뒤에 알 수 있으며, 알기 전에는 ready를 false로 둔다.
   cardId: string | null;
   // 수정 중인 기록 아이디. 새 기록이면 null이다.
-  recordId: number | null;
+  recordId: string | null;
   // 저장이 필요한 순간에만 호출된다(글자마다 호출되지 않는다) — 호출 시점에 본문을 직렬화해서 돌려준다.
   getContent: () => string;
   // 본문이 참조하는 첨부 파일 전체. 임시저장 요청에 함께 보낸다.
@@ -34,7 +35,7 @@ type Session = {
   changed: () => void;
   flush: (leaving?: boolean) => Promise<void>;
   pause: () => Promise<void>;
-  resume: (recordId?: number) => void;
+  resume: (recordId?: string) => void;
   clear: () => Promise<void>;
 };
 
@@ -47,7 +48,6 @@ function isSameTarget(left: AutosaveTarget, right: AutosaveTarget): boolean {
   return right.recordId !== null ? left.recordId === right.recordId : left.recordId === null && left.cardId === right.cardId;
 }
 
-// 형식이 맞지 않는 로컬 초안(이전 형식 포함)은 없는 것으로 본다.
 function readLocal(key: string): LocalDraft | null {
   try {
     const raw = localStorage.getItem(key);
@@ -55,8 +55,8 @@ function readLocal(key: string): LocalDraft | null {
     const draft: unknown = JSON.parse(raw);
     if (typeof draft !== "object" || draft === null) return null;
     const item = draft as Partial<LocalDraft>;
-    if (typeof item.groupId !== "number" || typeof item.cardId !== "string"
-      || (item.recordId !== null && typeof item.recordId !== "number") || typeof item.content !== "string"
+    if (!isIntegerId(item.groupId) || !isIntegerId(item.cardId)
+      || (item.recordId !== null && !isIntegerId(item.recordId)) || typeof item.content !== "string"
       || !Array.isArray(item.files) || typeof item.updatedAt !== "string" || Number.isNaN(Date.parse(item.updatedAt))
       || typeof item.savedAt !== "number") return null;
     const document = JSON.parse(item.content);
@@ -345,7 +345,7 @@ export function useRecordDraft(options: Options) {
 
   const flush = useCallback(() => sessionRef.current?.flush() ?? Promise.resolve(), []);
   const pause = useCallback(() => sessionRef.current?.pause() ?? Promise.resolve(), []);
-  const resume = useCallback((recordId?: number) => sessionRef.current?.resume(recordId), []);
+  const resume = useCallback((recordId?: string) => sessionRef.current?.resume(recordId), []);
   const clear = useCallback(() => sessionRef.current?.clear() ?? Promise.resolve(), []);
   // 글자마다 호출된다 — 본문은 직렬화하지 않고 입력이 있었다는 사실과 타이머만 갱신한다.
   const touch = useCallback(() => {

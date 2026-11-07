@@ -9,7 +9,7 @@ import { legacyCardIdFromHref, renderLogMessage, sanitizeLegacyLogHtml } from ".
 import type { ActivityLogEntry } from "./types";
 
 type Props = {
-  groupId: number;
+  groupId: string;
   // 로그의 같은 그룹 카드 링크를 누르면 기존 카드 열기 흐름으로 넘긴다.
   onOpenCard: (cardId: string) => void;
 };

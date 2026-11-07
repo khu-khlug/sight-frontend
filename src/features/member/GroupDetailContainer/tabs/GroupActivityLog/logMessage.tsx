@@ -3,6 +3,7 @@ import type { MouseEvent, ReactNode } from "react";
 
 import type { ActivityLogEntryDto } from "../../../../../api/public/group/GroupActivityLogApi";
 import { LABEL_COLOR_NAME } from "../../label";
+import { isIntegerId } from "../../../../../util/integerId";
 
 type Data = Record<string, unknown>;
 type Render = (data: Data, link: CardLink) => ReactNode[] | null;
@@ -89,8 +90,10 @@ const isPlainClick = (event: MouseEvent) => event.button === 0 && !event.ctrlKey
 export function legacyCardIdFromHref(href: string | null): string | null {
   if (!href?.startsWith("#") || href.length < 2) return null;
   const fragment = href.slice(1);
-  if (fragment.startsWith("card=")) return decodeURIComponent(fragment.slice("card=".length)) || null;
-  return /^\d+$/.test(fragment) ? fragment : null;
+  try {
+    const id = fragment.startsWith("card=") ? decodeURIComponent(fragment.slice("card=".length)) : fragment;
+    return isIntegerId(id) ? id : null;
+  } catch { return null; }
 }
 
 export function sanitizeLegacyLogHtml(html: string): string {
@@ -101,7 +104,7 @@ export function renderLogMessage(log: ActivityLogEntryDto, onOpenCard: (cardId: 
   const renderer = RENDERERS[log.logType];
   if (!renderer) return null;
   const link: CardLink = (cardId, title) => {
-    const id = text(cardId);
+    const id = isIntegerId(cardId) ? cardId : null;
     const name = text(title);
     if (!id || !name) return null;
     return (

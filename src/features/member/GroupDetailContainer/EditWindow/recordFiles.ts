@@ -5,13 +5,13 @@ import type { DraggedFile } from "../../../../util/draggableFile";
 type TrackedFile = RecordFileInput & { url: string | null; completed: boolean; previewUrl?: string; file?: File; uploadUrl?: string; sent?: boolean };
 let sequence = 0;
 const createFileId = () => `f-${Date.now().toString(36)}-${++sequence}`;
-const siteFiles = new Map<string, { groupId: number; file: RecordFileDto }>();
+const siteFiles = new Map<string, { groupId: string; file: RecordFileDto }>();
 const canonical = (url: string) => {
   try { return new URL(url, window.location.origin).href; }
   catch { return url; }
 };
 
-export function registerSiteFiles(files: RecordFileDto[] | undefined, groupId: number): void {
+export function registerSiteFiles(files: RecordFileDto[] | undefined, groupId: string): void {
   for (const file of files ?? []) if (file.url) siteFiles.set(canonical(file.url), { groupId, file });
 }
 export function findSiteFile(url: string) { return siteFiles.get(canonical(url)); }
@@ -85,7 +85,7 @@ export class RecordFileTracker {
     return [...this.files.values()].flatMap((file) => file.previewUrl && file.url ? [{ from: file.previewUrl, to: file.url }] : []);
   }
 
-  async applyUploads(groupId: number, uploads: RecordUploadDto[] | undefined): Promise<void> {
+  async applyUploads(groupId: string, uploads: RecordUploadDto[] | undefined): Promise<void> {
     for (const upload of uploads ?? []) {
       const file = this.files.get(upload.id);
       if (file) { file.fileId = upload.fileId; file.url = upload.url; file.uploadUrl = upload.uploadUrl; }
@@ -94,7 +94,7 @@ export class RecordFileTracker {
     this.uploading = next;
     try { await next; } finally { if (this.uploading === next) this.uploading = null; }
   }
-  private async uploadPending(groupId: number): Promise<void> {
+  private async uploadPending(groupId: string): Promise<void> {
     const ready: TrackedFile[] = [];
     let failed = false;
     for (const file of this.files.values()) {

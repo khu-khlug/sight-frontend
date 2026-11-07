@@ -24,7 +24,7 @@ import styles from "./style.module.css";
 export type { RepositoryScrollMetrics } from "./RepositoryTree";
 
 type Props = {
-  groupId: number;
+  groupId: string;
   repositoryUrls: string[];
   viewportRef: RefObject<HTMLDivElement>;
   viewportId: string;

@@ -3,7 +3,7 @@ import { isAxiosError } from "axios";
 import { toast } from "react-toastify";
 import { extractErrorMessage } from "../../util/extractErrorMessage";
 
-export function useGroupAction(groupId: number) {
+export function useGroupAction(groupId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (action: () => Promise<unknown>) => action(),

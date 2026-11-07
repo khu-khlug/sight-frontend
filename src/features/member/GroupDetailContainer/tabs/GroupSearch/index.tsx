@@ -17,7 +17,7 @@ import {
 import styles from "./style.module.css";
 
 type Props = {
-  groupId: number;
+  groupId: string;
   enabledFilters: Set<LabelFilterKey>;
   onToggleFilter: (key: LabelFilterKey) => void;
 };

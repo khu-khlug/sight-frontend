@@ -28,7 +28,7 @@ const BlockEditor = lazy(() => import("../../../../components/BlockEditor"));
 
 type Props = {
   binding: WindowBinding;
-  groupId: number;
+  groupId: string;
   target: EditWindowTarget;
   // "new" 케이스는 cardId를 이미 알고 있어서, 추가 API 호출 없이 이미 로드된 카드 목록에서
   // 카드명만 찾으면 된다(§기존 설계: 전체 lists는 GroupDetailContainer가 이미 들고 있다).
@@ -36,7 +36,7 @@ type Props = {
   groupStatus: GroupStatus;
   cards: KanbanCardDto[];
   // 저장 응답의 새 파일 업로드 정보를 돌려준다.
-  onCreateRecord: (cardId: string, content: string, files: RecordFileInput[]) => Promise<{ id: number; uploads: RecordUploadDto[] }>;
+  onCreateRecord: (cardId: string, content: string, files: RecordFileInput[]) => Promise<{ id: string; uploads: RecordUploadDto[] }>;
   onUpdateRecord: (cardId: string, recordId: string, content: string, files: RecordFileInput[]) => Promise<RecordUploadDto[]>;
 };
 
@@ -53,7 +53,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
   // 카드명·본문을 한 번에 돌려준다.
   const recordQuery = useQuery({
     queryKey: ["group-detail", groupId, "kanban-record", target.kind === "record" ? target.recordId : null],
-    queryFn: () => KanbanApi.getGroupRecord(groupId, Number((target as { kind: "record"; recordId: string }).recordId)),
+    queryFn: () => KanbanApi.getGroupRecord(groupId, (target as { kind: "record"; recordId: string }).recordId),
     enabled: target.kind === "record",
   });
 
@@ -107,7 +107,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
     // 중단 그룹에서도 기록을 작성·수정할 수 있으므로 임시저장 API를 쓴다. 종료 그룹은 서버가 거부한다.
     serverEnabled: groupStatus !== GroupStatus.SUCCESS && groupStatus !== GroupStatus.FAIL,
     cardId,
-    recordId: recordId === null ? null : Number(recordId),
+    recordId,
     // 임시저장에는 영구 주소가 담긴 JSON 본문과 파일 배열을 보낸다.
     getContent: () => fileTracker.toServer(getContent()).content,
     getFiles: () => fileTracker.toServer(getContent()).files,
@@ -182,7 +182,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
       if (savedRecordId) uploads = await onUpdateRecord(cardId, savedRecordId, content, files);
       else {
         const created = await onCreateRecord(cardId, content, files);
-        savedRecordId = String(created.id);
+        savedRecordId = created.id;
         createdRecordId.current = savedRecordId;
         uploads = created.uploads;
       }
@@ -198,7 +198,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
       setHasInput(false);
       closeEditor();
     } catch (error) {
-      draft.resume(createdRecordId.current ? Number(createdRecordId.current) : undefined);
+      draft.resume(createdRecordId.current ?? undefined);
       toast.error(error instanceof Error ? error.message : "저장을 완료하지 못했습니다. 다시 시도해 주세요.");
     } finally {
       setIsSaving(false);

@@ -21,17 +21,17 @@ type FileTreeResponseDto = {
   entries: { path: string; type: "file" | "dir"; rawUrl: string | null }[];
 };
 
-const repositoryPath = (groupId: number, resource: string) => `/groups/${groupId}/repository/${resource}`;
+const repositoryPath = (groupId: string, resource: string) => `/groups/${groupId}/repository/${resource}`;
 
 /** 저장소 브랜치 조회. 최대 100개다. 외부 서비스 인증과 조회는 백엔드가 담당한다. */
-const getBranches = async (groupId: number, url: string, refresh = false): Promise<RepoBranch[]> => {
+const getBranches = async (groupId: string, url: string, refresh = false): Promise<RepoBranch[]> => {
   const response = await apiV2Client.get<BranchesResponseDto>(repositoryPath(groupId, "branches"), { params: { url, refresh } });
   return response.data.branches;
 };
 
 /** 브랜치의 전체 이력을 30개씩 받는다. page는 0부터 시작한다. */
 const getCommits = async (
-  groupId: number,
+  groupId: string,
   url: string,
   branch: RepoBranch,
   page: number,
@@ -43,7 +43,7 @@ const getCommits = async (
 };
 
 /** 선택한 커밋의 경로 목록 조회. 화면용 트리 구성은 프런트에서 한다. */
-const getFileTree = async (groupId: number, url: string, target: RepoTreeTarget): Promise<RepoTreeEntry[]> => {
+const getFileTree = async (groupId: string, url: string, target: RepoTreeTarget): Promise<RepoTreeEntry[]> => {
   const response = await apiV2Client.get<FileTreeResponseDto>(repositoryPath(groupId, "file-tree"), {
     params: { url, ...target },
   });
@@ -55,7 +55,7 @@ const getFileTree = async (groupId: number, url: string, target: RepoTreeTarget)
 };
 
 /** 캐시 유효기간과 관계없이 브랜치 목록을 다시 확인하게 한다. 같은 저장소는 1분에 10번까지다. */
-const refreshRepository = async (groupId: number, url: string): Promise<void> => {
+const refreshRepository = async (groupId: string, url: string): Promise<void> => {
   await getBranches(groupId, url, true);
 };
 

@@ -29,12 +29,13 @@ import styles from "./style.module.css";
 import WindowLayer, { HistoryMode, WindowBinding, WindowCoverage, WindowLayerHandle, WindowRole } from "./WindowLayer";
 import type { WindowHistoryState } from "./WindowLayer";
 import { isCardKey } from "./WindowLayer/contentKey";
+import { isIntegerId } from "../../../util/integerId";
 
 export type { CardListData };
 const DASHBOARD_WIDTH_COLLAPSED = 56;
 const DASHBOARD_WIDTH_EXPANDED = 56 + 1 + 280;
 
-export default function GroupDetailContainer({ groupId }: { groupId: number }) {
+export default function GroupDetailContainer({ groupId }: { groupId: string }) {
   return (
     <GroupDetailPageStateProvider>
       <GroupDetailPage groupId={groupId} />
@@ -42,7 +43,7 @@ export default function GroupDetailContainer({ groupId }: { groupId: number }) {
   );
 }
 
-function GroupDetailPage({ groupId }: { groupId: number }) {
+function GroupDetailPage({ groupId }: { groupId: string }) {
   const infoQuery = useQuery({
     queryKey: ["group-detail", groupId, "info"],
     queryFn: () => GroupInfoApi.getGroup(groupId),
@@ -214,7 +215,7 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
       toast.error("소속 카드를 열 수 없습니다. 삭제되었거나 열람 권한이 없을 수 있습니다.");
     }
   }, [groupId, queryClient, kanbanQueryKey, handleCardClick]);
-  const handleOpenRecord = useCallback((recordGroupId: number, recordId: number) => {
+  const handleOpenRecord = useCallback((recordGroupId: string, recordId: string) => {
     openWindow({ type: "record", target: { groupId: recordGroupId, recordId } });
   }, [openWindow]);
   const clearRecordFocus = useCallback(() => undefined, []);
@@ -230,7 +231,7 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
             (queryClient.getQueryState(right)?.dataUpdatedAt ?? 0) - (queryClient.getQueryState(left)?.dataUpdatedAt ?? 0)
           ));
           const record = queries.flatMap(([, data]) => data?.pages?.flatMap((page) => page.records) ?? [])
-            .find((item) => String(item.id) === target.recordId);
+            .find((item) => item.id === target.recordId);
           if (!record) continue;
           queryClient.setQueryData(["group-detail", groupId, "kanban-record", target.recordId], {
             ...record, cardId: card.id, cardTitle: card.title,
@@ -343,21 +344,21 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
     mutate(() => KanbanApi.archiveGroupCard(groupId, cardId), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
   }, [groupId, mutate, queryClient]);
   const handleDeleteRecord = useCallback((_cardId: string, recordId: string) => {
-    mutate(() => KanbanApi.archiveGroupRecord(groupId, Number(recordId)), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
+    mutate(() => KanbanApi.archiveGroupRecord(groupId, recordId), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
   }, [groupId, mutate, queryClient]);
   const handleRestoreRecord = useCallback((_cardId: string, recordId: string) => {
-    mutate(() => KanbanApi.restoreGroupRecord(groupId, Number(recordId)), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
+    mutate(() => KanbanApi.restoreGroupRecord(groupId, recordId), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
   }, [groupId, mutate, queryClient]);
   // EditWindow가 보내기를 누른 뒤 창을 닫기 전에 완료를 기다려야 해서 mutateAsync를 쓴다
   // (handleDeleteCard 등의 fire-and-forget mutate와 다르다).
   const handleCreateRecord = useCallback((cardId: string, content: string, files: RecordFileInput[]) => {
     return mutateAsync(() => KanbanApi.createGroupRecord(groupId, cardId, { content, files })).then((response) => {
-      const record = response as { id: number; uploads: RecordUploadDto[] };
+      const record = response as { id: string; uploads: RecordUploadDto[] };
       return { id: record.id, uploads: record.uploads };
     });
   }, [groupId, mutateAsync]);
   const handleUpdateRecord = useCallback((_cardId: string, recordId: string, content: string, files: RecordFileInput[]) => {
-    return mutateAsync(() => KanbanApi.updateGroupRecord(groupId, Number(recordId), { content, files })).then((response) => (response as { uploads: RecordUploadDto[] }).uploads);
+    return mutateAsync(() => KanbanApi.updateGroupRecord(groupId, recordId, { content, files })).then((response) => (response as { uploads: RecordUploadDto[] }).uploads);
   }, [groupId, mutateAsync]);
 
   // WindowLayer는 카드 id만 알고 내용은 모른다 — id별로 실제 CardWindow를 그리는 함수를
@@ -395,7 +396,7 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
 
   // 콘텐츠 종류의 판별은 페이지가 담당한다. 지원하지 않는 주소는 복원 시 제외한다.
   const isSupportedContent = useCallback((key: string) => (
-    isCardKey(key) || Boolean(decodeRecordContentKey(key)) || Boolean(decodeFileContentKey(key)) || Boolean(decodeEditContentKey(key))
+    (isCardKey(key) && isIntegerId(key)) || Boolean(decodeRecordContentKey(key)) || Boolean(decodeFileContentKey(key)) || Boolean(decodeEditContentKey(key))
   ), []);
   const handleUnsupportedContent = useCallback(() => {
     window.alert("지원하지 않거나 잘못된 창 주소입니다.");

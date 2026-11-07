@@ -5,7 +5,7 @@ import type { RepoBranch } from "../../api/public/group/GroupRepositoryApi";
 import { repoQueryOptions } from "./repoQueryOptions";
 
 export function useRepoCommits(
-  groupId: number,
+  groupId: string,
   url: string | null,
   branch: RepoBranch | null,
 ) {

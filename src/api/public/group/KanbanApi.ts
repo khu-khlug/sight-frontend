@@ -1,4 +1,5 @@
 import apiV2Client from "../../client/v2";
+import { requireIntegerId } from "../../../util/integerId";
 
 export type CardLabelDto = "red" | "yellow" | "green" | "blue" | "purple" | "lightGray" | "gray" | "black";
 export type KanbanCardDto = {
@@ -37,7 +38,7 @@ export function normalizeRecordType(type: string): RecordType {
 }
 export type RecordDto = {
   type: RecordType;
-  id: number;
+  id: string;
   authorName: string;
   content: string;
   createdAt: string;
@@ -62,55 +63,58 @@ export type RecordSortOrder = RecordSort;
 export type RecordPageDto = { offset: number; totalCount: number; receivedCount: number } & { records: RecordDto[] };
 
 export const KanbanApi = {
-  async listGroupLists(groupId: number, page = 0, signal?: AbortSignal): Promise<KanbanListPageDto> {
-    return (await apiV2Client.get<KanbanListPageDto>(`/groups/${groupId}/lists`, { params: { page }, signal })).data;
+  async listGroupLists(groupId: string, page = 0, signal?: AbortSignal): Promise<KanbanListPageDto> {
+    const data = (await apiV2Client.get<KanbanListPageDto>(`/groups/${groupId}/lists`, { params: { page }, signal })).data;
+    return { ...data, lists: data.lists.map((list) => ({ ...list, id: requireIntegerId(list.id), cards: list.cards.map((card) => ({ ...card, id: requireIntegerId(card.id) })) })) };
   },
-  async listGroupCards(groupId: number, listId: string, page: number, signal?: AbortSignal): Promise<KanbanCardPageDto> {
-    return (await apiV2Client.get<KanbanCardPageDto>(`/groups/${groupId}/lists/${encodeURIComponent(listId)}/cards`, { params: { page }, signal })).data;
+  async listGroupCards(groupId: string, listId: string, page: number, signal?: AbortSignal): Promise<KanbanCardPageDto> {
+    const data = (await apiV2Client.get<KanbanCardPageDto>(`/groups/${groupId}/lists/${encodeURIComponent(listId)}/cards`, { params: { page }, signal })).data;
+    return { ...data, cards: data.cards.map((card) => ({ ...card, id: requireIntegerId(card.id) })) };
   },
-  async getGroupCard(groupId: number, cardId: string): Promise<KanbanCardDetailDto> {
-    return (await apiV2Client.get<KanbanCardDetailDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`)).data;
+  async getGroupCard(groupId: string, cardId: string): Promise<KanbanCardDetailDto> {
+    const card = (await apiV2Client.get<KanbanCardDetailDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`)).data;
+    return { ...card, id: requireIntegerId(card.id), listId: requireIntegerId(card.listId) };
   },
-  async createGroupList(groupId: number, input: { title: string }): Promise<void> {
+  async createGroupList(groupId: string, input: { title: string }): Promise<void> {
     await apiV2Client.post(`/groups/${groupId}/lists`, input);
   },
-  async updateGroupList(groupId: number, listId: string, input: { title: string; description: string }): Promise<void> {
+  async updateGroupList(groupId: string, listId: string, input: { title: string; description: string }): Promise<void> {
     await apiV2Client.patch(`/groups/${groupId}/lists/${encodeURIComponent(listId)}`, input);
   },
-  async deleteGroupList(groupId: number, listId: string): Promise<void> {
+  async deleteGroupList(groupId: string, listId: string): Promise<void> {
     await apiV2Client.delete(`/groups/${groupId}/lists/${encodeURIComponent(listId)}`);
   },
-  async moveGroupList(groupId: number, listId: string, input: { beforeListId: string | null }): Promise<void> {
+  async moveGroupList(groupId: string, listId: string, input: { beforeListId: string | null }): Promise<void> {
     await apiV2Client.patch(`/groups/${groupId}/lists/${encodeURIComponent(listId)}/position`, { insertBeforeListId: input.beforeListId ?? undefined });
   },
   // 생략한 필드는 그대로 둔다. 빈 문자열 설명은 설명을 지운다.
-  async updateGroupCard(groupId: number, cardId: string, input: { title?: string; description?: string; recordSort?: RecordSort }): Promise<void> {
+  async updateGroupCard(groupId: string, cardId: string, input: { title?: string; description?: string; recordSort?: RecordSort }): Promise<void> {
     await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`, input);
   },
-  async createGroupCard(groupId: number, input: { listId: string; title: string }): Promise<void> {
+  async createGroupCard(groupId: string, input: { listId: string; title: string }): Promise<void> {
     await apiV2Client.post(`/groups/${groupId}/lists/${encodeURIComponent(input.listId)}/cards`, { title: input.title });
   },
-  async moveGroupCard(groupId: number, cardId: string, input: { targetListId: string; beforeCardId: string | null }): Promise<void> {
+  async moveGroupCard(groupId: string, cardId: string, input: { targetListId: string; beforeCardId: string | null }): Promise<void> {
     await apiV2Client.patch(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/position`, {
       listId: input.targetListId,
       insertBeforeCardId: input.beforeCardId ?? undefined,
     });
   },
-  async updateGroupCardPortfolio(groupId: number, cardId: string, input: { isInPortfolio: boolean }): Promise<void> {
+  async updateGroupCardPortfolio(groupId: string, cardId: string, input: { isInPortfolio: boolean }): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/portfolio`, input);
   },
-  async updateGroupCardLabels(groupId: number, cardId: string, input: { labels: CardLabelDto[] }): Promise<void> {
+  async updateGroupCardLabels(groupId: string, cardId: string, input: { labels: CardLabelDto[] }): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/labels`, input);
   },
-  async updateGroupCardAssignee(groupId: number, cardId: string, input: { assigneeUserId: number | null }): Promise<void> {
+  async updateGroupCardAssignee(groupId: string, cardId: string, input: { assigneeUserId: number | null }): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/assignee`, input);
   },
-  async updateGroupCardDisabled(groupId: number, cardId: string, input: { isDisabled: boolean }): Promise<void> {
+  async updateGroupCardDisabled(groupId: string, cardId: string, input: { isDisabled: boolean }): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/disabled`, input);
   },
   // GroupExposureApi.issueActivityReportUploadLink와 같은 presigned URL 패턴 — 파일
   // 업로드/드래그앤드롭/붙여넣기는 이 링크로 먼저 올린 뒤 fileUploadId로 커밋한다.
-  async issueCardCoverImageUploadLink(groupId: number, cardId: string, input: { fileName: string; contentType: string }): Promise<CardCoverImageUploadLinkDto> {
+  async issueCardCoverImageUploadLink(groupId: string, cardId: string, input: { fileName: string; contentType: string }): Promise<CardCoverImageUploadLinkDto> {
     return (await apiV2Client.post<CardCoverImageUploadLinkDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/cover-image/upload-link`, input)).data;
   },
   async uploadCardCoverImageFile(url: string, file: File): Promise<void> {
@@ -118,7 +122,7 @@ export const KanbanApi = {
     if (!response.ok) throw new Error("이미지 업로드에 실패했습니다.");
   },
   // URL은 coverImageUrl로, 업로드한 파일은 fileUploadId로 지정하고, coverImageUrl이 null이면 커버를 제거한다.
-  async updateGroupCardCoverImage(groupId: number, cardId: string, input: CardCoverImageInput): Promise<void> {
+  async updateGroupCardCoverImage(groupId: string, cardId: string, input: CardCoverImageInput): Promise<void> {
     const path = `/groups/${groupId}/cards/${encodeURIComponent(cardId)}/cover-image`;
     if ("coverImageUrl" in input && input.coverImageUrl === null) {
       await apiV2Client.delete(path);
@@ -127,45 +131,45 @@ export const KanbanApi = {
     await apiV2Client.post(path, input);
   },
   // 소프트 삭제다 — 보드에서 빠지고 GroupArchiveApi로 복구할 수 있다.
-  async archiveGroupCard(groupId: number, cardId: string): Promise<void> {
+  async archiveGroupCard(groupId: string, cardId: string): Promise<void> {
     await apiV2Client.delete(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`);
   },
-  async listGroupRecordsPage(groupId: number, cardId: string, input: {
+  async listGroupRecordsPage(groupId: string, cardId: string, input: {
     offset: number; limit: number; includeDeleted: boolean;
   }, signal?: AbortSignal): Promise<RecordPageDto> {
     const page = (await apiV2Client.get<RecordPageDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, {
       params: { offset: input.offset, limit: input.limit, includeDeleted: input.includeDeleted }, signal,
     })).data;
-    return { ...page, records: page.records.map((record) => ({ ...record, type: normalizeRecordType(record.type) })) };
+    return { ...page, records: page.records.map((record) => ({ ...record, id: requireIntegerId(record.id), type: normalizeRecordType(record.type) })) };
   },
-  async archiveGroupRecord(groupId: number, recordId: number): Promise<void> {
+  async archiveGroupRecord(groupId: string, recordId: string): Promise<void> {
     await apiV2Client.delete(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`);
   },
-  async restoreGroupRecord(groupId: number, recordId: number): Promise<void> {
+  async restoreGroupRecord(groupId: string, recordId: string): Promise<void> {
     await apiV2Client.post(`/groups/${groupId}/records/${encodeURIComponent(recordId)}/restore`);
   },
-  async moveGroupRecord(groupId: number, recordId: number, input: { targetCardId: string }): Promise<void> {
+  async moveGroupRecord(groupId: string, recordId: string, input: { targetCardId: string }): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/records/${encodeURIComponent(recordId)}/position`, input);
   },
-  async saveGroupRecord(groupId: number, recordId: number): Promise<void> {
+  async saveGroupRecord(groupId: string, recordId: string): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/records/${encodeURIComponent(recordId)}/archive`, { isInUserArchive: true });
   },
-  async updateGroupRecordPortfolio(groupId: number, recordId: number, input: { isInPortfolio: boolean }): Promise<void> {
+  async updateGroupRecordPortfolio(groupId: string, recordId: string, input: { isInPortfolio: boolean }): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/records/${encodeURIComponent(recordId)}/portfolio`, input);
   },
-  async getGroupRecord(groupId: number, recordId: number): Promise<RecordWithCardDto | null> {
+  async getGroupRecord(groupId: string, recordId: string): Promise<RecordWithCardDto | null> {
     const record = (await apiV2Client.get<RecordWithCardDto | null>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`)).data;
-    return record ? { ...record, type: normalizeRecordType(record.type) } : null;
+    return record ? { ...record, id: requireIntegerId(record.id), cardId: requireIntegerId(record.cardId), listId: requireIntegerId(record.listId), type: normalizeRecordType(record.type) } : null;
   },
-  async createGroupRecord(groupId: number, cardId: string, input: { content: string; files: RecordFileInput[] }): Promise<RecordDto & { uploads: RecordUploadDto[] }> {
+  async createGroupRecord(groupId: string, cardId: string, input: { content: string; files: RecordFileInput[] }): Promise<RecordDto & { uploads: RecordUploadDto[] }> {
     const record = (await apiV2Client.post<RecordDto & { uploads: RecordUploadDto[] }>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, input)).data;
-    return { ...record, type: normalizeRecordType(record.type) };
+    return { ...record, id: requireIntegerId(record.id), type: normalizeRecordType(record.type) };
   },
-  async updateGroupRecord(groupId: number, recordId: number, input: { content: string; files: RecordFileInput[] }): Promise<{ uploads: RecordUploadDto[] }> {
+  async updateGroupRecord(groupId: string, recordId: string, input: { content: string; files: RecordFileInput[] }): Promise<{ uploads: RecordUploadDto[] }> {
     return (await apiV2Client.patch<{ uploads: RecordUploadDto[] }>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`, input)).data;
   },
   // 업로드 주소로 파일을 올린 뒤 서버에 알린다. 모두 성공 200, 일부 성공 206, 모두 실패 400이며 본문은 같다.
-  async notifyRecordFilesUploaded(groupId: number, fileIds: string[]): Promise<RecordFilesUploadedResultDto[]> {
+  async notifyRecordFilesUploaded(groupId: string, fileIds: string[]): Promise<RecordFilesUploadedResultDto[]> {
     const response = await apiV2Client.post<{ results: RecordFilesUploadedResultDto[] }>(`/groups/${groupId}/records/files/uploaded`, { fileIds }, {
       validateStatus: (status) => status === 200 || status === 206 || status === 400,
     });

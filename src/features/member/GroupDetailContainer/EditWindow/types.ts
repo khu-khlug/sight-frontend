@@ -9,6 +9,8 @@
 // 것이므로, EditWindow가 열릴 때 "불러올까요?"를 또 묻지 않고 바로 불러온다. 창 콘텐츠
 // 식별자에는 이 플래그를 섞지 않으므로, encodeEditContentKey는 이 플래그를 무시하고 항상 "edit:" 접두사로만 인코딩한다 — 해시
 // 전용 인코딩은 encodeDraftOpenHash가 따로 맡는다.
+import { isIntegerId } from "../../../../util/integerId";
+
 export type EditWindowTarget =
   | { kind: "new"; cardId: string; autoloadDraft?: boolean }
   | { kind: "record"; recordId: string; autoloadDraft?: boolean };
@@ -34,6 +36,9 @@ export function decodeEditContentKey(key: string): EditWindowTarget | null {
   const prefix = autoloadDraft ? EDIT_DRAFT_KEY_PREFIX : EDIT_KEY_PREFIX;
   if (!key.startsWith(prefix)) return null;
   const rest = key.slice(prefix.length);
-  if (rest.startsWith(NEW_KEY_PREFIX)) return { kind: "new", cardId: rest.slice(NEW_KEY_PREFIX.length), autoloadDraft };
-  return { kind: "record", recordId: rest, autoloadDraft };
+  if (rest.startsWith(NEW_KEY_PREFIX)) {
+    const cardId = rest.slice(NEW_KEY_PREFIX.length);
+    return isIntegerId(cardId) ? { kind: "new", cardId, autoloadDraft } : null;
+  }
+  return isIntegerId(rest) ? { kind: "record", recordId: rest, autoloadDraft } : null;
 }

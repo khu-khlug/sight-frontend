@@ -10,7 +10,7 @@ import { cn } from "../../../../../util/cn";
 import styles from "./style.module.css";
 
 type Props = {
-  groupId: number;
+  groupId: string;
   cardId: string;
   disabled: boolean;
   onMove: (targetCardId: string) => void;
@@ -18,7 +18,7 @@ type Props = {
 
 // 리스트 하나의 이동 대상 카드. 리스트 응답에 든 처음 카드들로 시작하고, 더보기를 누르면 이어서 받는다.
 function MoveTargetList({ groupId, list, cardId, disabled, onPick }: {
-  groupId: number;
+  groupId: string;
   list: KanbanListDto;
   cardId: string;
   disabled: boolean;

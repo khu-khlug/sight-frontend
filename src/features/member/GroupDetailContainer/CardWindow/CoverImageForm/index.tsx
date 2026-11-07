@@ -16,7 +16,7 @@ const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 const COVER_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
 
 type Props = {
-  groupId: number;
+  groupId: string;
   cardId: string;
   hasCoverImage: boolean;
   // 실제 커밋(KanbanApi.updateGroupCardCoverImage)은 호출부(CardWindow→GroupDetailContainer)가

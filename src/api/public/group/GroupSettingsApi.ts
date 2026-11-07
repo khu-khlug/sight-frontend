@@ -7,7 +7,7 @@ import { getGroupDelimitedValuesError } from "../../../util/groupDelimitedValues
 type UpdateGroupInput = Pick<GroupInfoDto, "title" | "category" | "description" | "interests" | "techStack" | "repositoryUrls" | "allowJoin" | "visibility">;
 export type UpdateGroupRequestDto = Omit<UpdateGroupInput, "techStack" | "repositoryUrls"> & { techStack: string; repositoryUrls: string };
 export const GroupSettingsApi = {
-  async updateGroup(groupId: number, input: UpdateGroupInput): Promise<void> {
+  async updateGroup(groupId: string, input: UpdateGroupInput): Promise<void> {
     if (input.techStack.some((technology) => technology.includes(","))) {
       throw new Error("사용 기술 이름에는 쉼표(,)를 사용할 수 없습니다.");
     }
@@ -29,16 +29,16 @@ export const GroupSettingsApi = {
     };
     await apiV2Client.put(`/groups/${groupId}`, request);
   },
-  async endGroup(groupId: number, input: { status: typeof GroupStatus.SUCCESS | typeof GroupStatus.FAIL }): Promise<void> {
+  async endGroup(groupId: string, input: { status: typeof GroupStatus.SUCCESS | typeof GroupStatus.FAIL }): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/status/end`, input);
   },
-  async stopGroup(groupId: number): Promise<void> {
+  async stopGroup(groupId: string): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/status/stop`);
   },
-  async progressGroup(groupId: number): Promise<void> {
+  async progressGroup(groupId: string): Promise<void> {
     await apiV2Client.put(`/groups/${groupId}/status/progress`);
   },
-  async leaveGroup(groupId: number): Promise<void> {
+  async leaveGroup(groupId: string): Promise<void> {
     await apiV2Client.delete(`/groups/${groupId}/members/@me`);
   },
 };

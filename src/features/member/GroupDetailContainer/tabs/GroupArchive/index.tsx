@@ -21,10 +21,10 @@ import styles from "./style.module.css";
 type ListOption = { id: string; title: string };
 
 type Props = {
-  groupId: number;
+  groupId: string;
   lists: ListOption[];
   // 보관한 기록의 "더보기"는 그룹과 기록을 식별해 읽기 전용 창을 연다.
-  onOpenRecord: (groupId: number, recordId: number) => void;
+  onOpenRecord: (groupId: string, recordId: string) => void;
 };
 
 type ArchiveView = "cards" | "records";
@@ -73,7 +73,7 @@ export default function GroupArchive({ groupId, lists, onOpenRecord }: Props) {
       cardTitle: autosave.cardTitle || "제목 없음",
       hash: encodeDraftOpenHash(autosave.recordId === null
         ? { kind: "new", cardId: autosave.cardId }
-        : { kind: "record", recordId: String(autosave.recordId) }),
+        : { kind: "record", recordId: autosave.recordId }),
     }
     : null;
   const action = useGroupAction(groupId);

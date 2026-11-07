@@ -20,14 +20,14 @@ import styles from "./style.module.css";
 type Props = {
   binding: WindowBinding;
   target: RecordWindowTarget;
-  currentGroupId: number;
+  currentGroupId: string;
   onOpenCard: (cardId: string) => void;
 };
 
 export default function RecordWindow({ binding, target, currentGroupId, onOpenCard }: Props) {
   const location = useLocation();
   const query = useQuery({
-    queryKey: ["group-detail", target.groupId, "kanban-record", String(target.recordId)],
+    queryKey: ["group-detail", target.groupId, "kanban-record", target.recordId],
     queryFn: () => KanbanApi.getGroupRecord(target.groupId, target.recordId),
   });
   const groupQuery = useQuery({
