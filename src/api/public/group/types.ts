@@ -11,7 +11,7 @@ export type GroupInfoDto = {
   isMember: boolean;
   hasChatRoom: boolean;
   chatRoomUrl: string | null;
-  isChatParticipant: boolean;
+  isChatParticipant: boolean | null;
   isBookmarked: boolean;
   memberCount: number;
   description: string;
@@ -39,7 +39,7 @@ export type GroupInfoResponseDto = {
   description: string | null;
   category: GroupCategory;
   status: GroupStatus;
-  requesterInfo: { userRole: "NONE" | "MEMBER" | "LEADER"; isBookmarked: boolean; isInChatRoom: boolean };
+  requesterInfo: { userRole: "NONE" | "MEMBER" | "LEADER"; isBookmarked: boolean; isInChatRoom: boolean | null };
   specialOrganization: SpecialOrganization | null;
   interests: GroupInterest[] | null;
   techStack: string[] | null;

@@ -1,14 +1,15 @@
+import { AssigneeFilterProvider } from "./AssigneeFilter";
 import ContentSkeleton from "../../../components/ContentSkeleton";
 import { GroupStatus } from "../../../constant";
 import { toast } from "react-toastify";
 import { Box, Button, Text } from "@chakra-ui/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
-import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ComponentProps, CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { GroupInfoApi } from "../../../api/public/group/GroupInfoApi";
-import { CardLabelDto, KanbanApi, type CardCoverImageInput, type RecordPageDto, type RecordFileInput, type RecordUploadDto } from "../../../api/public/group/KanbanApi";
+import { CardLabelDto, KanbanApi, type CardCoverImageInput, type KanbanCardDto, type RecordPageDto, type RecordFileInput, type RecordUploadDto } from "../../../api/public/group/KanbanApi";
 import { useGroupAction } from "../../../hooks/group/useGroupAction";
 import { GroupDetailPageStateProvider } from "./pageState";
 import { groupPagePreferences } from "./groupPagePreferences";
@@ -38,9 +39,32 @@ const DASHBOARD_WIDTH_EXPANDED = 56 + 1 + 280;
 export default function GroupDetailContainer({ groupId }: { groupId: string }) {
   return (
     <GroupDetailPageStateProvider>
-      <GroupDetailPage groupId={groupId} />
+      <AssigneeFilterProvider key={groupId}>
+        <GroupDetailPage groupId={groupId} />
+      </AssigneeFilterProvider>
     </GroupDetailPageStateProvider>
   );
+}
+
+type CardWindowWithDetailProps = Omit<ComponentProps<typeof CardWindow>, "card" | "isDetailLoading"> & {
+  card: KanbanCardDto;
+  listId: string;
+};
+
+// 보드 목록의 카드에는 설명과 기록 정렬이 없어, 창으로 열린 카드만 단건 조회로 채운다.
+function CardWindowWithDetail({ card, listId, ...props }: CardWindowWithDetailProps) {
+  const detailQuery = useQuery({
+    queryKey: ["group-detail", props.groupId, "card", card.id],
+    queryFn: () => KanbanApi.getGroupCard(props.groupId, card.id),
+  });
+  const detail = {
+    ...card,
+    listId,
+    listTitle: props.listTitle,
+    description: detailQuery.data?.description ?? "",
+    recordSort: detailQuery.data?.recordSort ?? "NEWEST",
+  };
+  return <CardWindow {...props} card={detail} isDetailLoading={detailQuery.data === undefined} />;
 }
 
 function GroupDetailPage({ groupId }: { groupId: string }) {
@@ -125,6 +149,7 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
   locationStateRef.current = location.state;
   const historyIndexRef = useRef<number | null>(typeof window.history.state?.idx === "number" ? window.history.state.idx : null);
   const windowLayerRef = useRef<WindowLayerHandle>(null);
+  const deletingCardIdsRef = useRef<Set<string>>(new Set());
   // WindowLayer가 상태전이와 URL 해시 문법(그룹문서/card-window-manager.md §9)을
   // 전부 소유한다 — 여기서는 "지금 메인이 뭔지"(존재 확인용)와 "URL을 이렇게 맞춰달라"는
   // 완성된 문자열만 콜백으로 받는다.
@@ -249,6 +274,8 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
     // (이나 앞으로 생길 다른 창 종류)이 메인이면 카드 목록에 당연히 없으므로, 카드 키일
     // 때만 이 확인을 한다(§9.1의 "타입:내용" 컨벤션, isCardKey로 판별).
     if (listsQuery.isPending || !mainCardId || !isCardKey(mainCardId)) return;
+    // 카드 창에서 삭제하는 카드는 삭제가 끝나면 그 창이 직접 닫으므로 없는 카드로 알리지 않는다.
+    if (deletingCardIdsRef.current.has(mainCardId)) return;
     const exists = lists.some((list) => list.cards.some((card) => card.id === mainCardId));
     if (!exists) {
       window.alert("존재하지 않는 카드입니다.");
@@ -340,9 +367,12 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
   const handleUpdateList = useCallback((listId: string, changes: { title: string; description: string }) => {
     mutate(() => KanbanApi.updateGroupList(groupId, listId, changes));
   }, [groupId, mutate]);
+  // 카드 창이 삭제 완료를 기다렸다가 닫혀야 해서 mutateAsync를 쓴다.
   const handleDeleteCard = useCallback((cardId: string) => {
-    mutate(() => KanbanApi.archiveGroupCard(groupId, cardId), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
-  }, [groupId, mutate, queryClient]);
+    deletingCardIdsRef.current.add(cardId);
+    return mutateAsync(() => KanbanApi.archiveGroupCard(groupId, cardId), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) })
+      .finally(() => deletingCardIdsRef.current.delete(cardId));
+  }, [groupId, mutateAsync, queryClient]);
   const handleDeleteRecord = useCallback((_cardId: string, recordId: string) => {
     mutate(() => KanbanApi.archiveGroupRecord(groupId, recordId), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
   }, [groupId, mutate, queryClient]);
@@ -364,16 +394,19 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
   // WindowLayer는 카드 id만 알고 내용은 모른다 — id별로 실제 CardWindow를 그리는 함수를
   // 통째로 넘겨서, WindowLayer가 지금 열려 있는 카드에 대해서만 호출하게 한다.
   const isPortfolioPublished = infoQuery.data?.hasPublishedPortfolio ?? false;
+  const isMember = infoQuery.data?.isMember ?? false;
   // EditWindow의 "new" 케이스가 카드명을 추가 API 호출 없이 바로 찾기 위한 평탄화된 카드 목록.
   const allCards = useMemo(() => lists.flatMap((list) => list.cards), [lists]);
   const cardsForWindowLayer = useMemo(() => {
     const entries = lists.flatMap((list) => list.cards.map((card) => [card.id, (binding: WindowBinding) => (
-      <CardWindow
+      <CardWindowWithDetail
         key={card.id}
         binding={binding}
         groupId={groupId}
         card={card}
+        listId={list.id}
         listTitle={list.title}
+        isMember={isMember}
         isPortfolioPublished={isPortfolioPublished}
         groupStatus={info.status}
         onUpdateLabels={handleUpdateCardLabels}
@@ -392,7 +425,7 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
       />
     )] as const));
     return Object.fromEntries(entries);
-  }, [lists, groupId, isPortfolioPublished, handleUpdateCardLabels, handleUpdateCardAssignee, handleUpdateCardCoverImage, handleToggleCardPortfolio, handleToggleCardDisabled, handleDeleteCard, handleDeleteRecord, handleRestoreRecord, handleOpenEdit, handleCardClick, clearRecordFocus]);
+  }, [lists, groupId, isMember, isPortfolioPublished, handleUpdateCardLabels, handleUpdateCardAssignee, handleUpdateCardCoverImage, handleToggleCardPortfolio, handleToggleCardDisabled, handleDeleteCard, handleDeleteRecord, handleRestoreRecord, handleOpenEdit, handleCardClick, clearRecordFocus]);
 
   // 콘텐츠 종류의 판별은 페이지가 담당한다. 지원하지 않는 주소는 복원 시 제외한다.
   const isSupportedContent = useCallback((key: string) => (

@@ -3,12 +3,13 @@ import { GroupStatus } from "../../../../constant";
 import { useLoadMoreOnScroll } from "../../../../hooks/useLoadMoreOnScroll";
 import SkeletonWrapper from "../../../../components/SkeletonWrapper";
 import { Box, Text } from "@chakra-ui/react";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useGroupAction } from "../../../../hooks/group/useGroupAction";
 import { toast } from "react-toastify";
-import { BriefcaseBusiness, CalendarPlus, ChevronDown, Eye, EyeOff, Handshake, Image, LockKeyhole, LockKeyholeOpen, PenBox, PenLine, Plus, SendHorizonal, StretchHorizontal, Trash2, User } from "lucide-react";
+import { BriefcaseBusiness, CalendarPlus, ChevronDown, Eye, EyeOff, Image, LockKeyhole, LockKeyholeOpen, PenBox, PenLine, Plus, SendHorizonal, StretchHorizontal, Trash2, User } from "lucide-react";
 import { KeyboardEvent, useEffect, useMemo, useRef, useState, useCallback } from "react";
 
-import { CardLabelDto, KanbanApi, KanbanCardDto, type CardCoverImageInput } from "../../../../api/public/group/KanbanApi";
+import { CardLabelDto, KanbanApi, KanbanCardDetailDto, type CardCoverImageInput } from "../../../../api/public/group/KanbanApi";
 import AppTooltip from "../../../../components/AppTooltip";
 import Button from "../../../../components/Button";
 import Collapse from "../../../../components/Collapse";
@@ -30,28 +31,13 @@ import RecordItem from "./RecordItem";
 import RecordSortMenu, { RecordSortOrder } from "./RecordSortMenu";
 import styles from "./style.module.css";
 
-// 카드 설명은 아직 서버 연동 전(로컬 state만, §45 description)이라 마크다운 뷰어 확인용
-// 목업 텍스트를 기본값으로 둔다 — 실제 연동 시 card.description으로 교체한다.
-const MOCK_DESCRIPTION = `이 카드는 **마크다운**으로 설명을 작성합니다.
-
-- 할 일 하나
-- 할 일 둘
-  - 하위 항목
-
-\`inline code\`와 아래 같은 코드 블록도 됩니다.
-
-\`\`\`ts
-const hello = "world";
-\`\`\`
-
-> 인용문도 지원합니다.
-
-[참고 링크](https://khlug.org)`;
-
 type Props = {
   binding: WindowBinding;
   groupId: string;
-  card: KanbanCardDto;
+  card: KanbanCardDetailDto;
+  isMember: boolean;
+  // 카드 단건 조회가 끝나기 전이면 true다. 이때의 설명·기록 정렬은 실제 값이 아니므로 바꿀 수 없다.
+  isDetailLoading: boolean;
   listTitle: string;
   isPortfolioPublished: boolean;
   groupStatus: GroupStatus;
@@ -60,7 +46,7 @@ type Props = {
   onUpdateCoverImage: (cardId: string, input: CardCoverImageInput) => Promise<unknown>;
   onTogglePortfolio: () => void;
   onToggleDisabled: () => void;
-  onDeleteCard: () => void;
+  onDeleteCard: () => Promise<unknown>;
   onDeleteRecord: (recordId: string) => void;
   onRestoreRecord: (recordId: string) => void;
   onOpenNewRecord: () => void;
@@ -74,7 +60,7 @@ type Props = {
 
 type EditingField = "title" | "description" | null;
 
-export default function CardWindow({ binding, groupId, card, listTitle, isPortfolioPublished, groupStatus, onUpdateLabels, onUpdateAssignee, onUpdateCoverImage, onTogglePortfolio, onToggleDisabled, onDeleteCard, onDeleteRecord, onRestoreRecord, onOpenNewRecord, onOpenEditRecord, onOpenCard, focusRecordId, onRecordFocused }: Props) {
+export default function CardWindow({ binding, groupId, card, listTitle, isPortfolioPublished, groupStatus, isMember, isDetailLoading, onUpdateLabels, onUpdateAssignee, onUpdateCoverImage, onTogglePortfolio, onToggleDisabled, onDeleteCard, onDeleteRecord, onRestoreRecord, onOpenNewRecord, onOpenEditRecord, onOpenCard, focusRecordId, onRecordFocused }: Props) {
   const { role, minimized, isClosing, canGoDual, onToggleMinimize, onClose, onSwitchSide, onExpand, onSendToSide, registerCloseGuard } = binding;
   const isDualLayer = role !== "single";
   const [isTitleStuck, setIsTitleStuck] = useState(false);
@@ -94,21 +80,11 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     return () => observer.disconnect();
   }, []);
   const [isCoverFormOpen, setIsCoverFormOpen] = useState(false);
-  // 기록 정렬은 카드에 저장된 설정이라 카드 단건 조회로 시작 값을 받고, 바꾸면 카드 정보 변경으로 저장한다.
-  const cardDetailQuery = useQuery({
-    queryKey: ["group-detail", groupId, "card", card.id],
-    queryFn: () => KanbanApi.getGroupCard(groupId, card.id),
-  });
-  const sortOrder: RecordSortOrder = cardDetailQuery.data?.recordSort ?? "NEWEST";
-  const queryClient = useQueryClient();
+  const cardAction = useGroupAction(groupId);
+  const sortOrder: RecordSortOrder = card.recordSort;
   const setSortOrder = (next: RecordSortOrder) => {
-    if (next === sortOrder) return;
-    queryClient.setQueryData(["group-detail", groupId, "card", card.id], (previous: typeof cardDetailQuery.data) => previous && { ...previous, recordSort: next });
-    KanbanApi.updateGroupCard(groupId, card.id, { recordSort: next })
-      .catch(() => {
-        toast.error("기록 정렬을 저장하지 못했습니다.");
-        void cardDetailQuery.refetch();
-      });
+    if (next === sortOrder || isDetailLoading || !isMember || card.isDisabled || cardAction.isPending || groupStatus === GroupStatus.SUCCESS || groupStatus === GroupStatus.FAIL) return;
+    cardAction.mutate(() => KanbanApi.updateGroupCard(groupId, card.id, { recordSort: next }));
   };
   const [showDeleted, setShowDeleted] = useState(true);
   const recordsQuery = useInfiniteQuery({
@@ -161,13 +137,13 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     if (record.isDeleted) onRestoreRecord(recordId); else onDeleteRecord(recordId);
   };
   const [editingField, setEditingField] = useState<EditingField>(null);
-  const [title, setTitle] = useState(card.title);
+  const title = card.title;
   const [draftTitle, setDraftTitle] = useState(card.title);
-  const [description, setDescription] = useState(MOCK_DESCRIPTION);
+  const description = card.description;
   // 종료 그룹과 비활성 카드에서는 내용을 바꿀 수 없다. 레이블·포트폴리오는 중단 그룹에서도 바꿀 수 없다.
   const isGroupEnded = groupStatus === GroupStatus.SUCCESS || groupStatus === GroupStatus.FAIL;
   const isGroupStopped = groupStatus === GroupStatus.STOP;
-  const isContentLocked = card.isDisabled || isGroupEnded;
+  const isContentLocked = !isMember || card.isDisabled || isGroupEnded || cardAction.isPending;
   const isLabelLocked = isContentLocked || isGroupStopped;
   const [draftDescription, setDraftDescription] = useState(description);
   const editBoxRef = useRef<HTMLDivElement>(null);
@@ -177,20 +153,30 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     setEditingField("title");
   };
   const commitTitle = () => {
-    setTitle(draftTitle.trim() || title);
-    setEditingField(null);
+    if (isContentLocked) return;
+    const next = draftTitle.trim();
+    if (!next || [...next].length > 255) { toast.error("카드 이름은 공백이 아닌 255자 이하여야 합니다."); return; }
+    if (next === title) { setEditingField(null); return; }
+    cardAction.mutate(() => KanbanApi.updateGroupCard(groupId, card.id, { title: next }), {
+      onSuccess: () => setEditingField(null),
+    });
   };
   const startEditingDescription = () => {
-    if (isContentLocked) return;
+    if (isContentLocked || isDetailLoading) return;
     setDraftDescription(description);
     setEditingField("description");
   };
   // SimpleMarkdownEditor의 보내기 버튼이 트림까지 끝낸 값을 바로 넘겨준다.
   const commitDescription = (value: string) => {
-    setDescription(value);
-    setEditingField(null);
+    if (isContentLocked) return;
+    if (new TextEncoder().encode(value).length > 4096) { toast.error("카드 설명은 UTF-8 기준 4 KiB 이하여야 합니다."); return; }
+    if (value === description) { setEditingField(null); return; }
+    cardAction.mutate(() => KanbanApi.updateGroupCard(groupId, card.id, { description: value }), {
+      onSuccess: () => setEditingField(null),
+    });
   };
   const stopEditingOnKeyDown = (event: KeyboardEvent) => {
+    if (cardAction.isPending || event.nativeEvent.isComposing) return;
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       commitTitle();
@@ -206,10 +192,10 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
 
   // 닫기 버튼, 교체, 히스토리 복원 등 창이 사라지는 모든 경로에서 같은 확인 함수를 쓴다.
   useEffect(() => {
-    registerCloseGuard(isDescriptionDirty || isTitleDirty ? confirmDiscardEdit : null);
+    registerCloseGuard(cardAction.isPending ? () => false : isDescriptionDirty || isTitleDirty ? confirmDiscardEdit : null);
     return () => registerCloseGuard(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDescriptionDirty, isTitleDirty, isClosing]);
+  }, [isDescriptionDirty, isTitleDirty, isClosing, cardAction.isPending]);
 
   // 닫힘 확인과 애니메이션은 WindowLayer가 상태 적용 전에 공통으로 처리한다.
   const handleRequestClose = () => {
@@ -217,7 +203,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
   };
 
   useEffect(() => {
-    if (!editingField) return;
+    if (!editingField || cardAction.isPending) return;
     const cancelOnOutsideClick = (event: PointerEvent) => {
       if (!(event.target instanceof Node)) return;
       if (editBoxRef.current?.contains(event.target)) return;
@@ -228,7 +214,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
     };
     document.addEventListener("pointerdown", cancelOnOutsideClick);
     return () => document.removeEventListener("pointerdown", cancelOnOutsideClick);
-  }, [editingField, isDescriptionDirty, isTitleDirty]);
+  }, [editingField, isDescriptionDirty, isTitleDirty, cardAction.isPending]);
   const toggleLabel = (color: CardLabelDto) => {
     if (isLabelLocked) return;
     const next = card.labels.includes(color)
@@ -246,17 +232,16 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
       onToggleDisabled();
     }
   };
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!window.confirm("카드를 삭제하시겠습니까? 삭제한 카드는 아카이브 탭에서 복구할 수 있습니다.")) return;
-    // 창을 먼저 닫아 메인 카드/URL을 이 카드에서 떼어낸 뒤에 삭제 요청을 보낸다. 순서를
-    // 반대로 하면(삭제가 먼저 끝나 목록이 갱신되는 시점에 아직 mainCardId가 이 카드를
-    // 가리키고 있으면) GroupDetailContainer의 "열려 있는 카드가 사라졌는지" 감시 effect가
-    // "존재하지 않는 카드입니다" 알림을 오발동시킨다 — 그 감시는 URL 직접 진입/뒤로가기처럼
-    // 내가 아닌 경로로 카드가 사라진 경우를 위한 것이라, 내가 지금 막 지운 경우엔 안 떠야 한다.
     if ((isDescriptionDirty || isTitleDirty) && !confirmDiscardEdit()) return;
-    registerCloseGuard(null);
-    onClose();
-    onDeleteCard();
+    try {
+      await onDeleteCard();
+      registerCloseGuard(null);
+      onClose();
+    } catch {
+      // 저장 실패 안내는 변경 요청을 처리한 공통 훅이 담당한다.
+    }
   };
 
   useEffect(() => {
@@ -277,6 +262,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
       bg={card.isDisabled ? "gray.100" : undefined}
       minimized={minimized}
       onToggleMinimize={() => {
+        if (cardAction.isPending) return;
         if (!minimized && editingField !== null) {
           if ((isDescriptionDirty || isTitleDirty) && !confirmDiscardEdit()) return;
           setEditingField(null);
@@ -353,6 +339,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 autoFocus
                 className={styles.titleInput}
                 aria-label="카드 제목"
+                disabled={cardAction.isPending}
                 value={draftTitle}
                 onChange={(event) => setDraftTitle(event.target.value)}
                 onKeyDown={stopEditingOnKeyDown}
@@ -361,6 +348,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 as="button"
                 className={styles.editSendButton}
                 aria-label="제목 저장"
+                aria-disabled={cardAction.isPending}
                 onClick={commitTitle}
               >
                 <SendHorizonal size={16} />
@@ -402,6 +390,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 value={draftDescription}
                 onChange={setDraftDescription}
                 onSubmit={commitDescription}
+                disabled={cardAction.isPending}
                 placeholder="카드 설명을 마크다운으로 작성하세요"
               />
             </Box>
@@ -513,11 +502,6 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                     <Image size={16} />
                   </Box>
                 </AppTooltip>
-                <AppTooltip content="다른 카드에서 이어받기" placement="top">
-                  <Box as="button" className={styles.secondaryActionButton} aria-label="다른 카드에서 이어받기">
-                    <Handshake size={16} />
-                  </Box>
-                </AppTooltip>
                 <AppTooltip content="카드 비활성화" placement="top">
                   <Box as="button" className={styles.secondaryActionButton} aria-label="카드 비활성화" onClick={handleDisable}>
                     <LockKeyhole size={16} />
@@ -532,7 +516,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
             )}
           </Box>
         </SkeletonWrapper>
-        <Collapse open={isCoverFormOpen}>
+        <Collapse open={isCoverFormOpen && !isContentLocked}>
           <CoverImageForm
             groupId={groupId}
             cardId={card.id}
@@ -559,7 +543,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 cardId={card.id}
                 record={record}
                 disabled={isContentLocked}
-                canArchive={!isGroupEnded && !isGroupStopped}
+                canArchive={isMember && !isGroupEnded && !isGroupStopped}
                 isPortfolioPublished={isPortfolioPublished}
                 onToggleDeleted={handleToggleRecordDeleted}
                 onEdit={() => onOpenEditRecord(record.id)}

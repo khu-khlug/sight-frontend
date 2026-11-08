@@ -1,3 +1,4 @@
+import { useAssigneeFilter } from "../../AssigneeFilter";
 import ContentSkeleton from "../../../../../components/ContentSkeleton";
 import { GroupSearchApi } from "../../../../../api/public/group/GroupSearchApi";
 import { useQuery } from "@tanstack/react-query";
@@ -31,16 +32,10 @@ const SEARCH_TARGET_LABEL: Record<SearchTarget, string> = {
   author: "생성자명",
 };
 
-/*
- * 라벨 필터는 여기(검색 탭)와 칸반보드가 같은 상태(GroupDetailContainer가 들고 있음)를
- * 공유하지만, 딱 칸반보드의 카드 어둡게 표시에만 쓰인다 — 검색 결과 목록은 라벨 필터와
- * 무관하게 검색대상 + 검색어로만 걸러진다.
- *
- * 라벨 필터/검색대상/검색창은 고정, 검색결과만 스크롤돼야 해서(요청) Dashboard가 공용
- * ScrollArea 대신 .tabArea 높이를 그대로 넘긴다(GroupChat과 같은 패턴) — 그래서 이 컴포넌트
- * 자신이 height: 100% 뼈대(.container)를 갖고, 결과 목록만 자기만의 ScrollArea를 쓴다.
- */
+// 필터는 칸반 카드의 강조 상태에 적용한다. 검색 결과는 검색 대상과 검색어로 조회한다.
+// 필터와 검색 입력은 고정하고 결과 목록만 스크롤한다.
 export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }: Props) {
+  const { onlyAssignedToMe, setOnlyAssignedToMe, canFilter } = useAssigneeFilter();
   const [searchTarget, setSearchTarget] = useState<SearchTarget>("title");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -91,9 +86,11 @@ export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }:
   return (
     <Box className={styles.container}>
       <Box className={styles.filters}>
+
         <Text fontSize="sm" fontWeight="medium" mb={2}>
           라벨 필터
         </Text>
+
         <Box className={styles.labelFilterRow} mb={5}>
           {LABEL_COLORS.map((color) => (
             <AppTooltip key={color} content={LABEL_COLOR_NAME[color]}>
@@ -136,6 +133,17 @@ export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }:
           </AppTooltip>
         </Box>
 
+        <Button
+          size="sm"
+          variant={onlyAssignedToMe ? "solid" : "outline"}
+          aria-pressed={onlyAssignedToMe}
+          disabled={!canFilter}
+          onClick={() => setOnlyAssignedToMe(!onlyAssignedToMe)}
+          mb={2}
+        >
+          내 담당 카드만
+        </Button>
+        <br/><br/>
         <Text fontSize="sm" fontWeight="medium" mb={2}>
           검색대상
         </Text>

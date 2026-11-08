@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { GroupCategory, GroupInterest, GroupStatus, GroupVisibility } from "../../src/constant";
 import type { GroupInfoDto } from "../../src/api/public/group/types";
 // 목업 서버 내부의 그룹 상태. 그룹장은 회원 아이디로 들고, 요청자 기준 값(isLeader 등)은 응답할 때 계산한다.
@@ -166,10 +169,31 @@ const CHAT_MESSAGES = [
   "회의실 링크 다시 공유해주세요",
 ];
 
-const dummyChatMessages: ChatMessage[] = CHAT_MESSAGES.map((content, index) => {
+const chatImageData = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "assets", "kanban-cover-demo.svg"));
+const chatTextData = Buffer.from("SIGHT 회의록\n- 화면 설계 시안 검토\n- 다음 스프린트 일정 논의\n", "utf8");
+const chatImageAttachment = {
+  name: "화면 설계 시안.svg", contentType: "image/svg+xml", size: chatImageData.length,
+  url: `data:image/svg+xml;base64,${chatImageData.toString("base64")}`,
+};
+const chatFileAttachment = {
+  name: "스프린트 회의록.txt", contentType: "text/plain", size: chatTextData.length,
+  url: `data:text/plain;charset=utf-8;base64,${chatTextData.toString("base64")}`,
+};
+
+// 50개 단위 조회의 마지막 페이지와 날짜 경계를 포함하며 각 구간에 첨부 메시지를 둔다.
+const dummyChatMessages: ChatMessage[] = Array.from({ length: 125 }, (_, index) => {
+  const sample = index % 25;
+  const attachments = sample === 19 || sample === 24 ? [chatImageAttachment]
+    : sample === 20 ? [chatFileAttachment]
+    : sample === 21 ? [chatImageAttachment, chatFileAttachment] : [];
+  const content = sample === 24 ? ""
+    : sample === 19 ? "화면 설계 시안을 공유합니다."
+    : sample === 20 ? "스프린트 회의록을 첨부합니다."
+    : sample === 21 ? "시안과 회의록을 함께 확인해주세요."
+    : CHAT_MESSAGES[index % CHAT_MESSAGES.length];
   const member = dummyMembers[index % dummyMembers.length];
   const createdAt = new Date(
-    Date.parse("2026-09-25T20:00:00Z") + index * 90 * 1000,
+    Date.parse("2026-09-25T20:00:00Z") + index * 30 * 60 * 1000,
   ).toISOString();
 
   return {
@@ -177,7 +201,7 @@ const dummyChatMessages: ChatMessage[] = CHAT_MESSAGES.map((content, index) => {
     authorName: member.name,
     content,
     createdAt,
-    attachments: [],
+    attachments,
   };
 });
 

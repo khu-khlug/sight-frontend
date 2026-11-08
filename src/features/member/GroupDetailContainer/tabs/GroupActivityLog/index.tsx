@@ -1,3 +1,4 @@
+import { isValidLogData } from "./logData";
 import { GroupActivityLogApi } from "../../../../../api/public/group/GroupActivityLogApi";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Box, Button, Text } from "@chakra-ui/react";
@@ -15,6 +16,9 @@ type Props = {
 };
 
 function LogBody({ log, onOpenCard }: { log: ActivityLogEntry; onOpenCard: (cardId: string) => void }) {
+  if (!isValidLogData(log.logType, log.logData)) {
+    return <Text fontSize="sm" color="gray.500">표시할 수 없는 로그입니다.</Text>;
+  }
   if (log.logType === "LEGACY") {
     const html = typeof log.logData?.html === "string" ? log.logData.html : "";
     const handleClick = (event: MouseEvent<HTMLDivElement>) => {
@@ -45,7 +49,7 @@ export default function GroupActivityLog({ groupId, onOpenCard }: Props) {
   const totalCount = logsQuery.data?.pages[0]?.totalCount ?? 0;
 
   if (logsQuery.isPending) return <ContentSkeleton />;
-  if (logsQuery.isError) return <Text role="alert">활동 로그를 불러오지 못했습니다.</Text>;
+  if (logsQuery.isError && !logsQuery.data) return <Text role="alert">활동 로그를 불러오지 못했습니다.</Text>;
   return (
     <Box>
       <Text fontSize="sm" color="gray.500" mb={3}>
@@ -69,6 +73,7 @@ export default function GroupActivityLog({ groupId, onOpenCard }: Props) {
           <ContentSkeleton />
         </Box>
       )}
+      {logsQuery.isFetchNextPageError && <Text role="alert" fontSize="sm">로그를 더 불러오지 못했습니다. 다시 시도해주세요.</Text>}
       {logsQuery.hasNextPage && !logsQuery.isFetchingNextPage && (
         <Button mt="8px" w="100%" size="sm" variant="outline" onClick={() => void logsQuery.fetchNextPage()}>
           {logsQuery.isFetchNextPageError ? "다시 시도" : "더보기"}

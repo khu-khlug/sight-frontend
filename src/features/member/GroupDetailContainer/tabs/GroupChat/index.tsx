@@ -14,7 +14,8 @@ import RelativeDateTime from "../../../../../components/RelativeDateTime";
 import SimpleIcon from "../../../../../components/SimpleIcon";
 import { DateFormats, formatDate } from "../../../../../util/date";
 import { discordChannelUrl, openDiscordChannel } from "../../../../../util/openDiscordChannel";
-import { draggableFileProps, hasFileDrag, readDraggedFile, type DraggedFile } from "../../../../../util/draggableFile";
+import { hasFileDrag, readDraggedFile, type DraggedFile } from "../../../../../util/draggableFile";
+import MessageAttachment from "./MessageAttachment";
 import { fileApi } from "../../actions";
 import styles from "./style.module.css";
 
@@ -26,7 +27,7 @@ type Props = {
   // 채팅방 존재·참여 여부는 그룹 정보 조회 값을 쓴다.
   hasChatRoom: boolean;
   chatRoomUrl: string | null;
-  isChatParticipant: boolean;
+  isChatParticipant: boolean | null;
   // 중단·종료 그룹에서는 메시지를 보낼 수 없다.
   isWritable: boolean;
   groupId: string;
@@ -131,7 +132,7 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
 
-  const isChatReady = isMember && hasChatRoom && messagesQuery.isSuccess;
+  const isChatReady = isMember && hasChatRoom && messagesQuery.data !== undefined;
   // 로딩 중에는 viewport가 없다. 메시지가 표시되는 첫 렌더에서 화면을 그리기 전에 내린다.
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -419,7 +420,7 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
   }
 
   if (messagesQuery.isPending) return <Box className={styles.container}>{chatHeader}<ContentSkeleton /></Box>;
-  if (messagesQuery.isError) return <Box className={styles.container}>{chatHeader}<Text role="alert">채팅을 불러오지 못했습니다.</Text></Box>;
+  if (messagesQuery.isError && !messagesQuery.data) return <Box className={styles.container}>{chatHeader}<Text role="alert">채팅을 불러오지 못했습니다.</Text></Box>;
 
   return (
     <Box
@@ -485,14 +486,7 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
                       {message.content}
                     </Text>
                     {message.attachments?.map((attachment, attachmentIndex) => (
-                      <a
-                        key={attachmentIndex}
-                        href={attachment.url}
-                        download={attachment.name}
-                        {...draggableFileProps({ url: attachment.url, name: attachment.name, contentType: attachment.contentType ?? "" })}
-                      >
-                        {attachment.name}
-                      </a>
+                      <MessageAttachment key={`${attachmentIndex}-${attachment.url}`} attachment={attachment} />
                     ))}
                   </Box>
                 </Box>

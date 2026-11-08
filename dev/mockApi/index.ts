@@ -19,16 +19,42 @@ const KANBAN_COVER_DEMO_SVG = readFileSync(path.join(ASSETS_DIR, "kanban-cover-d
 let mockManager = process.env.MOCK_MANAGER !== "false";
 let usePersonalGithubUsage = false;
 
+class MockRequestError extends Error {
+  constructor(readonly status: number, message: string) { super(message); }
+}
+
 // 채팅 전송처럼 multipart로 오는 요청을 { content, attachments } 객체로 바꾼다. 첨부 파일은 data URL로 둔다.
 async function parseMultipart(raw: Buffer, contentType: string) {
-  const form = await new Request("http://mock.local", { method: "POST", headers: { "content-type": contentType }, body: raw }).formData();
-  const attachments = await Promise.all((form.getAll("files").filter((part) => typeof part !== "string") as unknown as (Blob & { name: string })[]).map(async (file) => ({
+  let form: FormData;
+  try {
+    form = await new Request("http://mock.local", { method: "POST", headers: { "content-type": contentType }, body: raw }).formData();
+  } catch {
+    throw new MockRequestError(400, "첨부 파일 요청 형식을 확인해주세요.");
+  }
+  if ([...form.keys()].some((key) => key !== "content" && key !== "files")) {
+    throw new MockRequestError(400, "본문은 content, 첨부 파일은 files 파트로 보내주세요.");
+  }
+  const content = form.get("content");
+  if (form.getAll("content").length > 1 || (content !== null && typeof content !== "string")) {
+    throw new MockRequestError(400, "메시지 본문은 텍스트로 보내주세요.");
+  }
+  const parts = form.getAll("files");
+  if (parts.some((part) => typeof part === "string")) {
+    throw new MockRequestError(400, "첨부 파일은 파일 파트로 보내주세요.");
+  }
+  const files = parts as (Blob & { name: string })[];
+  if (files.some((file) => file.size > 20 * 1024 * 1024) || files.reduce((sum, file) => sum + file.size, 0) > 25 * 1024 * 1024) {
+    throw new MockRequestError(413, "첨부 파일 용량이 너무 큽니다.");
+  }
+  if (typeof content === "string" && content.length > 2000) {
+    throw new MockRequestError(400, "메시지는 2000자 이하여야 합니다.");
+  }
+  const attachments = await Promise.all(files.map(async (file) => ({
     name: file.name,
     contentType: file.type || null,
     size: file.size,
     url: `data:${file.type || "application/octet-stream"};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`,
   })));
-  const content = form.get("content");
   return { content: typeof content === "string" ? content : "", attachments };
 }
 
@@ -135,7 +161,10 @@ export function mockApi(): Plugin {
             response.end(content); return;
           }
           const contentType = request.headers["content-type"] ?? "";
-          const body: unknown = contentType.startsWith("multipart/form-data")
+          if (request.method === "POST" && /^\/groups\/[^/]+\/chat-messages$/.test(route) && !/^multipart\/form-data(?:;|$)/i.test(contentType)) {
+            throw new MockRequestError(415, "채팅 메시지는 multipart/form-data로 보내주세요.");
+          }
+          const body: unknown = /^multipart\/form-data(?:;|$)/i.test(contentType)
             ? await parseMultipart(raw, contentType)
             : raw.length ? JSON.parse(raw.toString("utf8")) : undefined;
           const result = handleRepositoryRequest(request.method, url, body) ?? handleAutosaveRequest(request.method, url, body, findMockCardTitle) ?? handleGroupRequest(request.method, url, body, mockManager);
@@ -171,6 +200,10 @@ export function mockApi(): Plugin {
           sendJson(response, 404, { message: `No mock handler for ${request.method} ${route}` });
         }
         } catch (error) {
+          if (error instanceof MockRequestError) {
+            sendJson(response, error.status, { message: error.message });
+            return;
+          }
           sendJson(response, error instanceof SyntaxError ? 400 : 500, { message: error instanceof SyntaxError ? "요청 형식을 확인해주세요." : "목업 요청 처리 중 오류가 발생했습니다." });
         }
       });

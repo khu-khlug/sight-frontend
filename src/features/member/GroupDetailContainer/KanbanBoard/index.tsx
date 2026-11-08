@@ -1,3 +1,4 @@
+import { isOtherAssignee, useAssigneeFilter } from "../AssigneeFilter";
 import { CSSProperties, FormEvent, memo, PointerEvent as ReactPointerEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ScrollArea } from "@chakra-ui/react";
@@ -56,6 +57,7 @@ const WINDOW_COVER_EXTRA_SCROLL = 40;
 // 안 바뀌면(핸들러는 전부 useGroupAction의 안정적인 mutate에 물린 useCallback) 이 무거운
 // 보드 전체가 같이 리렌더(깜빡임)되지 않게 막는다.
 const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMoreLists, onLoadMoreLists, loadingCardListIds, onLoadMoreCards, isMovePending, isReadOnly = false, isPortfolioPublished, dashboardOverlayRef, dashboardExtraWidthPx, enabledFilters = DEFAULT_ENABLED_FILTERS, windowCoverage = null, onAddCard, onAddList, onDeleteList, onMoveList, onMoveCard, onToggleCardPortfolio, onCardClick, onUpdateList }: Props) {
+  const { onlyAssignedToMe, currentUserId } = useAssigneeFilter();
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const addListFormRef = useRef<HTMLFormElement>(null);
@@ -788,7 +790,7 @@ const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMo
             coverImageUrl={draggedCard.coverImageUrl}
             labels={draggedCard.labels}
             disabled={draggedCard.isDisabled}
-            dimmed={isCardDimmed(draggedCard.labels ?? [], enabledFilters)}
+            dimmed={isCardDimmed(draggedCard.labels ?? [], enabledFilters) || isOtherAssignee(draggedCard.assigneeUserId, onlyAssignedToMe, currentUserId)}
             showDragHandle
           />
         </div>,

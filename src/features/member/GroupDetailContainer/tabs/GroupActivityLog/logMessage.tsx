@@ -1,3 +1,4 @@
+import { isValidLogData } from "./logData";
 import DOMPurify from "dompurify";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -11,14 +12,14 @@ type CardLink = (cardId: unknown, title: unknown) => ReactNode;
 
 const str = (value: unknown): string | null => typeof value === "string" ? value : null;
 // 이름·제목은 로그에 저장된 당시 값이다. 일반 텍스트로만 쓴다.
-const text = (value: unknown): string | null => str(value) ?? (typeof value === "number" ? String(value) : null);
+const text = (value: unknown): string | null => str(value);
 const user = (data: Data, prefix: string) => {
   const name = text(data[`${prefix}Name`]);
   const college = text(data[`${prefix}College`]);
   return name ? (college ? `${name}(${college})` : name) : null;
 };
 const term = (data: Data) => {
-  const year = text(data.termYear);
+  const year = typeof data.termYear === "number" ? String(data.termYear) : null;
   const semester = text(data.termSemester);
   return year && semester ? `${year}년 ${semester}` : null;
 };
@@ -101,6 +102,7 @@ export function sanitizeLegacyLogHtml(html: string): string {
 }
 
 export function renderLogMessage(log: ActivityLogEntryDto, onOpenCard: (cardId: string) => void): ReactNode {
+  if (!isValidLogData(log.logType, log.logData)) return null;
   const renderer = RENDERERS[log.logType];
   if (!renderer) return null;
   const link: CardLink = (cardId, title) => {

@@ -1,3 +1,4 @@
+import { isOtherAssignee, useAssigneeFilter } from "../AssigneeFilter";
 import { Box, Heading, ScrollArea } from "@chakra-ui/react";
 import ContentSkeleton from "../../../../components/ContentSkeleton";
 import { useLoadMoreOnScroll } from "../../../../hooks/useLoadMoreOnScroll";
@@ -55,6 +56,7 @@ type CardRowProps = {
 };
 
 const CardRow = memo(function CardRow({ card, index, placed, isPortfolioPublished, enabledFilters, onToggleCardPortfolio, onCardClick, onCardHandlePointerDown, onCardHandleKeyDown }: CardRowProps) {
+  const { onlyAssignedToMe, currentUserId } = useAssigneeFilter();
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => onCardHandlePointerDown?.(event, card.id, index), [card.id, index, onCardHandlePointerDown]);
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>) => onCardHandleKeyDown?.(event, card.id, index), [card.id, index, onCardHandleKeyDown]);
   const handleTogglePortfolio = useCallback(() => onToggleCardPortfolio?.(card.id), [card.id, onToggleCardPortfolio]);
@@ -76,7 +78,7 @@ const CardRow = memo(function CardRow({ card, index, placed, isPortfolioPublishe
         coverImageUrl={card.coverImageUrl}
         labels={card.labels}
         disabled={card.isDisabled}
-        dimmed={isCardDimmed(card.labels ?? [], enabledFilters)}
+        dimmed={isCardDimmed(card.labels ?? [], enabledFilters) || isOtherAssignee(card.assigneeUserId, onlyAssignedToMe, currentUserId)}
         showDragHandle
         onHandlePointerDown={onCardHandlePointerDown ? handlePointerDown : undefined}
         onHandleKeyDown={onCardHandleKeyDown ? handleKeyDown : undefined}

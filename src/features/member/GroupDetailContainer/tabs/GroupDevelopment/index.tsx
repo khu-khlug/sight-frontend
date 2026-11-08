@@ -98,7 +98,7 @@ export default function GroupDevelopment({ info, isPending, onInfoChange, openCo
         <span>채팅 참여 중</span>
         <input
           type="checkbox"
-          checked={info.isChatParticipant}
+          checked={info.isChatParticipant === true}
           disabled={isPending || !info.hasChatRoom || !info.isMember}
           onChange={(event) => onInfoChange({ isChatParticipant: event.target.checked })}
         />

@@ -118,6 +118,37 @@
   padding: 0 10px;
 }
 
+.messageAttachment {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 100%;
+  color: var(--main-color);
+  font-size: var(--chakra-font-sizes-sm);
+  overflow-wrap: anywhere;
+}
+
+.messageAttachmentImage {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  align-self: flex-start;
+  border-radius: 6px;
+}
+
+.messageAttachmentName {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.messageAttachmentName svg {
+  flex-shrink: 0;
+}
+
 /* 입력창 바로 위, 정사각형 썸네일이 가로로 늘어선다. 파일이 많아지면 다음 줄로 접힌다. */
 .attachments {
   flex: none;

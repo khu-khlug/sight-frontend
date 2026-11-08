@@ -20,6 +20,9 @@ export const GroupChatApi = {
     const form = new FormData();
     form.append("content", input.content);
     input.files.forEach((file) => form.append("files", file, file.name));
-    return (await apiV2Client.post<ChatMessageDto>(`/groups/${groupId}/chat-messages`, form)).data;
+    // multipart 경계는 브라우저가 파일 본문과 함께 지정한다.
+    return (await apiV2Client.post<ChatMessageDto>(`/groups/${groupId}/chat-messages`, form, {
+      headers: { "Content-Type": null },
+    })).data;
   },
 };

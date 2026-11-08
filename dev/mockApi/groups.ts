@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { GroupStatus, GroupVisibility } from "../../src/constant";
 import type { OpenSeminarCohortDto } from "../../src/api/public/group/GroupExposureApi";
 import { getGroupRepositoryUrlError, GROUP_REPOSITORY_SEPARATOR, MAX_GROUP_REPOSITORIES } from "../../src/util/groupRepositoryUrls";
@@ -26,10 +29,20 @@ export const uploads = new Map<string, { fileName: string; contentType: string; 
 for (const file of MOCK_UPLOADED_RECORD_FILES) {
   uploads.set(file.fileId, { fileName: file.name, contentType: file.contentType, data: Buffer.from(file.data, file.contentType === "image/png" ? "base64" : "utf8"), used: true, inline: true, groupId: "1", uploaded: true, purpose: "record" });
 }
+const coverFileId = "mock-card-cover-image";
+uploads.set(coverFileId, {
+  fileName: "kanban-cover-demo.svg",
+  contentType: "image/svg+xml",
+  data: readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "assets", "kanban-cover-demo.svg")),
+  used: true,
+  inline: true,
+  groupId: "1",
+  uploaded: true,
+  purpose: "cover",
+});
 for (const card of state.lists.flatMap((list) => list.cards)) {
   if (card.coverImageUrl === "/__mock-api/assets/kanban-cover-demo.svg") {
-    const image = MOCK_UPLOADED_RECORD_FILES[0];
-    card.coverImageUrl = `/__mock-api/groups/1/files/${image.fileId}`;
+    card.coverImageUrl = `/__mock-api/groups/1/files/${coverFileId}`;
   }
 }
 const ok = (body?: unknown): Result => ({ status: body === undefined ? 204 : 200, body });
@@ -413,7 +426,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     if (attachments.some((a) => !a || typeof a.name !== "string" || typeof a.url !== "string")) return fail("첨부파일을 확인해주세요.");
     const messageId = (state.chatMessages.reduce((max, message) => BigInt(message.id) > max ? BigInt(message.id) : max, 0n) + 1n).toString();
     const message = { id: messageId, authorName: "테스트 회원", content: text(input.content), createdAt: now(), attachments };
-    state.chatMessages.push(message); return ok(message);
+    state.chatMessages.push(message); return { status: 201, body: message };
   }
   if (path === "portfolio" && ["POST", "DELETE"].includes(method ?? "")) {
     if (!leader) return fail("그룹장 권한이 필요합니다.", 403);
