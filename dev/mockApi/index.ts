@@ -151,9 +151,9 @@ export function mockApi(): Plugin {
           const input = body && typeof body === "object" ? body as { manager?: unknown } : {};
           if (typeof input.manager === "boolean") mockManager = input.manager;
           sendJson(response, 204, undefined);
-        } else if (request.method === "GET" && route === "/groups/user-preference") {
+        } else if (request.method === "GET" && route === "/users/@me/preference") {
           sendJson(response, 200, { usePersonalGithubUsage });
-        } else if (request.method === "PATCH" && route === "/groups/user-preference") {
+        } else if (request.method === "PATCH" && route === "/users/@me/preference") {
           const input = body && typeof body === "object" ? body as { usePersonalGithubUsage?: unknown } : {};
           if (typeof input.usePersonalGithubUsage !== "boolean") { sendJson(response, 400, { message: "개인 사용량 설정을 확인해 주세요." }); return; }
           usePersonalGithubUsage = input.usePersonalGithubUsage;

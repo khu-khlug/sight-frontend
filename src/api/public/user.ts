@@ -64,7 +64,7 @@ export type UpdateUserPreferenceRequestDto = {
 };
 
 const updatePreference = async (input: UpdateUserPreferenceRequestDto): Promise<void> => {
-  await apiV2Client.patch("/groups/user-preference", input);
+  await apiV2Client.patch("/users/@me/preference", input);
 };
 
 export type UserPublicApiDto = {
@@ -78,5 +78,5 @@ export const UserPublicApi = {
   disconnectDiscordIntegration,
   checkFirstTodayLogin,
   updatePreference,
-  getPreference: async (): Promise<UpdateUserPreferenceRequestDto> => (await apiV2Client.get<UpdateUserPreferenceRequestDto>("/groups/user-preference")).data,
+  getPreference: async (): Promise<UpdateUserPreferenceRequestDto> => (await apiV2Client.get<UpdateUserPreferenceRequestDto>("/users/@me/preference")).data,
 };
