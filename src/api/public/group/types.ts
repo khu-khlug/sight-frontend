@@ -54,5 +54,3 @@ export type GroupInfoResponseDto = {
   hasChatRoom: boolean;
   chatRoomUrl: string | null;
 };
-// 개발용 시나리오에서 바꿀 수 있는 그룹 정보. 그룹장 지정은 목업 서버가 회원 아이디로 처리한다.
-export type GroupScenarioInfo = Partial<Omit<GroupInfoDto, "isLeader">> & { leaderUserId?: number };
