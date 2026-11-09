@@ -67,7 +67,7 @@ export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmi
       await onSubmit({ fileUploadId: upload.fileUploadId });
       onClose();
     } catch (error) {
-      if (!isCommitting) toast.error(extractErrorMessage(error));
+      if (!isCommitting) toast.error(extractErrorMessage(error as Error));
     }
   };
 
@@ -90,7 +90,7 @@ export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmi
       const extension = blob.type.split("/")[1] || "image";
       await uploadFile(new File([blob], `cover.${extension}`, { type: blob.type }));
     } catch (error) {
-      toast.error(extractErrorMessage(error));
+      toast.error(extractErrorMessage(error as Error));
     } finally {
       setIsSubmitting(false);
     }
