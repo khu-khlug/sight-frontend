@@ -1,3 +1,6 @@
+// 아래 타입을 통해 브라우저용 src 파일도 vite.config.ts의 타입 검사 범위에 들어온다.
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
 import type {
   RepoBranch,
   RepoCommit,
