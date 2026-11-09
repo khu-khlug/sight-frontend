@@ -311,10 +311,14 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
     </>
   );
 
-  const canLeaveGroup = info.isMember && (!isLeader || info.category === GroupCategory.MANAGE)
+  const canLeaveGroup = info.isMember
     && info.status !== GroupStatus.SUCCESS && info.status !== GroupStatus.FAIL;
   const leaveGroup = () => {
     if (action.isPending || !canLeaveGroup) return;
+    if (isLeader && info.category !== GroupCategory.MANAGE) {
+      window.alert("다른 멤버에게 그룹장을 위임한 뒤 나갈 수 있습니다.");
+      return;
+    }
     if (!window.confirm(`"${info.title}" 그룹에서 나가시겠습니까?`)) return;
     action.mutate(() => GroupSettingsApi.leaveGroup(info.id));
   };

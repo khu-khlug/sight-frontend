@@ -19,7 +19,7 @@ const ROOM_IDS = ["405", "406", "410"];
 const toDateKey = (dateTime: string) => dayjs(dateTime).format("YYYY-MM-DD");
 const formatLocation = (location: string) => (ROOM_IDS.includes(location) ? `${location}호` : location);
 
-export default function GroupSchedule({ groupId, category }: { groupId: string; category: GroupCategory }) {
+export default function GroupSchedule({ groupId, category, isMember }: { groupId: string; category: GroupCategory; isMember: boolean }) {
   const [anchorDate, setAnchorDate] = useState(() => dayjs().format("YYYY-MM-DD"));
   const [byRoom, setByRoom] = useState(false);
   const [formMounted, setFormMounted] = useState(false);
@@ -117,7 +117,7 @@ export default function GroupSchedule({ groupId, category }: { groupId: string; 
       <Text fontSize="sm" color="gray.500">일정 없음</Text>
     ) : items.map((schedule) => {
       const dot = <span className={styles.dot} style={{ backgroundColor: getCategoryColor(schedule.category) }} />;
-      if (String(schedule.groupId) !== groupId) {
+      if (!isMember || schedule.groupId !== groupId) {
         return (
           <div key={schedule.id} className={styles.item}>
             {dot}
@@ -166,7 +166,7 @@ export default function GroupSchedule({ groupId, category }: { groupId: string; 
         >
           장소별 보기
         </Button>
-        <Button size="sm" variant="outline" flex="1" minW={0} onClick={handleToggleForm} _active={{ transform: "scale(0.97)" }}>
+        <Button size="sm" variant="outline" flex="1" minW={0} disabled={!isMember} onClick={handleToggleForm} _active={{ transform: "scale(0.97)" }}>
           {showForm ? "✕ 닫기" : "+ 일정 예약"}
         </Button>
       </div>

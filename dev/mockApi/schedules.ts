@@ -4,7 +4,7 @@ const formatLocal = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth()
 // 언제 띄워도 달력과 주간 일정을 확인할 수 있게, 이번 주 일요일을 기준으로 날짜를 만든다.
 // dayOffset 0은 이번 주 일요일이며, 이번 주 일·화·금은 일정이 없는 날로 둔다.
 // 그룹활동의 기본 그룹은 목업 그룹(1)이고, groupId를 지정한 일정은 다른 그룹 일정이다.
-const SCHEDULE_TEMPLATES: { dayOffset: number; hour: number; minute: number; hours: number; title: string; category: string; location: string | null; groupId?: number }[] = [
+const SCHEDULE_TEMPLATES: { dayOffset: number; hour: number; minute: number; hours: number; title: string; category: string; location: string | null; groupId?: string }[] = [
   { dayOffset: -6, hour: 19, minute: 0, hours: 2, title: "동아리 정기 모임", category: "CLUB", location: "405" },
   { dayOffset: -3, hour: 14, minute: 0, hours: 1, title: "운영진 회의", category: "MANAGEMENT", location: "410" },
   { dayOffset: 1, hour: 10, minute: 0, hours: 1, title: "그룹 스터디", category: "GROUP_ACTIVITY", location: "405" },
@@ -12,7 +12,7 @@ const SCHEDULE_TEMPLATES: { dayOffset: number; hour: number; minute: number; hou
   { dayOffset: 3, hour: 9, minute: 0, hours: 3, title: "중간고사 기간 안내", category: "ACADEMIC", location: null },
   { dayOffset: 4, hour: 13, minute: 0, hours: 2, title: "외부 연사 특강", category: "EXTERNAL", location: "410" },
   { dayOffset: 6, hour: 11, minute: 0, hours: 4, title: "빅세미나", category: "BIG_SEMINAR", location: "405" },
-  { dayOffset: 6, hour: 15, minute: 30, hours: 1, title: "다른 그룹 프로젝트 회고", category: "GROUP_ACTIVITY", location: "406", groupId: 2 },
+  { dayOffset: 6, hour: 15, minute: 30, hours: 1, title: "다른 그룹 프로젝트 회고", category: "GROUP_ACTIVITY", location: "406", groupId: "2" },
   { dayOffset: 6, hour: 18, minute: 0, hours: 2, title: "세미나 뒤풀이", category: "AFTERPARTY", location: null },
   { dayOffset: 9, hour: 16, minute: 0, hours: 1, title: "동아리 물품 정리", category: "OTHER", location: "405" },
   { dayOffset: 12, hour: 19, minute: 0, hours: 2, title: "그룹 발표 연습", category: "GROUP_ACTIVITY", location: "410" },
@@ -34,7 +34,7 @@ function createSchedules() {
       endAt: formatLocal(end),
       expoint: 0,
       author: 1,
-      groupId: template.groupId ?? (template.category === "GROUP_ACTIVITY" ? 1 : null),
+      groupId: template.groupId ?? (template.category === "GROUP_ACTIVITY" ? "1" : null),
     };
   });
 }
@@ -97,7 +97,7 @@ export function handleScheduleRequest(method: string | undefined, url: URL, body
       endAt: input.endAt,
       expoint: typeof input.expoint === "number" ? input.expoint : 0,
       author: 1,
-      groupId: typeof input.groupId === "number" ? input.groupId : null,
+      groupId: typeof input.groupId === "string" ? input.groupId : null,
     });
     return { status: 204, body: undefined };
   }

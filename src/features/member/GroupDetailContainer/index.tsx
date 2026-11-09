@@ -1,4 +1,4 @@
-import { AssigneeFilterProvider } from "./AssigneeFilter";
+import { AssigneeFilterProvider, useAssigneeFilter } from "./AssigneeFilter";
 import ContentSkeleton from "../../../components/ContentSkeleton";
 import { GroupStatus } from "../../../constant";
 import { toast } from "react-toastify";
@@ -76,10 +76,15 @@ function CardWindowWithDetail({ cardId, ...props }: CardWindowWithDetailProps) {
 }
 
 function GroupDetailPage({ groupId }: { groupId: string }) {
+  const { setOnlyAssignedToMe } = useAssigneeFilter();
   const infoQuery = useQuery({
     queryKey: ["group-detail", groupId, "info"],
     queryFn: () => GroupInfoApi.getGroup(groupId),
   });
+  // 비그룹원에게는 필터 버튼이 없으므로 켜진 상태로 남으면 끌 방법이 없다.
+  useEffect(() => {
+    if (infoQuery.data?.isMember === false) setOnlyAssignedToMe(false);
+  }, [infoQuery.data?.isMember, setOnlyAssignedToMe]);
   const queryClient = useQueryClient();
   const kanbanQueryKey = useMemo(() => ["group-detail", groupId, "kanban"] as const, [groupId]);
   // 리스트는 10개, 리스트 안의 카드는 15개씩 이어 불러온다. 다시 불러올 때(변경 후 무효화 등)는

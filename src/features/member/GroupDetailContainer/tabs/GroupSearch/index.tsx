@@ -19,6 +19,7 @@ import styles from "./style.module.css";
 
 type Props = {
   groupId: string;
+  isMember: boolean;
   enabledFilters: Set<LabelFilterKey>;
   onToggleFilter: (key: LabelFilterKey) => void;
   onOpenCard: (cardId: string, recordId?: string | null) => void;
@@ -35,7 +36,7 @@ const SEARCH_TARGET_LABEL: Record<SearchTarget, string> = {
 
 // 필터는 칸반 카드의 강조 상태에 적용한다. 검색 결과는 검색 대상과 검색어로 조회한다.
 // 필터와 검색 입력은 고정하고 결과 목록만 스크롤한다.
-export default function GroupSearch({ groupId, enabledFilters, onToggleFilter, onOpenCard }: Props) {
+export default function GroupSearch({ groupId, isMember, enabledFilters, onToggleFilter, onOpenCard }: Props) {
   const { onlyAssignedToMe, setOnlyAssignedToMe, canFilter } = useAssigneeFilter();
   const [searchTarget, setSearchTarget] = useState<SearchTarget>("title");
   const [query, setQuery] = useState("");
@@ -134,17 +135,21 @@ export default function GroupSearch({ groupId, enabledFilters, onToggleFilter, o
           </AppTooltip>
         </Box>
 
-        <Button
-          size="sm"
-          variant={onlyAssignedToMe ? "solid" : "outline"}
-          aria-pressed={onlyAssignedToMe}
-          disabled={!canFilter}
-          onClick={() => setOnlyAssignedToMe(!onlyAssignedToMe)}
-          mb={2}
-        >
-          내 담당 카드만
-        </Button>
-        <br/><br/>
+        {isMember && (
+          <>
+            <Button
+              size="sm"
+              variant={onlyAssignedToMe ? "solid" : "outline"}
+              aria-pressed={onlyAssignedToMe}
+              disabled={!canFilter}
+              onClick={() => setOnlyAssignedToMe(!onlyAssignedToMe)}
+              mb={2}
+            >
+              내 담당 카드만
+            </Button>
+            <br/><br/>
+          </>
+        )}
         <Text fontSize="sm" fontWeight="medium" mb={2}>
           검색대상
         </Text>

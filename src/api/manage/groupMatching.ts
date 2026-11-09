@@ -59,7 +59,7 @@ export type GroupMatchingOptionDto = {
 
 // GET /group-matchings/{groupMatchingId}/groups 각 항목
 export type GroupResponse = {
-  id: number;
+  id: string;
   title: string;
   members: Array<{
     id: number;
@@ -90,7 +90,7 @@ export type GroupMatchingAnswerDto = {
   role: string | null;
   hasIdea: boolean | null;
   idea: string | null;
-  matchedGroups: { id: string; groupId: number; createdAt: string }[];
+  matchedGroups: { id: string; groupId: string; createdAt: string }[];
   createdAt: string;
   updatedAt: string;
 };

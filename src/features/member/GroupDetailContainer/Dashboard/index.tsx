@@ -244,13 +244,14 @@ export default function Dashboard({
                   // 해서 공용 ScrollArea 대신 .tabArea 높이를 그대로 넘긴다.
                   <GroupSearch
                     groupId={groupInfo.id}
+                    isMember={groupInfo.isMember}
                     onOpenCard={onOpenCard}
                     enabledFilters={enabledFilters}
                     onToggleFilter={onToggleFilter}
                   />
                 ) : activeId === "schedule" ? (
                   // 스케줄 탭은 달력을 고정하고 주간 일정만 스크롤한다.
-                  <GroupSchedule groupId={groupInfo.id} category={groupInfo.category} />
+                  <GroupSchedule groupId={groupInfo.id} category={groupInfo.category} isMember={groupInfo.isMember} />
                 ) : activeId === "archive" ? (
                   // 아카이브 전환 버튼은 고정하고, 두 목록만 각자 스크롤한다.
                   <GroupArchive groupId={groupInfo.id} lists={lists} onOpenRecord={onOpenRecord}
@@ -312,7 +313,11 @@ export default function Dashboard({
                         ) : activeId === "member" ? (
                           <GroupMemberList groupId={groupInfo.id} category={groupInfo.category} status={groupInfo.status} />
                         ) : activeId === "log" ? (
-                          <GroupActivityLog groupId={groupInfo.id} onOpenCard={onOpenCard} />
+                          groupInfo.isMember ? (
+                            <GroupActivityLog groupId={groupInfo.id} onOpenCard={onOpenCard} />
+                          ) : (
+                            <Text role="status" fontSize="sm" color="gray.500">그룹 멤버만 활동 로그를 볼 수 있습니다.</Text>
+                          )
                         ) : activeId === "development" ? (
                           <GroupDevelopment
                             info={groupInfo}

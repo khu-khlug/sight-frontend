@@ -26,7 +26,7 @@ export type ScheduleListItemDto = {
   endAt: string;
   expoint: number;
   author: number;
-  groupId: number | null;
+  groupId: string | null;
 };
 
 export type ListSchedulesRequestDto = {
@@ -51,7 +51,7 @@ export type GetScheduleResponseDto = {
   checkCode: string | null; // 운영진에게만 노출
   author: number;
   authorName: string | null;
-  groupId: number | null;
+  groupId: string | null;
   groupTitle: string | null;
   createdAt: string;
   updatedAt: string;
@@ -111,7 +111,7 @@ const createGroupActivitySchedule = async (body: {
   location: string;
   scheduledAt: string;
   endAt: string;
-  groupId: number;
+  groupId: string;
 }): Promise<void> => {
   await apiV2Client.post("/schedules/group-activity", body);
 };

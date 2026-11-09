@@ -121,7 +121,7 @@ export default function GroupArchive({ groupId, lists, canRestore, canViewDelete
           aria-pressed={activeView === "records"}
           onClick={() => handleViewChange("records")}
         >
-          보관한 기록 <span className={styles.count}>{savedRecordCount}</span>
+          내 보관 기록 <span className={styles.count}>{savedRecordCount}</span>
         </button>
         <button
           type="button"

@@ -145,7 +145,7 @@ export default function ScheduleForm({
         }
       } else if (isGroupActivity) {
         await SchedulePublicApi.createGroupActivitySchedule({
-          title, location: loc, scheduledAt, endAt, groupId: Number(groupId),
+          title, location: loc, scheduledAt, endAt, groupId,
         });
       } else if (isBigSeminar) {
         await SchedulePublicApi.createBigSeminarSchedule({
@@ -240,7 +240,7 @@ export default function ScheduleForm({
             >
               <option value="">그룹 선택</option>
               {myGroups.filter((g) => g.state === "PROGRESS").map((g) => (
-                <option key={g.id} value={String(g.id)}>
+                <option key={g.id} value={g.id}>
                   {g.title}
                 </option>
               ))}

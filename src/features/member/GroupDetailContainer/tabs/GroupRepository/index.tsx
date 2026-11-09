@@ -214,7 +214,7 @@ export default function GroupRepository({
             <ContentSkeleton />
           ) : branchesQuery.isError ? (
             <Text fontSize="sm" color="gray.500" mt={4}>
-              저장소에 접근할 수 없습니다.
+              {repositoryErrorMessage(branchesQuery.error, "저장소에 접근할 수 없습니다.")}
             </Text>
           ) : !activeBranch ? (
             <Text fontSize="sm" color="gray.500" mt={4}>브랜치가 없습니다.</Text>
@@ -267,7 +267,7 @@ export default function GroupRepository({
                   footer={
                     <>
                       {commitsQuery.isFetchNextPageError && (
-                        <Text role="alert" fontSize="xs" px={2} py={1} color="gray.500">이전 커밋을 불러올 수 없습니다.</Text>
+                        <Text role="alert" fontSize="xs" px={2} py={1} color="gray.500">{repositoryErrorMessage(commitsQuery.error, "이전 커밋을 불러올 수 없습니다.")}</Text>
                       )}
                       {(commitsQuery.hasNextPage || commitsQuery.isFetchNextPageError) && (
                         <Button
@@ -290,7 +290,7 @@ export default function GroupRepository({
               </div>
               {commitsQuery.isError && commits.length === 0 && (
                 <Text fontSize="xs" color="gray.500" mt={2}>
-                  커밋 목록을 불러올 수 없습니다. 브랜치 HEAD의 파일을 표시합니다.
+                  {repositoryErrorMessage(commitsQuery.error, "커밋 목록을 불러올 수 없습니다. 브랜치 HEAD의 파일을 표시합니다.")}
                 </Text>
               )}
               {treeQuery.data?.truncated && <Text role="status" fontSize="xs" color="gray.500">저장소의 파일이 많아 일부만 표시합니다.</Text>}
@@ -298,7 +298,7 @@ export default function GroupRepository({
                 <ContentSkeleton />
               ) : treeQuery.isError ? (
                 <Text fontSize="sm" color="gray.500" mt={4}>
-                  파일 트리를 불러올 수 없습니다.
+                  {repositoryErrorMessage(treeQuery.error, "파일 트리를 불러올 수 없습니다.")}
                 </Text>
               ) : treeQuery.data ? (
                 <ScrollArea.Root className={styles.treeScrollArea} size="sm" variant="hover">
