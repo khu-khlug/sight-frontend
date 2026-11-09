@@ -181,7 +181,7 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
   };
 
   const addFiles = (files: File_[]) => {
-    if (!mountedRef.current || action.isPending) return;
+    if (!mountedRef.current || action.isPending || !isWritable) return;
     const accepted: Attachment[] = [];
     let totalSize = attachmentsRef.current.reduce((sum, attachment) => sum + attachment.file.size, 0);
 
@@ -236,7 +236,7 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
   const handleDragEnter = (event: DragEvent<HTMLDivElement>) => {
     if (!hasFileDrag(event.dataTransfer)) return;
     event.preventDefault();
-    if (action.isPending) return;
+    if (action.isPending || !isWritable) return;
     dragDepthRef.current += 1;
     setIsDragOver(true);
   };
@@ -244,7 +244,7 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
     if (!hasFileDrag(event.dataTransfer)) return;
     event.preventDefault();
-    event.dataTransfer.dropEffect = action.isPending ? "none" : "copy";
+    event.dataTransfer.dropEffect = action.isPending || !isWritable ? "none" : "copy";
   };
 
   const handleDragLeave = (event: DragEvent<HTMLDivElement>) => {
@@ -259,7 +259,7 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
     event.stopPropagation();
     dragDepthRef.current = 0;
     setIsDragOver(false);
-    if (action.isPending) return;
+    if (action.isPending || !isWritable) return;
     const dragged = readDraggedFile(event.dataTransfer);
     if (dragged) void addRemoteFile(dragged);
     else addFiles(Array.from(event.dataTransfer.files));
@@ -304,6 +304,10 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
   // 파일은 SIGHT 서버로 전송한다. 실패하면 입력과 첨부를 그대로 유지한다.
   const handleSend = () => {
     if (!isWritable || action.isPending || loadingAttachmentCount > 0 || (!draft.trim() && attachments.length === 0)) return;
+    if (draft.length > MAX_MESSAGE_LENGTH) {
+      toast.error("메시지는 2000자까지 보낼 수 있습니다.");
+      return;
+    }
     action.mutate(async () => {
       try {
         return await GroupChatApi.sendGroupDiscordMessage(groupId, { content: draft.trim(), files: attachments.map(({ file }) => file) });
@@ -331,11 +335,13 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
   // 이모지 피커에서 고르면 (커서가 있던 자리에) 끼워 넣는다. 값 변경 직후엔 아직 textarea가
   // 리렌더되기 전이라 새 커서 위치를 바로 못 잡아서, 다음 프레임에서 위치/높이를 맞춘다.
   const handleInsertEmoji = (text: string) => {
-    if (action.isPending) return;
+    if (action.isPending || !isWritable) return;
     const el = textareaRef.current;
     const start = el?.selectionStart ?? draft.length;
     const end = el?.selectionEnd ?? draft.length;
-    setDraft(draft.slice(0, start) + text + draft.slice(end));
+    const nextDraft = draft.slice(0, start) + text + draft.slice(end);
+    if (nextDraft.length > MAX_MESSAGE_LENGTH) return;
+    setDraft(nextDraft);
 
     requestAnimationFrame(() => {
       if (!el) return;
@@ -552,7 +558,7 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
           h="28px"
           p={0}
           onClick={handlePickFiles}
-          disabled={action.isPending}
+          disabled={action.isPending || !isWritable}
         >
           <Plus size={16} />
         </IconButton>
@@ -576,7 +582,7 @@ export default function GroupChat({ groupId, isMember, isLeader, hasChatRoom, ch
             <EmojiPicker onSelect={handleInsertEmoji} onClose={() => setShowEmojiPicker(false)} />
           </Suspense>
         ) : (
-          <IconButton disabled={action.isPending} type="button" size="xs" variant="ghost" aria-label="이모지" minW="28px" h="28px" p={0} onClick={() => setShowEmojiPicker(true)}>
+          <IconButton disabled={action.isPending || !isWritable} type="button" size="xs" variant="ghost" aria-label="이모지" minW="28px" h="28px" p={0} onClick={() => setShowEmojiPicker(true)}>
             <Smile size={16} />
           </IconButton>
         )}

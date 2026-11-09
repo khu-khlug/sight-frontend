@@ -49,7 +49,9 @@ export default function GroupActivityLog({ groupId, onOpenCard }: Props) {
   const totalCount = logsQuery.data?.pages[0]?.totalCount ?? 0;
 
   if (logsQuery.isPending) return <ContentSkeleton />;
-  if (logsQuery.isError && !logsQuery.data) return <Text role="alert">활동 로그를 불러오지 못했습니다.</Text>;
+  if (logsQuery.isError && !logsQuery.data) return (
+    <Box><Text role="alert">활동 로그를 불러오지 못했습니다.</Text><Button size="sm" mt={2} onClick={() => void logsQuery.refetch()}>다시 시도</Button></Box>
+  );
   return (
     <Box>
       <Text fontSize="sm" color="gray.500" mb={3}>

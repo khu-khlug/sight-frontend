@@ -25,7 +25,7 @@ for (const saved of state.savedRecords.filter((record) => record.isCardDeleted))
 }
 let openCohort: OpenSeminarCohortDto | null = state.openSeminarCohort;
 // inline: 기록 본문의 <img>/<audio>가 바로 재생할 수 있게 다운로드(attachment) 대신 원래 형식으로 내려준다.
-export const uploads = new Map<string, { fileName: string; contentType: string; data?: Buffer; used: boolean; inline?: boolean; groupId?: string; uploaded?: boolean; purpose?: "record" | "cover" | "report" }>();
+export const uploads = new Map<string, { fileName: string; contentType: string; data?: Buffer; used: boolean; inline?: boolean; groupId?: string; uploaded?: boolean; cardId?: string; purpose?: "record" | "cover" | "report" }>();
 for (const file of MOCK_UPLOADED_RECORD_FILES) {
   uploads.set(file.fileId, { fileName: file.name, contentType: file.contentType, data: Buffer.from(file.data, file.contentType === "image/png" ? "base64" : "utf8"), used: true, inline: true, groupId: "1", uploaded: true, purpose: "record" });
 }
@@ -487,7 +487,7 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
     // activity-report와 같은 범용 uploads 맵/서빙 경로(/__mock-api/uploads/:id)를 그대로
     // 재사용한다 — 업로드 메커니즘 자체는 어떤 파일이든 동일하다.
     const fileUploadId = id();
-    uploads.set(fileUploadId, { fileName: text(input.fileName), contentType: text(input.contentType), used: false, groupId: match[2], purpose: "cover", inline: true });
+    uploads.set(fileUploadId, { fileName: text(input.fileName), contentType: text(input.contentType), used: false, groupId: match[2], purpose: "cover", cardId: route[1], inline: true });
     return ok({ fileUploadId, url: `/__mock-api/uploads/${fileUploadId}` });
   }
   if (route[0] === "cards" && route.length === 3 && ["PUT", "PATCH", "POST", "DELETE"].includes(method ?? "") && route[2] !== "records") {
@@ -518,14 +518,9 @@ export function handleGroupRequest(method: string | undefined, url: URL, body: u
       if (method === "DELETE") {
         card.coverImageUrl = null; return changed("카드 커버 이미지를 삭제했습니다.");
       }
-      // URL 직접 입력/붙여넣기는 coverImageUrl로, 파일 업로드/드래그앤드롭은 업로드 링크로
-      // 먼저 받은 fileUploadId로 온다 — 둘 중 하나만 실려 있으면 된다.
-      if (typeof input.coverImageUrl === "string" && text(input.coverImageUrl)) {
-        card.coverImageUrl = text(input.coverImageUrl); return changed("카드 커버 이미지를 변경했습니다.");
-      }
       if (typeof input.fileUploadId === "string") {
         const upload = uploads.get(input.fileUploadId);
-        if (!upload) return fail("업로드한 파일을 찾을 수 없습니다.", 404);
+        if (!upload || upload.purpose !== "cover" || upload.groupId !== match[2] || upload.cardId !== card.id || upload.used || !upload.data) return fail("업로드한 파일을 찾을 수 없습니다.", 404);
         upload.used = true; upload.uploaded = true;
         card.coverImageUrl = `/__mock-api/groups/${match[2]}/files/${input.fileUploadId}`; return changed("카드 커버 이미지를 변경했습니다.");
       }

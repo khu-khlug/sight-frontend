@@ -24,6 +24,7 @@ import GroupExposure from "../tabs/GroupExposure";
 import GroupInfo from "../tabs/GroupInfo";
 import { GroupInfo as GroupInfoData } from "../tabs/GroupInfo/types";
 import GroupMemberList from "../tabs/GroupMemberList";
+import GroupSchedule from "../tabs/GroupSchedule";
 import GroupRepository from "../tabs/GroupRepository";
 import type { RepositoryScrollMetrics } from "../tabs/GroupRepository";
 import RepositoryHorizontalScrollbar from "../tabs/GroupRepository/RepositoryHorizontalScrollbar";
@@ -47,7 +48,7 @@ type Props = {
   onToggleFilter: (key: LabelFilterKey) => void;
   onOpenFile: (content: FileWindowContent) => void;
   onOpenRecord: (groupId: string, recordId: string) => void;
-  onOpenCard: (cardId: string) => void;
+  onOpenCard: (cardId: string, recordId?: string | null) => void;
   // GroupSettings(개인설정 탭)에 그대로 전달한다 — 실제 싱글/듀얼 강제는 WindowLayer가 하고,
   // 여기서는 그 설정의 공통 조상으로서 체크박스 상태만 전달한다.
   dualWindowEnabled: boolean;
@@ -243,12 +244,18 @@ export default function Dashboard({
                   // 해서 공용 ScrollArea 대신 .tabArea 높이를 그대로 넘긴다.
                   <GroupSearch
                     groupId={groupInfo.id}
+                    onOpenCard={onOpenCard}
                     enabledFilters={enabledFilters}
                     onToggleFilter={onToggleFilter}
                   />
+                ) : activeId === "schedule" ? (
+                  // 스케줄 탭은 달력을 고정하고 주간 일정만 스크롤한다.
+                  <GroupSchedule groupId={groupInfo.id} category={groupInfo.category} />
                 ) : activeId === "archive" ? (
                   // 아카이브 전환 버튼은 고정하고, 두 목록만 각자 스크롤한다.
-                  <GroupArchive groupId={groupInfo.id} lists={lists} onOpenRecord={onOpenRecord} />
+                  <GroupArchive groupId={groupInfo.id} lists={lists} onOpenRecord={onOpenRecord}
+                    canViewDeletedCards={groupInfo.isMember}
+                    canRestore={groupInfo.isMember && groupInfo.status !== GroupStatus.SUCCESS && groupInfo.status !== GroupStatus.FAIL} />
                 ) : activeId === "exposure" ? (
                   // 활동공개 탭도 마찬가지 — 포트폴리오/활동보고 폼은 고정, 이전 활동보고
                   // 내역만 스크롤돼야 해서 공용 ScrollArea 대신 .tabArea 높이를 그대로 넘긴다.
@@ -301,9 +308,9 @@ export default function Dashboard({
                         px="15px"
                       >
                         {activeId === "info" ? (
-                          <GroupInfo info={groupInfo} portfolioCounts={portfolioCounts} onTabChange={handleTabChange} />
+                          <GroupInfo isManager={currentUserQuery.data?.manager ?? false} info={groupInfo} portfolioCounts={portfolioCounts} onTabChange={handleTabChange} />
                         ) : activeId === "member" ? (
-                          <GroupMemberList groupId={groupInfo.id} category={groupInfo.category} />
+                          <GroupMemberList groupId={groupInfo.id} category={groupInfo.category} status={groupInfo.status} />
                         ) : activeId === "log" ? (
                           <GroupActivityLog groupId={groupInfo.id} onOpenCard={onOpenCard} />
                         ) : activeId === "development" ? (

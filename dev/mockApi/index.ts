@@ -9,6 +9,7 @@ import { handleAutosaveRequest } from "./autosave";
 import { currentUser, emptyGuildEmojis, emptyNotifications } from "./fixtures";
 import { findMockCardTitle, handleGroupRequest, uploads } from "./groups";
 import { handleRepositoryRequest } from "./repository";
+import { handleScheduleRequest } from "./schedules";
 
 const API_PREFIX = "/__mock-api";
 const ASSETS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "assets");
@@ -167,7 +168,7 @@ export function mockApi(): Plugin {
           const body: unknown = /^multipart\/form-data(?:;|$)/i.test(contentType)
             ? await parseMultipart(raw, contentType)
             : raw.length ? JSON.parse(raw.toString("utf8")) : undefined;
-          const result = handleRepositoryRequest(request.method, url, body) ?? handleAutosaveRequest(request.method, url, body, findMockCardTitle) ?? handleGroupRequest(request.method, url, body, mockManager);
+          const result = handleScheduleRequest(request.method, url, body) ?? handleRepositoryRequest(request.method, url, body) ?? handleAutosaveRequest(request.method, url, body, findMockCardTitle) ?? handleGroupRequest(request.method, url, body, mockManager);
           if (result) {
             if ("headers" in result && result.headers) { response.writeHead(result.status, result.headers as Record<string, string>); response.end(); }
             else sendJson(response, result.status, result.body);

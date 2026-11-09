@@ -182,6 +182,9 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
     }),
     onSuccess: (_data, usePersonalGithub) => {
       queryClient.setQueryData(preferenceKey, { usePersonalGithubUsage: usePersonalGithub });
+      queryClient.removeQueries({
+        predicate: (query) => ["repo-branches", "repo-commits", "repo-tree"].includes(String(query.queryKey[0])),
+      });
       const saved = { dualWindowEnabled: groupPagePreferences.getSnapshot().dualWindowEnabled, usePersonalGithub };
       savedSettingsRef.current = saved;
       draftRef.current = saved;
@@ -230,8 +233,8 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
   };
 
   const toggleStatusActions = () => {
-    if (!isLeader) {
-      window.alert("그룹장만 그룹 상태를 변경할 수 있습니다.");
+    if (!isLeader && !isManager) {
+      window.alert("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.");
       return;
     }
     setShowStatus((value) => !value);
@@ -242,8 +245,8 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
   entryActionsRef.current = {
     openEditor,
     openStatus: () => {
-      if (!isLeader) {
-        window.alert("그룹장만 그룹 상태를 변경할 수 있습니다.");
+      if (!isLeader && !isManager) {
+        window.alert("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.");
         return;
       }
       setShowStatus(true);
@@ -308,8 +311,10 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
     </>
   );
 
+  const canLeaveGroup = info.isMember && (!isLeader || info.category === GroupCategory.MANAGE)
+    && info.status !== GroupStatus.SUCCESS && info.status !== GroupStatus.FAIL;
   const leaveGroup = () => {
-    if (action.isPending) return;
+    if (action.isPending || !canLeaveGroup) return;
     if (!window.confirm(`"${info.title}" 그룹에서 나가시겠습니까?`)) return;
     action.mutate(() => GroupSettingsApi.leaveGroup(info.id));
   };
@@ -318,8 +323,8 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
     <div className={styles.container}>
       <div className={`${styles.menu} ${!isEditing ? styles.activePane : ""}`} aria-hidden={isEditing}>
         <button type="button" className={styles.menuButton} onClick={openEditor}><SquarePen size={20} aria-hidden="true" />그룹 정보 변경</button>
-        <button type="button" className={styles.menuButton} onClick={toggleStatusActions} aria-expanded={isLeader && showStatus}><RefreshCw size={20} aria-hidden="true" />그룹 상태 변경</button>
-        {isLeader && <div className={styles.statusActions} data-open={showStatus} aria-hidden={!showStatus}>
+        <button type="button" className={styles.menuButton} onClick={toggleStatusActions} aria-expanded={(isLeader || isManager) && showStatus}><RefreshCw size={20} aria-hidden="true" />그룹 상태 변경</button>
+        {(isLeader || isManager) && <div className={styles.statusActions} data-open={showStatus} aria-hidden={!showStatus}>
           <div className={styles.statusActionContent}>
             {renderStatusActions(showStatus)}
           </div>
@@ -335,7 +340,7 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
             {/* 그룹 단위가 아니라 전역 설정 — 멤버 마이페이지가 아직 마이그레이션 전이라 임시로 여기 둔다. */}
             <SettingToggleRow
               label="깃허브 API 개인 사용량 사용"
-              description={"조회 제한이 시간당 500회에서 5,000회로 늘어나며, 개인 비공개 저장소도 조회할 수 있습니다. 비공개 저장소의 조회 결과는 백엔드에 캐싱되지 않아, 같은 리소스를 다시 조회해도 API 사용량이 소모될 수 있습니다.\n\n이 개인 설정은 사용자의 모든 그룹에서 동일하게 적용됩니다. 이 설정을 사용하다 비활성화하면, 그로부터 7일 동안 다시 활성화할 수 없습니다."}
+              description={"조회 제한이 시간당 100회에서 5,000회로 늘어나며, 개인 비공개 저장소도 조회할 수 있습니다. 비공개 저장소의 조회 결과는 백엔드에 캐싱되지 않아, 같은 리소스를 다시 조회해도 API 사용량이 소모될 수 있습니다.\n\n이 개인 설정은 사용자의 모든 그룹에서 동일하게 적용됩니다. 이 설정을 사용하다 비활성화하면, 그로부터 7일 동안 다시 활성화할 수 없습니다."}
               isRightSelected={draft.usePersonalGithub}
               {...booleanToggleSides((value) => updateDraft((current) => ({ ...current, usePersonalGithub: value })))}
             />
@@ -356,7 +361,7 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
           </div>
         </>}
         <button type="button" className={styles.menuButton}><BookOpen size={20} aria-hidden="true" />사용법 튜토리얼</button>
-        <button type="button" className={styles.menuButton} disabled={action.isPending || info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL} onClick={leaveGroup}><LogOut size={20} aria-hidden="true" />그룹 나가기</button>
+        <button type="button" className={styles.menuButton} disabled={action.isPending || !canLeaveGroup} title={isLeader && info.category !== GroupCategory.MANAGE ? "다른 멤버에게 그룹장을 위임한 뒤 나갈 수 있습니다." : undefined} onClick={leaveGroup}><LogOut size={20} aria-hidden="true" />그룹 나가기</button>
       </div>
       <GroupInfoEditor
         info={info}

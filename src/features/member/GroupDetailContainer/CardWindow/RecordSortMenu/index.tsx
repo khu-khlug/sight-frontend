@@ -18,23 +18,24 @@ type Props = {
   value: RecordSortOrder;
   onChange: (value: RecordSortOrder) => void;
   triggerClassName: string;
+  disabled?: boolean;
 };
 
-export default function RecordSortMenu({ value, onChange, triggerClassName }: Props) {
+export default function RecordSortMenu({ value, onChange, triggerClassName, disabled = false }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
     <Popover.Root
-      open={open}
-      onOpenChange={(details) => setOpen(details.open)}
+      open={open && !disabled}
+      onOpenChange={(details) => { if (!disabled) setOpen(details.open); }}
       lazyMount
       unmountOnExit
       positioning={{ placement: "bottom-end" }}
     >
       <Popover.Trigger asChild>
-        <Box as="button" className={triggerClassName} aria-label="기록 정렬">
+        <button type="button" disabled={disabled} className={triggerClassName} aria-label="기록 정렬">
           <ArrowUpDown size={16} />
-        </Box>
+        </button>
       </Popover.Trigger>
       <Portal>
         <Popover.Positioner>

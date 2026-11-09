@@ -4,6 +4,7 @@ import apiV2Client from "../../client/v2";
 // 주소를 백엔드가 내려준다(토큰·요청 한도 등 외부 서비스 인증은 백엔드 책임). 프런트는
 // 이 주소로 바로 fetch/<img>/<video> 등에 쓴다.
 export type RepoTreeEntry = { path: string; type: "blob" | "tree"; rawUrl?: string };
+export type RepoTree = { commitSha: string; truncated: boolean; entries: RepoTreeEntry[] };
 export type RepoBranch = { name: string; isDefault: boolean };
 export type RepoCommit = {
   sha: string;
@@ -35,28 +36,34 @@ const getCommits = async (
   url: string,
   branch: RepoBranch,
   page: number,
+  refresh = false,
 ): Promise<RepoCommitPage> => {
   const response = await apiV2Client.get<CommitsResponseDto>(repositoryPath(groupId, "commits"), {
-    params: { url, branch: branch.name, page },
+    params: { url, branch: branch.name, page, refresh },
   });
   return { items: response.data.commits, nextPage: response.data.hasMore ? page + 1 : null };
 };
 
 /** 선택한 커밋의 경로 목록 조회. 화면용 트리 구성은 프런트에서 한다. */
-const getFileTree = async (groupId: string, url: string, target: RepoTreeTarget): Promise<RepoTreeEntry[]> => {
+const getFileTree = async (groupId: string, url: string, target: RepoTreeTarget): Promise<RepoTree> => {
   const response = await apiV2Client.get<FileTreeResponseDto>(repositoryPath(groupId, "file-tree"), {
     params: { url, ...target },
   });
-  return response.data.entries.map((entry) => ({
-    path: entry.path,
-    type: entry.type === "dir" ? "tree" : "blob",
-    rawUrl: entry.rawUrl ?? undefined,
-  }));
+  return {
+    commitSha: response.data.commitSha,
+    truncated: response.data.truncated,
+    entries: response.data.entries.map((entry) => ({
+      path: entry.path,
+      type: entry.type === "dir" ? "tree" : "blob",
+      rawUrl: entry.rawUrl ?? undefined,
+    })),
+  };
 };
 
-/** 캐시 유효기간과 관계없이 브랜치 목록을 다시 확인하게 한다. 같은 저장소는 1분에 10번까지다. */
-const refreshRepository = async (groupId: string, url: string): Promise<void> => {
+/** 각 조회의 서버 캐시를 재검증한다. 같은 저장소의 강제 갱신은 1분에 10번까지다. */
+const refreshRepository = async (groupId: string, url: string, branch: RepoBranch | null): Promise<void> => {
   await getBranches(groupId, url, true);
+  if (branch) await getCommits(groupId, url, branch, 0, true);
 };
 
 export const GroupRepositoryApi = { getBranches, getCommits, getFileTree, refreshRepository };

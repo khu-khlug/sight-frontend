@@ -452,7 +452,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
             </Box>
           </Box>
           <Box className={styles.metaIconGroup}>
-            <RecordSortMenu value={sortOrder} onChange={setSortOrder} triggerClassName={styles.secondaryActionButton} />
+            <RecordSortMenu value={sortOrder} onChange={setSortOrder} disabled={isContentLocked || isDetailLoading} triggerClassName={styles.secondaryActionButton} />
             <AppTooltip content={showDeleted ? "삭제된 기록 숨기기" : "삭제된 기록 보이기"} placement="top">
               <Box
                 as="button"
@@ -464,7 +464,7 @@ export default function CardWindow({ binding, groupId, card, listTitle, isPortfo
                 {showDeleted ? <EyeOff size={16} /> : <Eye size={16} />}
               </Box>
             </AppTooltip>
-            {isGroupEnded ? null : card.isDisabled ? (
+            {!isMember || isGroupEnded || cardAction.isPending ? null : card.isDisabled ? (
               <>
                 <Box as="button" className={styles.activateButton} onClick={handleActivate}>
                   <LockKeyholeOpen size={14} />

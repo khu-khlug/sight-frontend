@@ -20,18 +20,19 @@ import {
 import GitRepoBadge from "../../../../../components/GitRepoBadge";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
 import TechBadge from "../../../../../components/TechBadge";
-import { GroupInterestLabel, GroupVisibilityLabel, GroupStatus } from "../../../../../constant";
+import { GroupInterestLabel, GroupVisibilityLabel, GroupStatus, GroupCategory } from "../../../../../constant";
 import { GROUP_INTEREST_ICON, GroupInfo as GroupInfoData } from "./types";
 
 type Props = {
   info: GroupInfoData;
+  isManager: boolean;
   portfolioCounts: { listCount: number; cardCount: number };
   onTabChange: (id: string) => void;
 };
 
 type Row = { label: string; value: React.ReactNode; onClick?: () => void };
 
-export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props) {
+export default function GroupInfo({ info, isManager, portfolioCounts, onTabChange }: Props) {
   const action = useGroupAction(info.id);
   const queryClient = useQueryClient();
   const isBookmarked = info.isBookmarked;
@@ -199,7 +200,7 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
             flex="1"
             size="sm"
             variant="outline"
-            disabled={action.isPending || !info.allowJoin || info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL}
+            disabled={action.isPending || (info.category === GroupCategory.MANAGE && !isManager) || !info.allowJoin || info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL}
             onClick={handleJoinGroup}
             transition="background-color 150ms ease, transform 100ms ease"
             _hover={{ bg: "var(--main-color)", color: "white", borderColor: "var(--main-color)" }}

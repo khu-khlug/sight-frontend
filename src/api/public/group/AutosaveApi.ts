@@ -1,4 +1,5 @@
 import apiV2Client from "../../client/v2";
+import { resolveApiUrl } from "../../client/resolveApiUrl";
 import type { RecordFileDto, RecordFileInput, RecordUploadDto } from "./KanbanApi";
 import { requireIntegerId } from "../../../util/integerId";
 
@@ -37,7 +38,9 @@ export const AutosaveApi = {
     const response = await apiV2Client.get<{ draft: AutosaveDto }>(draftPath(groupId), {
       validateStatus: (status) => status === 200 || status === 404,
     });
-    return response.status === 404 ? null : validateTarget(response.data.draft);
+    if (response.status === 404) return null;
+    const draft = validateTarget(response.data.draft);
+    return { ...draft, files: draft.files.map((file) => ({ ...file, url: file.url ? resolveApiUrl(file.url) : null })) };
   },
   // 새 파일의 업로드 정보를 돌려준다. 페이지를 떠나며 보낸 요청은 응답을 읽지 못할 수 있어 빈 배열일 수 있다.
   async save(groupId: string, input: AutosaveInput, options?: { leaving?: boolean }): Promise<RecordUploadDto[]> {
@@ -62,7 +65,7 @@ export const AutosaveApi = {
       if (!response.ok) throw new Error(`임시저장 실패: ${response.status}`);
       uploads = (await response.json().catch(() => null) as { uploads?: RecordUploadDto[] } | null)?.uploads ?? [];
     });
-    return uploads;
+    return uploads.map((upload) => ({ ...upload, url: resolveApiUrl(upload.url), uploadUrl: resolveApiUrl(upload.uploadUrl) }));
   },
   async clear(groupId: string): Promise<void> {
     await enqueueWrite(async () => { await apiV2Client.delete(draftPath(groupId)); });

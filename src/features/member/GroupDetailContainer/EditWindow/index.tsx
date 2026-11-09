@@ -30,10 +30,8 @@ type Props = {
   binding: WindowBinding;
   groupId: string;
   target: EditWindowTarget;
-  // "new" 케이스는 cardId를 이미 알고 있어서, 추가 API 호출 없이 이미 로드된 카드 목록에서
-  // 카드명만 찾으면 된다(§기존 설계: 전체 lists는 GroupDetailContainer가 이미 들고 있다).
-  // 중단·종료 그룹에서는 서버 임시저장을 쓰지 않는다.
   groupStatus: GroupStatus;
+  isMember: boolean;
   cards: KanbanCardDto[];
   // 저장 응답의 새 파일 업로드 정보를 돌려준다.
   onCreateRecord: (cardId: string, content: string, files: RecordFileInput[]) => Promise<{ id: string; uploads: RecordUploadDto[] }>;
@@ -43,14 +41,11 @@ type Props = {
 // 기록 본문 최대 크기(UTF-8 바이트).
 const MAX_RECORD_CONTENT_BYTES = 1024 * 1024;
 
-export default function EditWindow({ binding, groupId, groupStatus, target, cards, onCreateRecord, onUpdateRecord }: Props) {
+export default function EditWindow({ binding, groupId, groupStatus, isMember, target, cards, onCreateRecord, onUpdateRecord }: Props) {
   const { role, minimized, isClosing, canGoDual, onToggleMinimize, onClose, onSwitchSide, onExpand, onSendToSide, registerCloseGuard } = binding;
   const isDualLayer = role !== "single";
   const { pageState } = useGroupDetailPageState();
 
-  // "record" 케이스는 이 기록이 어느 카드 소속인지 URL만으로는 알 수 없다(기록id -> 카드id
-  // 역방향 조회 API가 아직 없음) — KanbanApi.getGroupRecord(mock)가 전체 카드를 뒤져 카드id·
-  // 카드명·본문을 한 번에 돌려준다.
   const recordQuery = useQuery({
     queryKey: ["group-detail", groupId, "kanban-record", target.kind === "record" ? target.recordId : null],
     queryFn: () => KanbanApi.getGroupRecord(groupId, (target as { kind: "record"; recordId: string }).recordId),
@@ -58,10 +53,17 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
   });
 
   const cardId = target.kind === "new" ? target.cardId : recordQuery.data?.cardId ?? null;
+  const cardQuery = useQuery({
+    queryKey: ["group-detail", groupId, "card", cardId],
+    queryFn: () => KanbanApi.getGroupCard(groupId, cardId!),
+    enabled: cardId !== null,
+  });
   const cardTitle = target.kind === "new"
-    ? cards.find((card) => card.id === target.cardId)?.title ?? null
+    ? cardQuery.data?.title ?? cards.find((card) => card.id === target.cardId)?.title ?? null
     : recordQuery.data?.cardTitle ?? null;
   const recordId = target.kind === "record" ? target.recordId : null;
+  const canEdit = isMember && groupStatus !== GroupStatus.SUCCESS && groupStatus !== GroupStatus.FAIL
+    && !!cardQuery.data && !cardQuery.data.isDisabled && !recordQuery.data?.isDeleted;
 
   // 에디터에 넣어 줄 시작 본문이다. 입력할 때마다 바뀌지 않는다 — 입력 중인 본문은 에디터가 들고 있고,
   // 저장이 필요한 순간에만 editorHandle로 직렬화해서 가져온다.
@@ -105,7 +107,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
   const draft = useRecordDraft({
     groupId,
     // 중단 그룹에서도 기록을 작성·수정할 수 있으므로 임시저장 API를 쓴다. 종료 그룹은 서버가 거부한다.
-    serverEnabled: groupStatus !== GroupStatus.SUCCESS && groupStatus !== GroupStatus.FAIL,
+    serverEnabled: canEdit,
     cardId,
     recordId,
     // 임시저장에는 영구 주소가 담긴 JSON 본문과 파일 배열을 보낸다.
@@ -116,7 +118,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
       editorHandle.current?.replaceFileUrls(fileTracker.replacements());
     },
     isDirty,
-    ready: recordInitialized,
+    ready: recordInitialized && canEdit,
     autoload: target.autoloadDraft ?? false,
     onRestore: (content, files) => {
       fileTracker.merge(files);
@@ -133,20 +135,20 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
   }, [touch]);
 
   useEffect(() => {
-    registerCloseGuard(isDirty ? () => {
+    registerCloseGuard(isSaving ? () => false : isDirty ? () => {
       if (!confirmDiscardEdit()) return false;
       void draft.flush();
       return true;
     } : null);
     return () => registerCloseGuard(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDirty, isClosing]);
+  }, [isDirty, isClosing, isSaving]);
 
   // 제출·임시저장 처리 후 복귀를 요청한다. 닫힘 애니메이션과 제거는 WindowLayer가 맡는다.
   const closeEditor = () => {
     registerCloseGuard(null);
     // 새 기록/기록 수정 모두 편집을 마치면 소속 카드가 편집창 자리에 돌아온다.
-    const restoreCardId = cards.some((card) => card.id === cardId) ? cardId : null;
+    const restoreCardId = cardQuery.data ? cardId : null;
     onClose(restoreCardId ? { restoreContentKey: restoreCardId } : undefined);
   };
   const handleRequestClose = async () => {
@@ -160,7 +162,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
   const createdRecordId = useRef<string | null>(null);
 
   const handleSubmit = async (document: string) => {
-    if (!cardId) return;
+    if (!cardId || !canEdit) return;
     if (isSaving || isClosing) return;
     let content: string;
     let files: RecordFileInput[];
@@ -193,8 +195,7 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
       if (final.content !== content || uploads.length) {
         await onUpdateRecord(cardId, savedRecordId, final.content, final.files);
       }
-      // 삭제 실패 때문에 이미 제출한 기록을 다시 제출하지 않도록 한다.
-      await draft.clear().catch(() => undefined);
+      await draft.clear();
       setHasInput(false);
       closeEditor();
     } catch (error) {
@@ -268,6 +269,12 @@ export default function EditWindow({ binding, groupId, groupStatus, target, card
           </Box>
         ) : recordQuery.data?.type === "legacy" ? (
           <Text color="gray.500">레거시 기록은 아직 수정할 수 없습니다.</Text>
+        ) : cardQuery.isPending ? (
+          <ContentSkeleton />
+        ) : cardQuery.isError ? (
+          <Box><Text>카드를 불러오지 못했습니다.</Text><Button onClick={() => { void cardQuery.refetch(); }}>다시 시도</Button></Box>
+        ) : !canEdit ? (
+          <Text color="gray.500">{!isMember ? "그룹 멤버만 기록을 작성하거나 수정할 수 있습니다." : "종료된 그룹이나 비활성 카드, 삭제된 기록은 편집할 수 없습니다."}</Text>
         ) : (
           <Suspense fallback={<ContentSkeleton />}>
             <BlockEditor

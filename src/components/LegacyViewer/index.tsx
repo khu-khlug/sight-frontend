@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
 import { useMemo } from "react";
+import { resolveApiUrl } from "../../api/client/resolveApiUrl";
 
 import { cn } from "../../util/cn";
 import { removeMediaElements } from "../BlockContent/removeMediaElements";
@@ -36,7 +37,7 @@ function prepareHtml(content: string, hideMedia: boolean): string {
     accordion.replaceWith(details);
   }
 
-  // 같은 출처의 기존 경로로 요청한다. Spring이 기존 파일 테이블을 조회해 리다이렉션한다.
+  // 기존 파일 경로도 API 서버에서 조회하여 저장소 주소로 리다이렉션한다.
   for (const element of body.querySelectorAll("[src], [href], [poster]")) {
     for (const attribute of ["src", "href", "poster"]) {
       const value = element.getAttribute(attribute);
@@ -46,7 +47,7 @@ function prepareHtml(content: string, hideMedia: boolean): string {
         const isSiteUrl = url.origin === window.location.origin
           || ["khlug.org", "www.khlug.org"].includes(url.hostname);
         if (isSiteUrl && /^\/(?:image|file)\//.test(url.pathname)) {
-          element.setAttribute(attribute, `${url.pathname}${url.search}${url.hash}`);
+          element.setAttribute(attribute, resolveApiUrl(`${url.pathname}${url.search}${url.hash}`));
         }
       }
       catch { element.removeAttribute(attribute); }

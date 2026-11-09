@@ -12,8 +12,7 @@ export function useGroupAction(groupId: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["group-detail", groupId] }),
     onError: (error: Error) => {
       toast.error(extractErrorMessage(error));
-      // 400·404는 대상이 삭제됐거나 그룹 상태가 바뀐 경우가 많다. 다시 조회해 보드에서 사라진 카드의 창은
-      // 컨테이너가 닫고, 바뀐 그룹 상태로 버튼을 다시 그린다.
+      // 대상의 존재 여부와 그룹 상태를 다시 조회하여 가능한 행동을 갱신한다.
       if (isAxiosError(error) && (error.response?.status === 400 || error.response?.status === 404)) {
         void client.invalidateQueries({ queryKey: ["group-detail", groupId] });
       }

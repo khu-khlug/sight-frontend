@@ -132,7 +132,7 @@ export default function GroupRepository({
     setIsRefreshing(true);
     setRefreshError(null);
     try {
-      await GroupRepositoryApi.refreshRepository(groupId, activeUrl);
+      await GroupRepositoryApi.refreshRepository(groupId, activeUrl, activeBranch ?? null);
       await queryClient.invalidateQueries({
         predicate: (query) =>
           query.queryKey[1] === activeUrl &&
@@ -293,6 +293,7 @@ export default function GroupRepository({
                   커밋 목록을 불러올 수 없습니다. 브랜치 HEAD의 파일을 표시합니다.
                 </Text>
               )}
+              {treeQuery.data?.truncated && <Text role="status" fontSize="xs" color="gray.500">저장소의 파일이 많아 일부만 표시합니다.</Text>}
               {treeQuery.isLoading ? (
                 <ContentSkeleton />
               ) : treeQuery.isError ? (
@@ -305,7 +306,7 @@ export default function GroupRepository({
                     <ScrollArea.Content className={styles.treeScrollContent} w="100%" style={{ minWidth: 0 }}>
                       <RepositoryTree
                         key={`${activeUrl}:${activeCommitSha}`}
-                        entries={treeQuery.data}
+                        entries={treeQuery.data.entries}
                         viewportRef={viewportRef}
                         viewportId={viewportId}
                         onScrollMetricsChange={onScrollMetricsChange}

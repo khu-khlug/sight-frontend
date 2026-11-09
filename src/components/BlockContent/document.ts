@@ -1,4 +1,16 @@
 import type { JSONContent } from "@tiptap/core";
+import { resolveApiUrl } from "../../api/client/resolveApiUrl";
+
+function resolveFileUrls(node: JSONContent): void {
+  for (const key of ["src", "href", "poster"]) {
+    const value: unknown = node.attrs?.[key];
+    if (typeof value === "string" && /^\/(?:groups\/[^/]+\/files\/|image\/|api\/)/.test(value)) {
+      node.attrs![key] = resolveApiUrl(value);
+    }
+  }
+  node.content?.forEach(resolveFileUrls);
+  node.marks?.forEach(resolveFileUrls);
+}
 
 export const emptyDocument = (): JSONContent => ({ type: "doc", content: [{ type: "paragraph" }] });
 
@@ -7,7 +19,11 @@ export function parseBlockContent(content: string): JSONContent | string {
   if (!content.trim()) return emptyDocument();
   try {
     const value: unknown = JSON.parse(content);
-    if (value && typeof value === "object" && "type" in value && value.type === "doc") return value as JSONContent;
+    if (value && typeof value === "object" && "type" in value && value.type === "doc") {
+      const document = value as JSONContent;
+      resolveFileUrls(document);
+      return document;
+    }
   } catch { /* 기존 개발용 HTML·일반 텍스트 입력. */ }
   return content;
 }

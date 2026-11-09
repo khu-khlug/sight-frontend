@@ -9,7 +9,7 @@ import AppTooltip from "../../../../../components/AppTooltip";
 import { GROUP_CATEGORY_ICON } from "../../../../../components/GroupCategoryBadge";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import TechBadge from "../../../../../components/TechBadge";
-import { GroupCategory, GroupCategoryLabel, GroupInterest, GroupInterestLabel, GroupVisibility, GroupVisibilityLabel } from "../../../../../constant";
+import { GroupCategory, GroupCategoryLabel, GroupStatus, GroupInterest, GroupInterestLabel, GroupVisibility, GroupVisibilityLabel } from "../../../../../constant";
 import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/browser/useUnsavedChangesBeforeUnload";
 import { GROUP_INTEREST_ICON, GroupInfo } from "../GroupInfo/types";
 import { getGroupRepositoryUrlError, GROUP_REPOSITORY_SEPARATOR, MAX_GROUP_REPOSITORIES } from "../../../../../util/groupRepositoryUrls";
@@ -227,6 +227,11 @@ export default function GroupInfoEditor({ info, isManager, isLeader, isEditing, 
 
   const handleSave = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (action.isPending) return;
+    if (info.status !== GroupStatus.PROGRESS) {
+      window.alert("진행 중인 그룹만 정보를 변경할 수 있습니다.");
+      return;
+    }
     // GroupSettings.openEditor의 canEditGroupInfo와 같은 조건 — 그룹장이 기본이지만 운영
     // 카테고리 그룹은 운영진도 저장할 수 있다(GROUP_BUSINESS_RULES.md §4-2).
     if (!isLeader && !(isManager && info.category === GroupCategory.MANAGE)) {

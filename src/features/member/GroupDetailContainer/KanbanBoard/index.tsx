@@ -78,6 +78,7 @@ const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMo
   const settleFrameRef = useRef<number | null>(null);
   const placedCardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [listTitle, setListTitle] = useState("");
+  const [isAddingList, setIsAddingList] = useState(false);
   const [deletingListIds, setDeletingListIds] = useState<Set<string>>(() => new Set());
   const [drag, setDrag] = useState<DragSession | null>(null);
   const [cardDrag, setCardDrag] = useState<CardDragSession | null>(null);
@@ -620,7 +621,7 @@ const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMo
   }, [onDeleteList]);
 
   useEffect(() => {
-    if (!listTitle) return;
+    if (!listTitle || isAddingList) return;
 
     const cancelListAddOnOutsideClick = (event: PointerEvent) => {
       if (event.target instanceof Node && !addListFormRef.current?.contains(event.target)) {
@@ -630,14 +631,21 @@ const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMo
 
     document.addEventListener("pointerdown", cancelListAddOnOutsideClick);
     return () => document.removeEventListener("pointerdown", cancelListAddOnOutsideClick);
-  }, [listTitle]);
+  }, [listTitle, isAddingList]);
 
-  const handleAddList = (event: FormEvent<HTMLFormElement>) => {
+  const handleAddList = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedTitle = listTitle.trim();
-    if (!trimmedTitle) return;
-    onAddList(trimmedTitle);
-    setListTitle("");
+    if (!trimmedTitle || isAddingList || isReadOnly) return;
+    setIsAddingList(true);
+    try {
+      await onAddList(trimmedTitle);
+      setListTitle("");
+    } catch {
+      return;
+    } finally {
+      setIsAddingList(false);
+    }
   };
 
   useEffect(() => {
@@ -744,11 +752,13 @@ const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMo
                 type="text"
                 aria-label="리스트 이름"
                 value={listTitle}
+                maxLength={255}
+                disabled={isAddingList}
                 onChange={(event) => setListTitle(event.target.value)}
                 placeholder="리스트 이름"
                 required
               />
-              <button className={styles.addListButton} type="submit" disabled={!listTitle.trim()}>
+              <button className={styles.addListButton} type="submit" disabled={isAddingList || !listTitle.trim()}>
                 <Plus size={16} aria-hidden="true" />
                 리스트 생성
               </button>

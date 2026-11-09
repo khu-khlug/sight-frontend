@@ -8,6 +8,7 @@ type UpdateGroupInput = Pick<GroupInfoDto, "title" | "category" | "description" 
 export type UpdateGroupRequestDto = Omit<UpdateGroupInput, "techStack" | "repositoryUrls"> & { techStack: string; repositoryUrls: string };
 export const GroupSettingsApi = {
   async updateGroup(groupId: string, input: UpdateGroupInput): Promise<void> {
+    if (!input.title.trim() || [...input.title].length > 255) throw new Error("그룹명은 1자 이상 255자 이하로 입력해주세요.");
     if (input.techStack.some((technology) => technology.includes(","))) {
       throw new Error("사용 기술 이름에는 쉼표(,)를 사용할 수 없습니다.");
     }

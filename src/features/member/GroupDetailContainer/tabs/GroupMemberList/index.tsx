@@ -9,20 +9,21 @@ import { useNavigate } from "react-router-dom";
 
 import Collapse from "../../../../../components/Collapse";
 import CollegeIcon from "../../../../../components/CollegeIcon";
-import { GroupCategory } from "../../../../../constant";
+import { GroupCategory, GroupStatus } from "../../../../../constant";
 import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
 import { GroupMember } from "./types";
 
 type Props = {
   groupId: string;
   category: GroupCategory;
+  status: GroupStatus;
 };
 
 // 그룹장이 있으면 목록 맨 앞으로 오도록 정렬한다.
 const sortMembers = (members: GroupMember[]) =>
   [...members].sort((a, b) => Number(b.isLeader) - Number(a.isLeader));
 
-export default function GroupMemberList({ groupId, category }: Props) {
+export default function GroupMemberList({ groupId, category, status }: Props) {
   const membersQuery = useQuery({ queryKey: ["group-detail", groupId, "members"], queryFn: () => GroupMemberListApi.listGroupMembers(groupId) });
   const action = useGroupAction(groupId);
   const members = membersQuery.data ?? [];
@@ -30,7 +31,7 @@ export default function GroupMemberList({ groupId, category }: Props) {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const currentUserQuery = useCurrentUser();
   // 그룹장 위임/내보내기는 그룹장만 할 수 있는 동작이라, 보는 사람이 그룹장일 때만 뜬다.
-  const viewerIsLeader = members.some(
+  const canManageMembers = status !== GroupStatus.SUCCESS && status !== GroupStatus.FAIL && members.some(
     (member) => member.userId === currentUserQuery.data?.id && member.isLeader,
   );
 
@@ -58,14 +59,14 @@ export default function GroupMemberList({ groupId, category }: Props) {
                 py="6px"
                 borderRadius="6px"
                 bg={isSelected ? "blackAlpha.100" : "whiteAlpha.700"}
-                cursor={member.isLeader ? "default" : "pointer"}
+                cursor={!canManageMembers || member.isLeader ? "default" : "pointer"}
                 transition="background-color 150ms ease, transform 100ms ease"
-                _hover={member.isLeader ? undefined : { bg: "blackAlpha.50" }}
-                _active={member.isLeader ? undefined : { transform: "scale(0.97)" }}
+                _hover={!canManageMembers || member.isLeader ? undefined : { bg: "blackAlpha.50" }}
+                _active={!canManageMembers || member.isLeader ? undefined : { transform: "scale(0.97)" }}
                 onClick={
                   // 그룹장 자신의 카드는 선택(위임/내보내기 패널)이 뜨면 안 된다 — 스스로에게
                   // 할 수 없는 동작이라 눌러도 아무 반응이 없어야 한다.
-                  member.isLeader
+                  !canManageMembers || member.isLeader
                     ? undefined
                     : () => setSelectedUserId((prev) => (prev === member.userId ? null : member.userId))
                 }
@@ -111,7 +112,7 @@ export default function GroupMemberList({ groupId, category }: Props) {
                   </Box>
                 </Box>
               </Box>
-              {viewerIsLeader && (
+              {canManageMembers && (
                 <Collapse open={isSelected}>
                   <Box display="flex" gap="6px" mt="6px" px="8px" py="8px" borderRadius="6px" bg="blackAlpha.50">
                     <Button flex="1" size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate(() => GroupMemberListApi.delegateGroupLeader(groupId, member.userId))}>

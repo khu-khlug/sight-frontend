@@ -69,8 +69,6 @@ function readLocal(key: string): LocalDraft | null {
 
 export function useRecordDraft(options: Options) {
   const { data: user } = useCurrentUser();
-  const latest = useRef(options);
-  latest.current = options;
   const sessionRef = useRef<Session | null>(null);
   // 입력이 있을 때마다 올라간다 — 본문을 직렬화·비교하지 않고도 "저장 이후 입력이 있었는지"를 알 수 있다.
   const versionRef = useRef(0);
@@ -80,7 +78,15 @@ export function useRecordDraft(options: Options) {
   const storageKey = user ? `sight:record-draft:${user.id}` : null;
   const { ready } = options;
   // 대상이 바뀌면 임시저장 세션을 새로 시작한다.
-  const targetKey = options.recordId !== null ? `record:${options.recordId}` : `new:${options.cardId}`;
+  const targetKey = `${options.groupId}:${options.recordId !== null ? `record:${options.recordId}` : `new:${options.cardId}`}`;
+  // 닫히는 세션의 비동기 저장은 새 편집 대상의 내용과 콜백을 참조하지 않는다.
+  const optionSession = useRef<{ storageKey: string | null; targetKey: string; ready: boolean; value: { current: Options } } | null>(null);
+  if (!optionSession.current || optionSession.current.storageKey !== storageKey
+    || optionSession.current.targetKey !== targetKey || optionSession.current.ready !== ready) {
+    optionSession.current = { storageKey, targetKey, ready, value: { current: options } };
+  }
+  const latest = optionSession.current.value;
+  latest.current = options;
 
   useEffect(() => {
     if (!storageKey || !ready) return;
@@ -129,6 +135,8 @@ export function useRecordDraft(options: Options) {
       if (!needsLocalSave()) return false;
       try {
         const draft = snapshot();
+        const existing = readLocal(storageKey);
+        if (existing && Date.parse(existing.updatedAt) > Date.parse(draft.updatedAt)) return false;
         const stored: LocalDraft = { ...draft, groupId: latest.current.groupId, savedAt: Date.now(), serverSavedAt: lastSavedAt };
         localStorage.setItem(storageKey, JSON.stringify(stored));
         localSignature = signature(draft);
@@ -257,9 +265,16 @@ export function useRecordDraft(options: Options) {
         cleared = true;
         stopTimers();
         setIsSaved(false);
-        try { localStorage.removeItem(storageKey); } catch { /* 서버 삭제는 계속 시도한다. */ }
         await inFlight;
-        if (latest.current.serverEnabled !== false) await AutosaveApi.clear(latest.current.groupId);
+        // 최종 기록 저장에서 서버가 같은 대상의 초안만 삭제하므로 로컬 슬롯만 정리한다.
+        const stored = readLocal(storageKey);
+        const cardId = latest.current.cardId ?? "";
+        if (stored?.groupId === latest.current.groupId && (
+          isSameTarget(stored, { cardId, recordId: savedRecordId })
+          || isSameTarget(stored, { cardId, recordId: latest.current.recordId })
+        )) {
+          try { localStorage.removeItem(storageKey); } catch { /* 로컬 저장소를 사용할 수 없으면 정리를 생략한다. */ }
+        }
       },
     };
     sessionRef.current = session;
@@ -279,6 +294,7 @@ export function useRecordDraft(options: Options) {
       // 보고 복원하지 않는다. 있으면 이 그룹의 로컬 초안과 수정 시각을 비교해 더 최신인 것을 쓴다.
       if (!server) return;
       const useLocal = currentLocal !== null && currentLocal.groupId === latest.current.groupId
+        && isSameTarget(currentLocal, server)
         && Date.parse(currentLocal.updatedAt) > Date.parse(server.updatedAt);
       const metadata = useLocal ? currentLocal : server;
       if (!isSameTarget(metadata, currentTarget())) return;
@@ -339,7 +355,7 @@ export function useRecordDraft(options: Options) {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       if (sessionRef.current === session) sessionRef.current = null;
     };
-  }, [storageKey, targetKey, ready]);
+  }, [storageKey, targetKey, ready, latest]);
 
   useEffect(() => { sessionRef.current?.changed(); }, [options.isDirty]);
 
@@ -354,6 +370,6 @@ export function useRecordDraft(options: Options) {
     // React가 다음 렌더를 하기 전 이탈하더라도 입력이 있었던 것으로 취급한다.
     latest.current = { ...latest.current, isDirty: true };
     sessionRef.current?.changed();
-  }, []);
+  }, [latest]);
   return { isSaved, error, flush, pause, resume, clear, touch };
 }

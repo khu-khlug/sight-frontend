@@ -84,9 +84,12 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
     setIsFormOpen((prev) => !prev);
   };
 
-  const handleTogglePortfolio = () => action.mutate(() => hasPublishedPortfolio
-    ? GroupExposureApi.cancelGroupPortfolio(info.id)
-    : GroupExposureApi.publishGroupPortfolio(info.id));
+  const handleTogglePortfolio = () => {
+    if (!isLeader || info.status !== GroupStatus.PROGRESS || action.isPending) return;
+    action.mutate(() => hasPublishedPortfolio
+      ? GroupExposureApi.cancelGroupPortfolio(info.id)
+      : GroupExposureApi.publishGroupPortfolio(info.id));
+  };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const picked = event.target.files?.[0] ?? null;
@@ -106,7 +109,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
   };
 
   const handleSubmit = () => {
-    if (!openCohort || !canSubmit || action.isPending) return;
+    if (!isLeader || isGroupEnded || !openCohort || !canSubmit || action.isPending) return;
     if (isCancelling && !window.confirm("활동보고를 취소하시겠습니까? 제출한 파일도 삭제됩니다.")) return;
     if (!currentReport && file && !window.confirm("활동보고를 제출하시겠습니까?")) return;
     action.mutate(async () => {

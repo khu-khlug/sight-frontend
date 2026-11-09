@@ -7,10 +7,10 @@ import { KanbanApi, type CardCoverImageInput } from "../../../../../api/public/g
 import Button from "../../../../../components/Button";
 import { useDropTarget } from "../../../../../hooks/dragAndDrop/useDropTarget";
 import { cn } from "../../../../../util/cn";
-import { isImageUrl } from "../../../../../util/isImageUrl";
+import { fileApi } from "../../actions";
+import { extractErrorMessage } from "../../../../../util/extractErrorMessage";
 import styles from "./style.module.css";
 
-// 다른 업로드(활동보고서, GroupExposureApi) 20MB보다 커버이미지는 더 작게 잡는다.
 // 백엔드 업로드 링크 기준: 파일 하나 20 MiB, 커버 허용 형식은 아래 다섯 가지다.
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 const COVER_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
@@ -41,7 +41,7 @@ export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmi
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await onSubmit({ coverImageUrl: null });
+      await onSubmit(null);
       onClose();
     } catch {
       // useGroupAction이 오류를 표시하고 폼은 재시도할 수 있도록 유지한다.
@@ -50,7 +50,7 @@ export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmi
     }
   };
 
-  const submitFile = async (file: File) => {
+  const uploadFile = async (file: File) => {
     if (!COVER_IMAGE_TYPES.has(file.type)) {
       toast.error("커버로 쓸 수 있는 형식은 JPEG·PNG·WebP·GIF·AVIF입니다.", { autoClose: 2500, hideProgressBar: true });
       return;
@@ -59,18 +59,22 @@ export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmi
       toast.error("이미지 용량이 너무 커서 설정할 수 없습니다 (최대 20MB).", { autoClose: 2500, hideProgressBar: true });
       return;
     }
-    setIsSubmitting(true);
+    let isCommitting = false;
     try {
       const upload = await KanbanApi.issueCardCoverImageUploadLink(groupId, cardId, { fileName: file.name, contentType: file.type });
       await KanbanApi.uploadCardCoverImageFile(upload.url, file);
+      isCommitting = true;
       await onSubmit({ fileUploadId: upload.fileUploadId });
       onClose();
-    } catch {
-      // 실패 토스트는 onSubmit을 감싼 useGroupAction(onError)이 이미 띄운다 — 여기서는
-      // 폼을 닫지 않고 그대로 둬서 사용자가 다시 시도할 수 있게 한다.
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      if (!isCommitting) toast.error(extractErrorMessage(error));
     }
+  };
+
+  const submitFile = async (file: File) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try { await uploadFile(file); } finally { setIsSubmitting(false); }
   };
 
   const submitUrlValue = async (value: string) => {
@@ -78,21 +82,15 @@ export default function CoverImageForm({ groupId, cardId, hasCoverImage, onSubmi
     if (!trimmed || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      // 서버는 http·https 주소만 커버로 받는다.
-      if (!/^https?:\/\//i.test(trimmed)) {
+      if (!/^https?:\/\//i.test(trimmed) && !trimmed.startsWith("/groups/")) {
         toast.error("http 또는 https 주소만 커버로 쓸 수 있습니다.", { autoClose: 2500, hideProgressBar: true });
         return;
       }
-      // 파일 업로드(submitFile)는 File.type으로 바로 검증되지만, URL은 실제로 불러와
-      // 보기 전엔 이미지인지 알 수 없다 — <img> 로딩 성공 여부로 확인한다.
-      if (!(await isImageUrl(trimmed))) {
-        toast.error("이미지로 불러올 수 없는 URL입니다.", { autoClose: 2500, hideProgressBar: true });
-        return;
-      }
-      await onSubmit({ coverImageUrl: trimmed });
-      onClose();
-    } catch {
-      // 위와 같음.
+      const { blob } = await fileApi.get(trimmed);
+      const extension = blob.type.split("/")[1] || "image";
+      await uploadFile(new File([blob], `cover.${extension}`, { type: blob.type }));
+    } catch (error) {
+      toast.error(extractErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }

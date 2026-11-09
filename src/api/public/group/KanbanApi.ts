@@ -1,4 +1,5 @@
 import apiV2Client from "../../client/v2";
+import { resolveApiUrl } from "../../client/resolveApiUrl";
 import { requireIntegerId } from "../../../util/integerId";
 
 export type CardLabelDto = "red" | "yellow" | "green" | "blue" | "purple" | "lightGray" | "gray" | "black";
@@ -11,6 +12,7 @@ export type KanbanCardDto = {
   isInPortfolio: boolean;
   assigneeName: string | null;
   assigneeUserId: number | null;
+  // 서버가 제공하는 영구 읽기 주소. 레거시 커버는 /image/{name}을 사용한다.
   coverImageUrl: string | null;
   labels: CardLabelDto[];
   isDisabled: boolean;
@@ -29,7 +31,7 @@ export type KanbanListPageDto = PageMeta & { lists: KanbanListDto[] };
 export type KanbanCardPageDto = PageMeta & { cards: KanbanCardDto[] };
 export type KanbanCardDetailDto = KanbanCardDto & { listId: string; listTitle: string; description: string; recordSort: RecordSort };
 export type CardCoverImageUploadLinkDto = { url: string; fileUploadId: string };
-export type CardCoverImageInput = { coverImageUrl: string | null } | { fileUploadId: string };
+export type CardCoverImageInput = { fileUploadId: string } | null;
 export type RecordType = "tiptap" | "legacy";
 export function normalizeRecordType(type: string): RecordType {
   if (type.toUpperCase() === "LEGACY") return "legacy";
@@ -65,15 +67,15 @@ export type RecordPageDto = { offset: number; totalCount: number; receivedCount:
 export const KanbanApi = {
   async listGroupLists(groupId: string, page = 0, signal?: AbortSignal): Promise<KanbanListPageDto> {
     const data = (await apiV2Client.get<KanbanListPageDto>(`/groups/${groupId}/lists`, { params: { page }, signal })).data;
-    return { ...data, lists: data.lists.map((list) => ({ ...list, id: requireIntegerId(list.id), cards: list.cards.map((card) => ({ ...card, id: requireIntegerId(card.id) })) })) };
+    return { ...data, lists: data.lists.map((list) => ({ ...list, id: requireIntegerId(list.id), cards: list.cards.map((card) => ({ ...card, id: requireIntegerId(card.id), coverImageUrl: card.coverImageUrl ? resolveApiUrl(card.coverImageUrl) : null })) })) };
   },
   async listGroupCards(groupId: string, listId: string, page: number, signal?: AbortSignal): Promise<KanbanCardPageDto> {
     const data = (await apiV2Client.get<KanbanCardPageDto>(`/groups/${groupId}/lists/${encodeURIComponent(listId)}/cards`, { params: { page }, signal })).data;
-    return { ...data, cards: data.cards.map((card) => ({ ...card, id: requireIntegerId(card.id) })) };
+    return { ...data, cards: data.cards.map((card) => ({ ...card, id: requireIntegerId(card.id), coverImageUrl: card.coverImageUrl ? resolveApiUrl(card.coverImageUrl) : null })) };
   },
   async getGroupCard(groupId: string, cardId: string): Promise<KanbanCardDetailDto> {
     const card = (await apiV2Client.get<KanbanCardDetailDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}`)).data;
-    return { ...card, id: requireIntegerId(card.id), listId: requireIntegerId(card.listId) };
+    return { ...card, id: requireIntegerId(card.id), coverImageUrl: card.coverImageUrl ? resolveApiUrl(card.coverImageUrl) : null, listId: requireIntegerId(card.listId) };
   },
   async createGroupList(groupId: string, input: { title: string }): Promise<void> {
     await apiV2Client.post(`/groups/${groupId}/lists`, input);
@@ -118,17 +120,17 @@ export const KanbanApi = {
     return (await apiV2Client.post<CardCoverImageUploadLinkDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/cover-image/upload-link`, input)).data;
   },
   async uploadCardCoverImageFile(url: string, file: File): Promise<void> {
-    const response = await fetch(url, { method: "PUT", body: file });
+    const response = await fetch(resolveApiUrl(url), { method: "PUT", body: file });
     if (!response.ok) throw new Error("이미지 업로드에 실패했습니다.");
   },
-  // URL은 coverImageUrl로, 업로드한 파일은 fileUploadId로 지정하고, coverImageUrl이 null이면 커버를 제거한다.
+  // 업로드한 파일 ID로 커버를 지정하고, null 입력은 커버 제거 요청으로 보낸다.
   async updateGroupCardCoverImage(groupId: string, cardId: string, input: CardCoverImageInput): Promise<void> {
     const path = `/groups/${groupId}/cards/${encodeURIComponent(cardId)}/cover-image`;
-    if ("coverImageUrl" in input && input.coverImageUrl === null) {
+    if (input === null) {
       await apiV2Client.delete(path);
       return;
     }
-    await apiV2Client.post(path, input);
+    await apiV2Client.post(path, { fileUploadId: input.fileUploadId });
   },
   // 소프트 삭제다 — 보드에서 빠지고 GroupArchiveApi로 복구할 수 있다.
   async archiveGroupCard(groupId: string, cardId: string): Promise<void> {
@@ -140,7 +142,7 @@ export const KanbanApi = {
     const page = (await apiV2Client.get<RecordPageDto>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, {
       params: { offset: input.offset, limit: input.limit, includeDeleted: input.includeDeleted }, signal,
     })).data;
-    return { ...page, records: page.records.map((record) => ({ ...record, id: requireIntegerId(record.id), type: normalizeRecordType(record.type) })) };
+    return { ...page, records: page.records.map((record) => ({ ...record, id: requireIntegerId(record.id), files: record.files.map((file) => ({ ...file, url: file.url ? resolveApiUrl(file.url) : null })), type: normalizeRecordType(record.type) })) };
   },
   async archiveGroupRecord(groupId: string, recordId: string): Promise<void> {
     await apiV2Client.delete(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`);
@@ -159,14 +161,15 @@ export const KanbanApi = {
   },
   async getGroupRecord(groupId: string, recordId: string): Promise<RecordWithCardDto | null> {
     const record = (await apiV2Client.get<RecordWithCardDto | null>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`)).data;
-    return record ? { ...record, id: requireIntegerId(record.id), cardId: requireIntegerId(record.cardId), listId: requireIntegerId(record.listId), type: normalizeRecordType(record.type) } : null;
+    return record ? { ...record, id: requireIntegerId(record.id), files: record.files.map((file) => ({ ...file, url: file.url ? resolveApiUrl(file.url) : null })), cardId: requireIntegerId(record.cardId), listId: requireIntegerId(record.listId), type: normalizeRecordType(record.type) } : null;
   },
   async createGroupRecord(groupId: string, cardId: string, input: { content: string; files: RecordFileInput[] }): Promise<RecordDto & { uploads: RecordUploadDto[] }> {
     const record = (await apiV2Client.post<RecordDto & { uploads: RecordUploadDto[] }>(`/groups/${groupId}/cards/${encodeURIComponent(cardId)}/records`, input)).data;
-    return { ...record, id: requireIntegerId(record.id), type: normalizeRecordType(record.type) };
+    return { ...record, uploads: record.uploads.map((upload) => ({ ...upload, url: resolveApiUrl(upload.url), uploadUrl: resolveApiUrl(upload.uploadUrl) })), id: requireIntegerId(record.id), files: record.files.map((file) => ({ ...file, url: file.url ? resolveApiUrl(file.url) : null })), type: normalizeRecordType(record.type) };
   },
   async updateGroupRecord(groupId: string, recordId: string, input: { content: string; files: RecordFileInput[] }): Promise<{ uploads: RecordUploadDto[] }> {
-    return (await apiV2Client.patch<{ uploads: RecordUploadDto[] }>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`, input)).data;
+    const data = (await apiV2Client.patch<{ uploads: RecordUploadDto[] }>(`/groups/${groupId}/records/${encodeURIComponent(recordId)}`, input)).data;
+    return { uploads: data.uploads.map((upload) => ({ ...upload, url: resolveApiUrl(upload.url), uploadUrl: resolveApiUrl(upload.uploadUrl) })) };
   },
   // 업로드 주소로 파일을 올린 뒤 서버에 알린다. 모두 성공 200, 일부 성공 206, 모두 실패 400이며 본문은 같다.
   async notifyRecordFilesUploaded(groupId: string, fileIds: string[]): Promise<RecordFilesUploadedResultDto[]> {

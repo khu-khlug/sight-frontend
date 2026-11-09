@@ -1,4 +1,5 @@
 import type { JSONContent } from "@tiptap/core";
+import { resolveApiUrl } from "../../../../api/client/resolveApiUrl";
 import { KanbanApi, type RecordFileDto, type RecordFileInput, type RecordUploadDto } from "../../../../api/public/group/KanbanApi";
 import type { DraggedFile } from "../../../../util/draggableFile";
 
@@ -7,7 +8,7 @@ let sequence = 0;
 const createFileId = () => `f-${Date.now().toString(36)}-${++sequence}`;
 const siteFiles = new Map<string, { groupId: string; file: RecordFileDto }>();
 const canonical = (url: string) => {
-  try { return new URL(url, window.location.origin).href; }
+  try { return new URL(/^\/(groups|api|image|file)\//.test(url) ? resolveApiUrl(url) : url, window.location.origin).href; }
   catch { return url; }
 };
 

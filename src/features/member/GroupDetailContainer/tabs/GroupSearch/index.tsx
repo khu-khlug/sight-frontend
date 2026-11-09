@@ -21,6 +21,7 @@ type Props = {
   groupId: string;
   enabledFilters: Set<LabelFilterKey>;
   onToggleFilter: (key: LabelFilterKey) => void;
+  onOpenCard: (cardId: string, recordId?: string | null) => void;
 };
 
 const SEARCH_TARGETS = ["title", "record", "author"] as const;
@@ -34,7 +35,7 @@ const SEARCH_TARGET_LABEL: Record<SearchTarget, string> = {
 
 // 필터는 칸반 카드의 강조 상태에 적용한다. 검색 결과는 검색 대상과 검색어로 조회한다.
 // 필터와 검색 입력은 고정하고 결과 목록만 스크롤한다.
-export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }: Props) {
+export default function GroupSearch({ groupId, enabledFilters, onToggleFilter, onOpenCard }: Props) {
   const { onlyAssignedToMe, setOnlyAssignedToMe, canFilter } = useAssigneeFilter();
   const [searchTarget, setSearchTarget] = useState<SearchTarget>("title");
   const [query, setQuery] = useState("");
@@ -201,7 +202,7 @@ export default function GroupSearch({ groupId, enabledFilters, onToggleFilter }:
               </Text>
             ) : (
               results.map((result) => (
-                <Box key={result.id} className={styles.resultItem} bg="whiteAlpha.800">
+                <Box as="button" key={result.id} className={styles.resultItem} bg="whiteAlpha.800" textAlign="left" cursor="pointer" onClick={() => onOpenCard(result.cardId, result.recordId)}>
                   <Text fontSize="xs" color="gray.400">
                     {result.listTitle}
                   </Text>
