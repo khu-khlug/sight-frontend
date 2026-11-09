@@ -1,0 +1,92 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  height: 320px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.content.transparentWhenIdle {
+  border: 1px solid rgba(90, 103, 119, 0.5);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, backdrop-filter 180ms ease;
+}
+
+.content.transparentWhenIdle:not(:hover):not(.triggerHovered) {
+  border-color: transparent;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: 0 0 8px 1px rgba(77, 88, 103, 0.28);
+}
+
+.transparentWhenIdle .tabsRoot {
+  transition: opacity 180ms ease;
+}
+
+.content.transparentWhenIdle:not(:hover):not(.triggerHovered) .tabsRoot {
+  opacity: 0;
+}
+
+.tabsRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 탭 목록(카테고리 수가 많다) 자체는 가로 스크롤되지만, 기본 브라우저 스크롤바는 숨긴다 */
+.tabListWrap {
+  flex: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabListWrap::-webkit-scrollbar {
+  display: none;
+}
+
+.tabList {
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
+.tabTrigger {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--chakra-font-sizes-md);
+  padding: 4px 8px;
+}
+
+.panel {
+  flex: 1;
+  min-height: 0;
+  padding-top: 6px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  width: 100%;
+}
+
+.emojiButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  font-size: var(--chakra-font-sizes-xl);
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.emojiButton:hover {
+  background: var(--chakra-colors-gray-100);
+}

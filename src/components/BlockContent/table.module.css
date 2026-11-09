@@ -1,0 +1,17 @@
+.wrapper { width: 100%; min-width: 0; max-width: 100%; margin-bottom: var(--block-gap); }
+.scrollRoot { width: 100%; min-width: 0; }
+.viewport { width: 100%; min-width: 0; }
+/* 백분율 너비를 쓰는 표의 부모는 뷰포트 너비를 기준으로 크기를 정한다. */
+.stage { width: 100%; min-width: 0; box-sizing: border-box; padding: 14px 14px 14px 7px; }
+.stage :global(table) { table-layout: fixed; }
+/* 표 아래 조작 버튼용 여백에 공통 블록 간격까지 중복해서 더하지 않는다. */
+.wrapper .stage :global(table) { margin-bottom: 0; }
+.stage :global(td), .stage :global(th) { position: relative; min-width: 64px; cursor: text; transform-origin: top left; }
+.stage :global(.column-resize-handle) {
+  position: absolute;
+  top: 0; bottom: 0; right: -2px;
+  width: 4px;
+  background: var(--main-color, #00a0e9);
+  pointer-events: none;
+}
+:global(.resize-cursor), :global(.resize-cursor) * { cursor: col-resize !important; }

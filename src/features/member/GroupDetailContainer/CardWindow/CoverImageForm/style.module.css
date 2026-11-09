@@ -1,0 +1,52 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.dropZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  border: 1px dashed var(--chakra-colors-gray-300, #d4d4d8);
+  border-radius: 8px;
+  color: var(--chakra-colors-gray-500, #718096);
+  text-align: center;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.dropZoneActive {
+  background-color: var(--chakra-colors-blue-50, #eff6ff);
+  border-color: var(--chakra-colors-blue-400, #60a5fa);
+}
+
+.hiddenFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.urlRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.urlInput {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--chakra-colors-gray-300, #d4d4d8);
+  border-radius: 6px;
+  outline: none;
+  font-size: 13px;
+}
+
+.urlInput:focus {
+  border-color: var(--chakra-colors-blue-400, #60a5fa);
+}

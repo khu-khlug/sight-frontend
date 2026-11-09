@@ -1,0 +1,70 @@
+/* 툴바(.toolbar, style.module.css) 바로 아래 — 툴바와 같은 여백·구분선을 쓴다. 윗줄은 찾기, 아랫줄은 바꾸기다.
+   두 줄이 같은 2열 격자(입력 칸 | 버튼들)라서 위아래 입력 칸 너비가 같다. */
+.bar {
+  --find-bar-control-height: 28px;
+  --find-bar-gap: 4px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--find-bar-gap);
+  padding: var(--find-bar-gap);
+  border-bottom: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--find-bar-gap);
+}
+
+/* 바꾸기 줄의 버튼은 윗줄 버튼 열의 오른쪽 끝(바꾸기 토글 아래)에 맞춘다. */
+.controlsEnd {
+  justify-content: flex-end;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: var(--find-bar-control-height);
+  padding: 0 8px;
+  border: 1px solid var(--chakra-colors-gray-300, #d4d4d8);
+  border-radius: 4px;
+  font-size: var(--chakra-font-sizes-sm, 0.875rem);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--main-color, #00a0e9);
+}
+
+.counter {
+  min-width: 4em;
+  font-size: var(--chakra-font-sizes-xs, 0.75rem);
+  text-align: center;
+  color: var(--chakra-colors-gray-500, #71717a);
+}
+
+.textButton {
+  height: var(--find-bar-control-height);
+  padding: 0 10px;
+  border: 1px solid var(--chakra-colors-gray-300, #d4d4d8);
+  border-radius: 4px;
+  background: var(--chakra-colors-white, #ffffff);
+  font-size: var(--chakra-font-sizes-sm, 0.875rem);
+  color: var(--chakra-colors-gray-700, #3f3f46);
+}
+
+.textButton:hover:not(:disabled) {
+  background: var(--chakra-colors-gray-100, #f4f4f5);
+}
+
+.textButton:disabled {
+  color: var(--chakra-colors-gray-300, #d4d4d8);
+  cursor: not-allowed;
+}

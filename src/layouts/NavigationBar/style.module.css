@@ -18,6 +18,12 @@
   padding: 16px 24px;
 }
 
+/* navContainer와 함께 적용해 폭 제한만 해제한다 */
+.wideNavContainer {
+  max-width: none;
+  margin: 0;
+}
+
 .logo {
   height: 36px;
 }
@@ -31,7 +37,7 @@
 
 .navItem {
   position: relative;
-  font-size: 16px;
+  font-size: var(--chakra-font-sizes-md);
 }
 
 .navLink {
@@ -79,7 +85,7 @@
 .subNav a {
   display: block;
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: var(--chakra-font-sizes-sm);
   font-weight: 400;
   text-decoration: none;
   color: #333;
@@ -150,12 +156,12 @@
 
 .dropdownTitle {
   font-weight: 600;
-  font-size: 16px;
+  font-size: var(--chakra-font-sizes-md);
   color: #333;
 }
 
 .dropdownCount {
-  font-size: 14px;
+  font-size: var(--chakra-font-sizes-sm);
   color: #666;
 }
 
@@ -199,13 +205,13 @@
 
 .notificationTitle {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--chakra-font-sizes-sm);
   color: #333;
   margin-bottom: 4px;
 }
 
 .notificationContent {
-  font-size: 13px;
+  font-size: var(--chakra-font-sizes-sm);
   color: #666;
   line-height: 1.4;
 }
@@ -233,7 +239,7 @@
 /* Mobile Menu */
 .mobileMenu {
   position: fixed;
-  top: 69px;
+  top: calc(var(--layout-header-height, 68px) + 1px);
   right: 16px;
   width: 200px;
   max-height: calc(100vh - 100px);
@@ -256,7 +262,7 @@
 .mobileNavLink {
   display: block;
   padding: 8px 12px;
-  font-size: 16px;
+  font-size: var(--chakra-font-sizes-md);
   font-weight: 500;
   text-decoration: none;
   color: var(--main-color);
@@ -269,7 +275,7 @@
 .mobileSubNav a {
   display: block;
   padding: 6px 12px;
-  font-size: 14px;
+  font-size: var(--chakra-font-sizes-sm);
   font-weight: 400;
   text-decoration: none;
   color: white;

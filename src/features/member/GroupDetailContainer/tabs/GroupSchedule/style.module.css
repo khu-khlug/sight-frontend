@@ -1,0 +1,118 @@
+/* Dashboard가 공용 ScrollArea 대신 .tabArea 높이를 그대로 넘긴다. 달력은 고정, 주간 일정만 스크롤된다. */
+.container {
+  --schedule-gutter: 15px;
+  --schedule-gap: 8px;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--schedule-gap);
+  height: 100%;
+}
+
+.header {
+  flex: none;
+  display: flex;
+  gap: var(--schedule-gap);
+  padding: 0 var(--schedule-gutter);
+}
+
+.calendar {
+  flex: none;
+  padding: 0 var(--schedule-gutter);
+}
+
+.calendarInScroll {
+  flex: none;
+  margin-bottom: var(--schedule-gap);
+}
+
+.formWrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.25s ease, opacity 0.2s ease;
+}
+
+.formWrapperOpen {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.formWrapperInner {
+  overflow: hidden;
+}
+
+.listArea {
+  flex: 1;
+  min-height: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--schedule-gutter);
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--schedule-gap) / 2);
+  padding: var(--schedule-gap) 0;
+}
+
+.day + .day {
+  border-top: 1px solid var(--chakra-colors-gray-200, #e2e8f0);
+}
+
+.dayHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--schedule-gap);
+}
+
+.todayBadge {
+  padding: 0 calc(var(--schedule-gap) * 0.75);
+  border-radius: var(--schedule-gap);
+  background: var(--chakra-colors-whiteAlpha-700);
+  color: var(--chakra-colors-gray-700, #3f3f46);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--schedule-gap);
+}
+
+.itemOwnGroup {
+  margin: 0 calc(var(--schedule-gap) * -0.5);
+  padding: calc(var(--schedule-gap) / 4) calc(var(--schedule-gap) / 2);
+  border: 1px solid transparent;
+  border-radius: calc(var(--schedule-gap) / 2);
+  background: #e0f2fe;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.itemOwnGroup:hover {
+  border-color: var(--main-color);
+}
+
+.itemBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.dot {
+  flex: none;
+  width: var(--schedule-gap);
+  height: var(--schedule-gap);
+  border-radius: 50%;
+}

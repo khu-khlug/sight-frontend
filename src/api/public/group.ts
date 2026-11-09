@@ -7,7 +7,7 @@ export type GroupLeaderDto = {
 };
 
 export type GroupDto = {
-  id: number;
+  id: string;
   category: string;
   title: string;
   state: string;
@@ -28,6 +28,13 @@ export type ListGroupsRequestDto = {
   bookmarked?: boolean;
   joined?: boolean;
   orderBy?: "changedAt" | "createdAt";
+};
+
+export type GuildEmojiDto = {
+  id: string;
+  name: string;
+  animated: boolean;
+  imageUrl: string;
 };
 
 // API functions
@@ -57,8 +64,18 @@ const getMyGroups = async (): Promise<ListGroupsResponseDto> => {
   return listGroups({ joined: true });
 };
 
+/**
+ * 그룹 디스코드 서버의 커스텀 이모지 목록 조회. 봇 토큰은 백엔드(mock-backend)에서만
+ * 들고 있고, 여기서는 백엔드가 프록시해 주는 결과만 받는다.
+ */
+const getGuildEmojis = async (): Promise<GuildEmojiDto[]> => {
+  const response = await apiV2Client.get<{ emojis: GuildEmojiDto[] }>("/group/emoji");
+  return response.data.emojis;
+};
+
 export const GroupPublicApi = {
   listGroups,
   listRecentGroups,
   getMyGroups,
+  getGuildEmojis,
 };

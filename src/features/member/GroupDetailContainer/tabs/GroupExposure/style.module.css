@@ -1,0 +1,85 @@
+/*
+ * GroupChat/GroupSearch와 같은 패턴 — Dashboard가 공용 ScrollArea 대신 .tabArea 높이를
+ * 그대로 넘긴다. 위(포트폴리오/활동보고)는 고정, 아래(이전 활동보고 내역)만 스크롤된다.
+ */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  flex: none;
+  padding: 0 15px;
+}
+
+.historyHeading {
+  flex: none;
+  padding: 0 15px;
+}
+
+.historyArea {
+  flex: 1;
+  min-height: 0;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 15px;
+}
+
+.form {
+  padding: 10px 0;
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fileName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removeFile {
+  flex: none;
+}
+
+/*
+ * GroupSearch의 검색대상 라디오(.searchTargetItem)와 같은 알약 모양 세그먼트 버튼 스타일.
+ * 기본 원형 컨트롤(RadioGroup.ItemControl) 대신 Item 자체를 눌리는 칩으로 쓴다.
+ */
+.typeItem {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--chakra-colors-gray-200);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.typeItem[data-state="checked"] {
+  background-color: var(--main-color);
+  border-color: var(--main-color);
+  color: white;
+}
+
+.historyItem {
+  padding: 10px 12px;
+  border-radius: 8px;
+}

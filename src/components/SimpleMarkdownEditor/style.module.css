@@ -1,0 +1,79 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--chakra-colors-gray-300, #d4d4d8);
+  border-radius: 6px;
+  background: white;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+  padding: 4px;
+  border-bottom: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+}
+
+.toolbarGroup {
+  display: flex;
+  gap: 2px;
+}
+
+.toolbarButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--chakra-colors-gray-500, #718096);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.toolbarButton:hover:not(:disabled) {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+  color: var(--chakra-colors-gray-800, #27272a);
+}
+
+.toolbarButton:disabled {
+  color: var(--chakra-colors-gray-300, #d4d4d8);
+  cursor: not-allowed;
+}
+
+.toolbarButtonActive {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+  color: var(--chakra-colors-gray-800, #27272a);
+}
+
+/* 세로 스크롤바 없이 내용 길이만큼 늘어난다(index.tsx의 useLayoutEffect가 scrollHeight로
+   높이를 맞춘다) — resize 핸들도 그 전제와 안 맞아서 끈다. */
+.textarea {
+  display: block;
+  width: 100%;
+  min-height: 60px;
+  margin: 0;
+  padding: 8px 10px;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--chakra-font-sizes-md, 1rem);
+  line-height: 1.6;
+  color: var(--chakra-colors-gray-800, #27272a);
+}
+
+/* 줄바꿈을 끄면 긴 줄은 꺾지 않고 textarea 자체의 가로 스크롤로 뺀다 — 세로 높이(auto-grow)
+   에는 영향이 없다. */
+.textareaNoWrap {
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.preview {
+  padding: 8px 10px;
+}

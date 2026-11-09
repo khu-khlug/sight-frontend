@@ -1,0 +1,32 @@
+.menu {
+  --slash-menu-gap: 4px;
+  position: fixed;
+  z-index: var(--chakra-z-index-popover, 1500);
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  max-height: 320px;
+  margin-top: var(--slash-menu-gap);
+  padding: var(--slash-menu-gap);
+  overflow-y: auto;
+  border: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+  border-radius: 6px;
+  background: var(--chakra-colors-white, #ffffff);
+  box-shadow: var(--chakra-shadows-md, 0 4px 12px rgba(0, 0, 0, 0.12));
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: var(--chakra-font-sizes-sm, 0.875rem);
+  text-align: left;
+  color: var(--chakra-colors-gray-700, #3f3f46);
+}
+
+.itemActive {
+  background: var(--chakra-colors-gray-100, #f4f4f5);
+}

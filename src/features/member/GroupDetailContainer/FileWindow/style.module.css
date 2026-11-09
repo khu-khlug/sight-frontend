@@ -1,0 +1,214 @@
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 100%;
+  padding-left: 10px;
+}
+
+.fileName {
+  flex: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/*
+ * 저장소 경로("user/repo/path/.../") — 공간이 충분하면 그대로, 모자라면 말줄임, 그보다도
+ * 모자라면(flex-shrink로 0까지 줄어듦) 아예 안 보인다. flex:1 1 auto + min-width:0이 핵심 —
+ * JS 측정 없이 CSS 레이아웃만으로 세 단계가 다 나온다.
+ */
+.repoPath {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--chakra-colors-gray-400, #a1a1aa);
+  font-size: 12px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 이미지/비디오/PDF 등 미리보기 영역 — 툴바(.toolbar) 아래 남은 공간을 차지하고, 그 안에서
+   내용을 가운데 정렬한다(예전엔 이 정렬을 .content가 직접 맡았는데, .content가 이제 텍스트
+   뷰어와도 공유되는 더 바깥 레이아웃이라 여기로 옮겼다). */
+.mediaArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image,
+.video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.audio {
+  width: 100%;
+}
+
+/* 위는 이미 .toolbar가 여백 역할을 해서 비워두고, 아래·좌·우에만 여백을 둔다 — width/height를
+   그만큼 줄여줘야 한다(margin만 주면 .mediaArea 밖으로 넘친다). */
+.pdfFrame {
+  width: calc(100% - 20px);
+  height: calc(100% - 10px);
+  margin: 0 10px 10px 10px;
+  border: none;
+  border-radius: 10px;
+}
+
+/* 콘텐츠박스 = 툴바(.toolbar) + 실제 내용(텍스트박스 또는 .mediaArea), 세로로 쌓인다. 툴바는
+   흐름 안에 그대로 있는 독립된 영역이라(절대위치 오버레이가 아님) 스크롤 위치와 무관하게
+   항상 보인다. 텍스트/이미지/비디오 등 모든 파일 종류가 이 구조를 공유한다. */
+.viewerRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+}
+
+.toolbar:hover {
+  background-color: var(--chakra-colors-gray-100, #f4f4f5);
+}
+
+.toolbarStats {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--chakra-colors-gray-500, #718096);
+  font-size: 12px;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* ScrollArea가 스크롤을 맡으므로 늘 남은 영역(flex:1)을 차지한다. flex 자식의 min-width
+   기본값은 auto(자기 콘텐츠의 최소 너비)라 — 긴 줄(특히 안 꺾이는 토큰)이 있으면 그 콘텐츠
+   때문에 이 박스가 width:100%보다 더 넓어지려 한다. 0으로 풀어야 실제로 100%에 맞춰진다. */
+.textScrollArea {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/*
+ * 임시방편(index.tsx의 TextFileContent 주석 참고) — ScrollArea.Viewport의 overflow
+ * 클리핑이 실패해서 콘텐츠가 뷰포트/.window 경계까지 넘어 보이는 문제를, 원인을 찾을
+ * 때까지 창 배경색과 같은 색으로 가려서 시각적으로만 해결한다. gutter={10}과 같은 값이어야
+ * 실제로 잘린 것처럼 자연스럽게 보인다. 클릭/스크롤이 막히면 안 되므로 pointer-events:none.
+ */
+.clipMaskRight {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 100%;
+  background-color: white;
+  pointer-events: none;
+  /* ScrollBox 뒤(DOM 순서상 나중)에 둬서 넘치는 콘텐츠 위에는 그려지지만, 스크롤바보다는
+     낮아야 한다 — 스크롤바 쪽(Window/style.module.css의 .scrollbar/.scrollbarHorizontal)
+     z-index가 이거보다 높게 맞춰져 있다. */
+  z-index: 1;
+}
+
+.clipMaskBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 10px;
+  background-color: white;
+  pointer-events: none;
+  /* clipMaskRight와 같은 이유 — 가로 스크롤바(Window/style.module.css의
+     .scrollbarHorizontal, z-index:2)보다 아래에 있어야 스크롤바를 안 덮는다. */
+  z-index: 1;
+}
+
+.codeTable {
+  border-collapse: collapse;
+  font-family: var(--chakra-fonts-mono, monospace);
+  font-size: 13px;
+}
+
+/* <col>의 폭(렌더링 전에 미리 계산한 줄번호 자릿수)으로 줄번호 칸이 고정된다 — 본문이
+   길어도 숫자 칸은 흔들리지 않는다. 드래그로 줄번호가 선택되는 걸 막아서 코드만 복사되게
+   한다. */
+.lineNumber {
+  white-space: nowrap;
+  text-align: right;
+  padding-right: 12px;
+  color: var(--chakra-colors-gray-400, #a1a1aa);
+  user-select: none;
+  vertical-align: top;
+}
+
+/* 기본은 pre — 줄을 안 꺾고 가로 스크롤로 본다(코드 파일의 들여쓰기·줄 구조를 그대로 유지).
+   .lineTextWrap이 붙으면 자동 줄바꿈으로 바뀐다(토글 버튼으로 전환). */
+.lineText {
+  white-space: pre;
+  vertical-align: top;
+}
+
+.lineTextWrap {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.toolbarButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--chakra-colors-gray-500, #718096);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.toolbarButton:hover {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+  color: var(--chakra-colors-gray-700, #3f3f46);
+}
+
+.toolbarButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background-color: transparent;
+  color: var(--chakra-colors-gray-500, #718096);
+}
+
+.unsupported {
+  color: var(--chakra-colors-gray-500, #718096);
+}

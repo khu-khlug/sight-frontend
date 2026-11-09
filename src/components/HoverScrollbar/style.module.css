@@ -1,0 +1,21 @@
+.scrollbar {
+  opacity: 0 !important;
+  transition-delay: 0ms !important;
+}
+
+.scrollbar:hover,
+.scrollbar[data-scrolling] {
+  opacity: 1 !important;
+}
+
+/* Chakra 기본 recipe는 "두 축 다 overflow 없을 때만" 스크롤바를 숨긴다(두 스크롤바가
+   data-overflow-x/-y 둘 다 공유해서 참조) — ScrollBox처럼 가로·세로 스크롤바가 같이 있을 때
+   한쪽 축만 넘치면 반대쪽(넘치지 않는 축) 스크롤바도 안 숨는다. 각자 자기 축에 overflow가
+   없으면 독립적으로 숨도록 덮어쓴다. */
+.scrollbar[data-orientation="vertical"]:not([data-overflow-y]) {
+  display: none !important;
+}
+
+.scrollbar[data-orientation="horizontal"]:not([data-overflow-x]) {
+  display: none !important;
+}

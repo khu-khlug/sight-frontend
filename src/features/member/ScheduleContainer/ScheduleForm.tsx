@@ -54,6 +54,7 @@ type Props = {
   onDateChange: (date: string) => void;
   onClose: () => void;
   editSchedule?: GetScheduleResponseDto;
+  fixedGroupId?: string; // 지정하면 카테고리와 그룹을 고르지 않고 이 그룹의 그룹활동으로만 등록한다
 };
 
 const PRESET_LOCATIONS = ["405", "406", "410"];
@@ -74,6 +75,7 @@ export default function ScheduleForm({
   onDateChange,
   onClose,
   editSchedule,
+  fixedGroupId,
 }: Props) {
   const queryClient = useQueryClient();
   const { isManager } = useIsManager();
@@ -88,7 +90,7 @@ export default function ScheduleForm({
   const [endTime, setEndTime] = useState(() => editSchedule ? parseTime(editSchedule.endAt) : "10:00");
   const [location, setLocation] = useState(() => isEditMode ? initialLoc.location : "405");
   const [customLocation, setCustomLocation] = useState(() => isEditMode ? initialLoc.customLocation : "");
-  const [groupId, setGroupId] = useState("");
+  const [groupId, setGroupId] = useState(fixedGroupId ?? "");
   const [expoint, setExpoint] = useState(() => isEditMode && editSchedule.expoint > 0 ? String(editSchedule.expoint) : "");
   const [generateCheckCode, setGenerateCheckCode] = useState(true);
   const [isSummerSeason, setIsSummerSeason] = useState(() =>
@@ -98,7 +100,8 @@ export default function ScheduleForm({
     editSchedule?.isSpeakAfter !== undefined ? String(editSchedule.isSpeakAfter) : ""
   );
 
-  const effectiveCategory = isEditMode ? category : (isManager ? category : "GROUP_ACTIVITY");
+  const isFixedGroup = !isEditMode && fixedGroupId !== undefined;
+  const effectiveCategory = isEditMode ? category : (isManager && !isFixedGroup ? category : "GROUP_ACTIVITY");
   const isOther = location === "기타";
   const isBigSeminar = effectiveCategory === "BIG_SEMINAR";
   const isGroupActivity = effectiveCategory === "GROUP_ACTIVITY";
@@ -142,7 +145,7 @@ export default function ScheduleForm({
         }
       } else if (isGroupActivity) {
         await SchedulePublicApi.createGroupActivitySchedule({
-          title, location: loc, scheduledAt, endAt, groupId: Number(groupId),
+          title, location: loc, scheduledAt, endAt, groupId,
         });
       } else if (isBigSeminar) {
         await SchedulePublicApi.createBigSeminarSchedule({
@@ -163,6 +166,7 @@ export default function ScheduleForm({
 
   return (
     <Box className={styles.form} bg="#fcfcfc">
+      {isFixedGroup && <p className={styles.notice}>여기선 이 그룹의 일정만 가능합니다.</p>}
       <div className={styles.row}>
         {/* 제목 */}
         <div className={`${styles.field} ${styles.fieldTitle}`}>
@@ -177,7 +181,7 @@ export default function ScheduleForm({
         </div>
 
         {/* 카테고리 */}
-        <div className={styles.field}>
+        {!isFixedGroup && <div className={styles.field}>
           <label className={styles.label}>카테고리</label>
           {isEditMode && isGroupActivity ? (
             <div className={styles.fixedValue}>그룹활동</div>
@@ -221,10 +225,10 @@ export default function ScheduleForm({
           ) : (
             <div className={styles.fixedValue}>그룹활동</div>
           )}
-        </div>
+        </div>}
 
         {/* 그룹 선택 (GROUP_ACTIVITY, 등록 모드만) */}
-        {isGroupActivity && !isEditMode && (
+        {isGroupActivity && !isEditMode && !isFixedGroup && (
           <div className={styles.field}>
             <label className={styles.label}>
               그룹 <span className={styles.required}>*</span>
@@ -236,7 +240,7 @@ export default function ScheduleForm({
             >
               <option value="">그룹 선택</option>
               {myGroups.filter((g) => g.state === "PROGRESS").map((g) => (
-                <option key={g.id} value={String(g.id)}>
+                <option key={g.id} value={g.id}>
                   {g.title}
                 </option>
               ))}

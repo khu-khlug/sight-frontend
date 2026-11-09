@@ -1,0 +1,69 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 4px 0 12px;
+  color: var(--chakra-colors-gray-700, #3f3f46);
+  font-size: var(--chakra-font-sizes-sm, 14px);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.introduction,
+.reference,
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.status {
+  color: var(--chakra-colors-gray-500, #71717a);
+}
+
+.headline {
+  color: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  word-break: keep-all;
+}
+
+.description,
+.memo,
+.step {
+  font-size: inherit;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.link {
+  color: var(--main-color-hover, #0077b6);
+  font-size: inherit;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--main-color, #00a0e9);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.reference {
+  padding-top: 16px;
+  border-top: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+}
+
+.note {
+  color: var(--chakra-colors-gray-500, #71717a);
+  font-size: var(--chakra-font-sizes-xs, 12px);
+}

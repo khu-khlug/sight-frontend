@@ -9,7 +9,7 @@ export type GroupMemberDto = {
 };
 
 export type GroupDto = {
-  id: number;
+  id: string;
   title: string;
   members: GroupMemberDto[];
   createdAt: string;
@@ -25,7 +25,7 @@ export type CreateGroupRequestDto = {
 };
 
 export type CreateGroupResponseDto = {
-  id: number;
+  id: string;
 };
 
 export type AddGroupMemberRequestDto = {
@@ -52,7 +52,7 @@ const createGroup = async (
 };
 
 const addGroupMember = async (
-  groupId: number,
+  groupId: string,
   dto: AddGroupMemberRequestDto
 ): Promise<void> => {
   await apiV2Client.post(`/groups/${groupId}/members`, dto);

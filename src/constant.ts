@@ -65,6 +65,15 @@ export const PracticalProjectRole = {
 export type PracticalProjectRole =
   (typeof PracticalProjectRole)[keyof typeof PracticalProjectRole];
 
+export const SpecialOrganization = {
+  SECURITY_HACKING_TRACK: "SECURITY_HACKING_TRACK",
+} as const;
+export type SpecialOrganization = (typeof SpecialOrganization)[keyof typeof SpecialOrganization];
+
+export const SpecialOrganizationLabel: Record<SpecialOrganization, string> = {
+  [SpecialOrganization.SECURITY_HACKING_TRACK]: "보안해킹트랙",
+};
+
 export const GroupCategory = {
   STUDY: "STUDY",
   PROJECT: "PROJECT",
@@ -82,6 +91,67 @@ export const GroupCategoryLabel: Record<GroupCategory, string> = {
   [GroupCategory.MANAGE]: "운영",
   [GroupCategory.EDUCATION]: "교육",
   [GroupCategory.PROGRAM]: "프로그램",
+};
+
+// 레거시 group.state는 pending(생성 직후 기본값)도 갖지만, tasks/group/GROUP_BUSINESS_RULES.md와
+// policy/그룹/POLICY.md에 정의된 4가지 상태만 다룬다.
+export const GroupStatus = {
+  PROGRESS: "PROGRESS",
+  STOP: "STOP",
+  SUCCESS: "SUCCESS",
+  FAIL: "FAIL",
+} as const;
+export type GroupStatus = (typeof GroupStatus)[keyof typeof GroupStatus];
+
+export const GroupStatusLabel: Record<GroupStatus, string> = {
+  [GroupStatus.PROGRESS]: "진행 중",
+  [GroupStatus.STOP]: "중단",
+  [GroupStatus.SUCCESS]: "종료(성공)",
+  [GroupStatus.FAIL]: "종료(실패)",
+};
+
+// 레거시 group.grade(0/2/3/4, 1은 결번)에 대응. tasks/group/GROUP_BUSINESS_RULES.md 기준이며
+// 아직 policy/그룹/POLICY.md나 GLOSSARY.md에 정식 등재된 용어는 아니다.
+export const GroupVisibility = {
+  PRIVATE: "PRIVATE",
+  MANAGER_ONLY: "MANAGER_ONLY",
+  MEMBER_ONLY: "MEMBER_ONLY",
+  PUBLIC: "PUBLIC",
+} as const;
+export type GroupVisibility =
+  (typeof GroupVisibility)[keyof typeof GroupVisibility];
+
+export const GroupVisibilityLabel: Record<GroupVisibility, string> = {
+  [GroupVisibility.PRIVATE]: "비공개",
+  [GroupVisibility.MANAGER_ONLY]: "운영진 공개",
+  [GroupVisibility.MEMBER_ONLY]: "회원 공개",
+  [GroupVisibility.PUBLIC]: "완전 공개",
+};
+
+// group.interest('|' 구분 문자열)에 들어가는 관심분야 9종.
+export const GroupInterest = {
+  WEB_APP_SERVICE: "WEB_APP_SERVICE",
+  UX_UI_DESIGN: "UX_UI_DESIGN",
+  GAME_GRAPHICS: "GAME_GRAPHICS",
+  AI_DATA_SCIENCE: "AI_DATA_SCIENCE",
+  CIRCUIT_IOT: "CIRCUIT_IOT",
+  NETWORK_CLOUD: "NETWORK_CLOUD",
+  SYSTEM_PROGRAMMING: "SYSTEM_PROGRAMMING",
+  SECURITY_HACKING: "SECURITY_HACKING",
+  ALGORITHM_THEORY: "ALGORITHM_THEORY",
+} as const;
+export type GroupInterest = (typeof GroupInterest)[keyof typeof GroupInterest];
+
+export const GroupInterestLabel: Record<GroupInterest, string> = {
+  [GroupInterest.WEB_APP_SERVICE]: "웹·애플리케이션 서비스",
+  [GroupInterest.UX_UI_DESIGN]: "UX·UI 디자인",
+  [GroupInterest.GAME_GRAPHICS]: "게임·그래픽스",
+  [GroupInterest.AI_DATA_SCIENCE]: "AI·데이터사이언스",
+  [GroupInterest.CIRCUIT_IOT]: "전자회로·사물인터넷",
+  [GroupInterest.NETWORK_CLOUD]: "네트워크·클라우드",
+  [GroupInterest.SYSTEM_PROGRAMMING]: "시스템 프로그래밍",
+  [GroupInterest.SECURITY_HACKING]: "보안·해킹",
+  [GroupInterest.ALGORITHM_THEORY]: "알고리즘·전산이론",
 };
 
 export const Semester = {

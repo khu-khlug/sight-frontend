@@ -1,0 +1,38 @@
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding-left: 10px;
+  min-width: 0;
+}
+
+.headerTitle {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.draftBadge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--chakra-colors-orange-100, #ffedd5);
+  color: var(--chakra-colors-orange-700, #92310a);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/*
+ * Window의 .content(flex:1, 윈도우 콘텐츠 영역 전체 높이)를 그대로 이어받아 BlockEditor에
+ * 넘긴다 — height:100%만 주면 끝인 이유는 BlockEditor/style.module.css의 .root 주석 참고.
+ * 커스텀 스크롤 컴포넌트(VerticalScrollBox 등)를 쓰지 않고, 에디터 내부의 네이티브
+ * overflow-y:auto 스크롤을 그대로 쓴다.
+ */
+.content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0 16px 16px 16px;
+}

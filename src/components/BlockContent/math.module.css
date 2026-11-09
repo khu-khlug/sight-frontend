@@ -1,0 +1,30 @@
+.math {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.math[data-type="block-math"] {
+  display: block;
+}
+
+:global([contenteditable="true"]) .rendered {
+  cursor: text;
+}
+
+.input {
+  width: 28ch;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--main-color, #00a0e9);
+  border-radius: 4px;
+  background: white;
+  color: inherit;
+  font-family: monospace;
+  cursor: text;
+  outline: none;
+}
+
+.math[data-type="block-math"] .input {
+  width: 100%;
+}
