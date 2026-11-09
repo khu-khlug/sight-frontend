@@ -5,7 +5,7 @@ import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
 import { draggableFileProps } from "../../../../../util/draggableFile";
 import type { FileWindowContent } from "../../FileWindow/types";
-import { ACTIVITY_REPORT_TYPE_LABEL, SEASON_LABEL, SPEAK_ORDER_LABEL, type ActivityReport } from "./types";
+import { activityReportFileName, ACTIVITY_REPORT_TYPE_LABEL, SEASON_LABEL, SPEAK_ORDER_LABEL, type ActivityReport } from "./types";
 import styles from "./style.module.css";
 
 type Props = {
@@ -42,9 +42,9 @@ export default function ReportHistory({ reports, onOpenFile }: Props) {
                     {ACTIVITY_REPORT_TYPE_LABEL[report.isPresentation ? "presentation" : "report"]}
                   </Text>
                   <Text fontSize="xs" color="gray.400">
-                    {new Date(report.seminarDate).getFullYear()}년 ·{" "}
-                    {SEASON_LABEL[report.isSummerSeason ? "summer" : "winter"]} ·{" "}
-                    {SPEAK_ORDER_LABEL[report.isSpeakAfter ? "after" : "before"]}
+                    {report.seminarDate ? `${new Date(report.seminarDate).getFullYear()}년` : "일정 정보 없음"} ·{" "}
+                    {report.seminarIsSummerSeason === null ? "계절 정보 없음" : SEASON_LABEL[report.seminarIsSummerSeason ? "summer" : "winter"]} ·{" "}
+                    {report.seminarIsSpeakAfter === null ? "발표 순서 정보 없음" : SPEAK_ORDER_LABEL[report.seminarIsSpeakAfter ? "after" : "before"]}
                   </Text>
                   <Text fontSize="xs" color="gray.400">
                     <RelativeDateTime value={report.createdAt} />
@@ -52,14 +52,14 @@ export default function ReportHistory({ reports, onOpenFile }: Props) {
                 </Box>
                 {/* 파일명/URL 텍스트 대신, 확장자로 유추한 파일 종류 아이콘을 카드 우측에 둔다.
                     새 탭으로 내려받는 대신 파일 창으로 바로 미리보고, 기록 편집기로 끌어다 넣을 수도 있다. */}
-                <AppTooltip content={report.fileName}>
+                <AppTooltip content={activityReportFileName(report)}>
                   <Box
                     as="button"
-                    aria-label={report.fileName}
+                    aria-label={activityReportFileName(report)}
                     flex="none"
                     color="gray.500"
-                    onClick={() => onOpenFile({ source: "activityReport", fileName: report.fileName, fileUrl: report.reportFileUrl })}
-                    {...draggableFileProps({ url: report.reportFileUrl, name: report.fileName })}
+                    onClick={() => onOpenFile({ source: "activityReport", fileName: activityReportFileName(report), fileUrl: report.reportFileUrl })}
+                    {...draggableFileProps({ url: report.reportFileUrl, name: activityReportFileName(report) })}
                   >
                     <MaterialFileIcon fileName={report.reportFileUrl} size={26} />
                   </Box>

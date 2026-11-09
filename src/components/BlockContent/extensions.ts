@@ -1,3 +1,4 @@
+import { RecordFileAttributes } from "./RecordFileAttributes";
 import type { Node as TiptapNode } from "@tiptap/core";
 import Audio from "@tiptap/extension-audio";
 import { Blockquote } from "@tiptap/extension-blockquote";
@@ -89,6 +90,7 @@ export function createBlockExtensions(
   linkServices: MutableRefObject<LinkServices> | null = null,
 ) {
   return [
+      RecordFileAttributes,
       StarterKit.configure({
         // 편집기는 목록 변환·핸들 좌표 보정과 위치 계산을 공유하는 안내선을 쓴다.
         dropcursor: defaultDropCursor ? {} : false,

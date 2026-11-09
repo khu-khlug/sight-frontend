@@ -162,6 +162,15 @@ button.menuButton:focus-visible,
   color: var(--chakra-colors-red-600);
 }
 
+.progressAction {
+  color: var(--main-color);
+}
+
+.progressAction:hover:not(:disabled) {
+  background: var(--main-color);
+  color: white;
+}
+
 .successAction:hover:not(:disabled) {
   background: var(--chakra-colors-green-600);
   color: white;

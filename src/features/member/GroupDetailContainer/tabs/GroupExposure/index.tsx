@@ -1,4 +1,5 @@
 import ContentSkeleton from "../../../../../components/ContentSkeleton";
+import { GroupStatus } from "../../../../../constant";
 import { useQuery } from "@tanstack/react-query";
 import { GroupExposureApi } from "../../../../../api/public/group/GroupExposureApi";
 import { useGroupAction } from "../../../../../hooks/group/useGroupAction";
@@ -8,11 +9,11 @@ import { ScrollText, CreditCard, X } from "lucide-react";
 import { toast } from "react-toastify";
 
 import Collapse from "../../../../../components/Collapse";
-import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
 import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/browser/useUnsavedChangesBeforeUnload";
 import type { FileWindowContent } from "../../FileWindow/types";
 import { GroupInfo as GroupInfoData } from "../GroupInfo/types";
 import {
+  activityReportFileName,
   ACTIVITY_REPORT_TYPE_LABEL,
   ActivityReport,
   SEASON_LABEL,
@@ -44,12 +45,13 @@ const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
  */
 export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Props) {
   const action = useGroupAction(info.id);
-  const contextQuery = useQuery({ queryKey: ["group-detail", info.id, "report-context"], queryFn: () => GroupExposureApi.getActivityReportContext(info.id) });
+  const contextQuery = useQuery({ queryKey: ["group-detail", info.id, "report-context"], queryFn: () => GroupExposureApi.getActivityReportContext() });
   const reportsQuery = useQuery({ queryKey: ["group-detail", info.id, "reports"], queryFn: () => GroupExposureApi.listActivityReports(info.id) });
   const openCohort = contextQuery.data;
   const localReports = reportsQuery.data ?? [];
-  const currentUserQuery = useCurrentUser();
-  const isLeader = currentUserQuery.data?.id === info.leaderUserId;
+  const isLeader = info.isLeader;
+  // 종료된 그룹에서는 활동보고를 올리거나 제출·수정·취소할 수 없다.
+  const isGroupEnded = info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL;
 
   const hasPublishedPortfolio = info.hasPublishedPortfolio;
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -63,7 +65,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
       )
     : undefined;
   const displayedFileName = file?.name ?? (!isFileRemoved && currentReport
-    ? currentReport.fileName
+    ? activityReportFileName(currentReport)
     : null);
   const isCancelling = Boolean(currentReport && isFileRemoved && !file);
   const canSubmit = Boolean(openCohort && (
@@ -82,9 +84,12 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
     setIsFormOpen((prev) => !prev);
   };
 
-  const handleTogglePortfolio = () => action.mutate(() => hasPublishedPortfolio
-    ? GroupExposureApi.cancelGroupPortfolio(info.id)
-    : GroupExposureApi.publishGroupPortfolio(info.id));
+  const handleTogglePortfolio = () => {
+    if (!isLeader || info.status !== GroupStatus.PROGRESS || action.isPending) return;
+    action.mutate(() => hasPublishedPortfolio
+      ? GroupExposureApi.cancelGroupPortfolio(info.id)
+      : GroupExposureApi.publishGroupPortfolio(info.id));
+  };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const picked = event.target.files?.[0] ?? null;
@@ -104,7 +109,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
   };
 
   const handleSubmit = () => {
-    if (!openCohort || !canSubmit || action.isPending) return;
+    if (!isLeader || isGroupEnded || !openCohort || !canSubmit || action.isPending) return;
     if (isCancelling && !window.confirm("활동보고를 취소하시겠습니까? 제출한 파일도 삭제됩니다.")) return;
     if (!currentReport && file && !window.confirm("활동보고를 제출하시겠습니까?")) return;
     action.mutate(async () => {
@@ -121,7 +126,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
       if (currentReport) {
         await GroupExposureApi.updateActivityReport(info.id, currentReport.id, { isPresentation, fileUploadId });
       } else if (fileUploadId) {
-        await GroupExposureApi.submitActivityReport(info.id, { isPresentation, fileUploadId, seminarId: openCohort.id });
+        await GroupExposureApi.submitActivityReport(info.id, { isPresentation, fileUploadId });
       }
     }, { onSuccess: () => {
       setFile(null);
@@ -155,7 +160,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
         <Button
           size="sm"
           variant="outline"
-          disabled={!isLeader || action.isPending}
+          disabled={!isLeader || action.isPending || info.status !== GroupStatus.PROGRESS}
           onClick={handleTogglePortfolio}
           _active={{ transform: "scale(0.97)" }}
         >
@@ -184,7 +189,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
           <Button
             size="sm"
             variant="outline"
-            disabled={!openCohort || action.isPending}
+            disabled={!openCohort || action.isPending || isGroupEnded}
             onClick={toggleReportForm}
             _active={{ transform: "scale(0.97)" }}
           >
@@ -200,7 +205,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
         <Box mb={4}>
             <Text as="div" fontSize="sm" color="gray.500" mb={2}>
               <Text color="brand.500" mb={1}><Strong>접수 중 </Strong></Text>
-            {openCohort.year}년 · {SEASON_LABEL[openCohort.isSummerSeason ? "summer" : "winter"]} ·{" "}
+            {new Date(openCohort.scheduledAt).getFullYear()}년 · {SEASON_LABEL[openCohort.isSummerSeason ? "summer" : "winter"]} ·{" "}
             {SPEAK_ORDER_LABEL[openCohort.isSpeakAfter ? "after" : "before"]}
           </Text>
           {isLeader && (
@@ -227,13 +232,13 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
                 <Input
                   ref={fileInputRef}
                   type="file"
-                  disabled={action.isPending}
+                  disabled={action.isPending || isGroupEnded}
                   className={styles.fileInput}
                   onChange={handleFileChange}
                   aria-label="활동보고 파일 선택"
                 />
                 <Box className={styles.fileRow} mb={3}>
-                  <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => fileInputRef.current?.click()}>
+                  <Button size="sm" variant="outline" disabled={action.isPending || isGroupEnded} onClick={() => fileInputRef.current?.click()}>
                     파일 선택
                   </Button>
                   <Text className={styles.fileName} fontSize="sm" color={displayedFileName ? "gray.700" : "gray.400"}>
@@ -245,7 +250,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
                       variant="ghost"
                       className={styles.removeFile}
                       aria-label="활동보고 파일 제거"
-                      disabled={action.isPending}
+                      disabled={action.isPending || isGroupEnded}
                       onClick={() => {
                         setFile(null);
                         setIsFileRemoved(true);
@@ -260,7 +265,7 @@ export default function GroupExposure({ info, portfolioCounts, onOpenFile }: Pro
                 <Button
                   size="sm"
                   colorPalette="brand"
-                  disabled={!canSubmit || action.isPending}
+                  disabled={!canSubmit || action.isPending || isGroupEnded}
                   onClick={handleSubmit}
                   _disabled={{ color: "gray.500" }}
                   _active={{ transform: "scale(0.97)" }}

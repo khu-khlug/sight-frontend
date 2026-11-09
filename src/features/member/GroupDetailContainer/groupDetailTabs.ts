@@ -1,10 +1,11 @@
-import { Archive, BotMessageSquare, GitBranch, History, Info, MessageCircle, Presentation, Search, Settings, Users } from "lucide-react";
+import { Archive, BotMessageSquare, CalendarDays, GitBranch, History, Info, MessageCircle, Presentation, Search, Settings, Users } from "lucide-react";
 
 import { TabItem } from "./TabBar";
 
 export const GROUP_DETAIL_TAB_IDS = [
   "info",
   "member",
+  "schedule",
   "discord",
   "repository",
   "exposure",
@@ -19,10 +20,11 @@ export type GroupDetailTabId = (typeof GROUP_DETAIL_TAB_IDS)[number];
 export const GROUP_DETAIL_TAB_LABEL: Record<GroupDetailTabId, string> = {
   info: "정보",
   member: "멤버",
+  schedule: "스케줄",
   discord: "채팅방",
   repository: "저장소",
   exposure: "활동공개",
-  search: "카드검색",
+  search: "검색",
   log: "활동로그",
   archive: "그룹아카이브",
   aiChat: "AI 채팅",
@@ -32,6 +34,7 @@ export const GROUP_DETAIL_TAB_LABEL: Record<GroupDetailTabId, string> = {
 export const GROUP_DETAIL_TAB_ICON: Record<GroupDetailTabId, TabItem["icon"]> = {
   info: Info,
   member: Users,
+  schedule: CalendarDays,
   discord: MessageCircle,
   repository: GitBranch,
   exposure: Presentation,

@@ -1,4 +1,7 @@
+import { isOtherAssignee, useAssigneeFilter } from "../AssigneeFilter";
 import { Box, Heading, ScrollArea } from "@chakra-ui/react";
+import ContentSkeleton from "../../../../components/ContentSkeleton";
+import { useLoadMoreOnScroll } from "../../../../hooks/useLoadMoreOnScroll";
 import { SendHorizonal, Plus, X } from "lucide-react";
 import { FormEvent, Fragment, KeyboardEvent, PointerEvent as ReactPointerEvent, memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -22,14 +25,20 @@ type Props = {
   isSourceOfDraggedCard?: boolean;
   placedCardId?: string | null;
   enabledFilters: Set<LabelFilterKey>;
-  onAddCard: (title: string) => void;
+  onAddCard: (title: string) => void | Promise<void>;
   onDeleteStart: () => void;
   onDeleteList: () => void | Promise<void>;
-  onUpdateList: (changes: { title: string; description: string }) => void;
+  onUpdateList: (changes: { title: string; description: string }) => void | Promise<void>;
   onToggleCardPortfolio?: (cardId: string) => void;
   onCardClick?: (cardId: string) => void;
   onCardHandlePointerDown?: (event: ReactPointerEvent<HTMLButtonElement>, cardId: string, cardIndex: number) => void;
   onCardHandleKeyDown?: (event: KeyboardEvent<HTMLButtonElement>, cardId: string, cardIndex: number) => void;
+  // 아직 불러오지 않은 카드가 남았는지와, 끝까지 스크롤했을 때 다음 카드를 불러오는 함수.
+  hasMoreCards?: boolean;
+  isLoadingMoreCards?: boolean;
+  onLoadMoreCards?: () => void;
+  // 종료 그룹이면 카드 추가·리스트 수정·삭제를 하지 않는다.
+  isReadOnly?: boolean;
 };
 
 type EditingField = "title" | "description" | null;
@@ -47,6 +56,7 @@ type CardRowProps = {
 };
 
 const CardRow = memo(function CardRow({ card, index, placed, isPortfolioPublished, enabledFilters, onToggleCardPortfolio, onCardClick, onCardHandlePointerDown, onCardHandleKeyDown }: CardRowProps) {
+  const { onlyAssignedToMe, currentUserId } = useAssigneeFilter();
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => onCardHandlePointerDown?.(event, card.id, index), [card.id, index, onCardHandlePointerDown]);
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>) => onCardHandleKeyDown?.(event, card.id, index), [card.id, index, onCardHandleKeyDown]);
   const handleTogglePortfolio = useCallback(() => onToggleCardPortfolio?.(card.id), [card.id, onToggleCardPortfolio]);
@@ -61,15 +71,14 @@ const CardRow = memo(function CardRow({ card, index, placed, isPortfolioPublishe
         title={card.title}
         recordCount={card.recordCount}
         hasDescription={card.hasDescription}
-        inPortfolio={card.portfolio}
+        inPortfolio={card.isInPortfolio}
         showPortfolioStatus={isPortfolioPublished}
         onTogglePortfolio={onToggleCardPortfolio ? handleTogglePortfolio : undefined}
-        assigneeName={card.assigneeName}
-        inheritedFrom={card.inheritedFrom}
+        assigneeName={card.assigneeName}
         coverImageUrl={card.coverImageUrl}
         labels={card.labels}
-        disabled={card.disabled}
-        dimmed={isCardDimmed(card.labels ?? [], enabledFilters)}
+        disabled={card.isDisabled}
+        dimmed={isCardDimmed(card.labels ?? [], enabledFilters) || isOtherAssignee(card.assigneeUserId, onlyAssignedToMe, currentUserId)}
         showDragHandle
         onHandlePointerDown={onCardHandlePointerDown ? handlePointerDown : undefined}
         onHandleKeyDown={onCardHandleKeyDown ? handleKeyDown : undefined}
@@ -79,8 +88,12 @@ const CardRow = memo(function CardRow({ card, index, placed, isPortfolioPublishe
   );
 });
 
-const CardList = memo(function CardList({ title, description, isPortfolioPublished, cards, dropPlaceholder, isSourceOfDraggedCard = false, placedCardId, enabledFilters, onAddCard, onDeleteStart, onDeleteList, onUpdateList, onToggleCardPortfolio, onCardClick, onCardHandlePointerDown, onCardHandleKeyDown }: Props) {
+const CardList = memo(function CardList({ title, description, isPortfolioPublished, cards, dropPlaceholder, isSourceOfDraggedCard = false, placedCardId, enabledFilters, onAddCard, onDeleteStart, onDeleteList, onUpdateList, onToggleCardPortfolio, onCardClick, onCardHandlePointerDown, onCardHandleKeyDown, hasMoreCards = false, isLoadingMoreCards = false, onLoadMoreCards, isReadOnly = false }: Props) {
   const introRef = useRef<HTMLFormElement>(null);
+  const cardViewportRef = useRef<HTMLDivElement>(null);
+  const cardSentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreCards = useCallback(() => onLoadMoreCards?.(), [onLoadMoreCards]);
+  useLoadMoreOnScroll({ rootRef: cardViewportRef, sentinelRef: cardSentinelRef, hasMore: hasMoreCards, isLoading: isLoadingMoreCards, loadMore: loadMoreCards });
   const cardListRef = useRef<HTMLUListElement>(null);
   const cardPositionsRef = useRef<Map<string, number>>(new Map());
   const cardAnimationsRef = useRef<Map<string, Animation>>(new Map());
@@ -89,6 +102,7 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [cardTitle, setCardTitle] = useState("");
   const [editingField, setEditingField] = useState<EditingField>(null);
@@ -134,7 +148,7 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
   }, []);
 
   useEffect(() => {
-    if (!editingField) return;
+    if (!editingField || isSaving) return;
 
     const cancelOnOutsideClick = (event: PointerEvent) => {
       if (event.target instanceof Node && !introRef.current?.contains(event.target)) {
@@ -144,10 +158,10 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
 
     document.addEventListener("pointerdown", cancelOnOutsideClick);
     return () => document.removeEventListener("pointerdown", cancelOnOutsideClick);
-  }, [editingField]);
+  }, [editingField, isSaving]);
 
   useEffect(() => {
-    if (!isAdding) return;
+    if (!isAdding || isSaving) return;
 
     const cancelCardAddOnOutsideClick = (event: PointerEvent) => {
       if (!(event.target instanceof Node)) return;
@@ -158,7 +172,7 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
 
     document.addEventListener("pointerdown", cancelCardAddOnOutsideClick);
     return () => document.removeEventListener("pointerdown", cancelCardAddOnOutsideClick);
-  }, [isAdding]);
+  }, [isAdding, isSaving]);
 
   useEffect(() => {
     if (isAdding) cardTitleInputRef.current?.focus();
@@ -169,55 +183,73 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
     setIsAdding(false);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedTitle = cardTitle.trim();
-    if (!trimmedTitle) return;
-    onAddCard(trimmedTitle);
-    closeForm();
+    if (!trimmedTitle || isSaving || isReadOnly) return;
+    setIsSaving(true);
+    try {
+      await onAddCard(trimmedTitle);
+      closeForm();
+    } catch {
+      return;
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const startEditing = (field: Exclude<EditingField, null>) => {
+    if (isReadOnly || isSaving) return;
     setDraftTitle(title);
     setDraftDescription(description);
     if (isAdding) closeForm();
     setEditingField(field);
   };
 
-  const handleSave = (event: FormEvent<HTMLFormElement>) => {
+  const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSaving || isReadOnly) return;
     const nextTitle = draftTitle.trim();
     if (!nextTitle) {
       setEditingField("title");
       return;
     }
     const nextDescription = draftDescription.trim();
-    if (nextTitle !== title || nextDescription !== description) {
-      onUpdateList({ title: nextTitle, description: nextDescription });
+    setIsSaving(true);
+    try {
+      if (nextTitle !== title || nextDescription !== description) {
+        await onUpdateList({ title: nextTitle, description: nextDescription });
+      }
+      setEditingField(null);
+    } catch {
+      return;
+    } finally {
+      setIsSaving(false);
     }
-    setEditingField(null);
   };
 
   const handleEditKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
+    if (event.key === "Escape" && !isSaving) {
       event.preventDefault();
       setEditingField(null);
     }
   };
 
   const handleDeleteList = () => {
-    if (isDeleting || cards.length > 0) return;
+    if (isReadOnly) return;
+    if (isDeleting || isSaving || cards.length > 0 || hasMoreCards) return;
     if (!window.confirm("삭제된 리스트는 복구할 수 없습니다. 삭제하시겠습니까?")) return;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      onDeleteList();
+      setIsDeleting(true);
+      void Promise.resolve(onDeleteList()).catch(() => undefined).finally(() => setIsDeleting(false));
       return;
     }
 
     setIsDeleting(true);
     onDeleteStart();
     deleteTimerRef.current = setTimeout(() => {
-      void Promise.resolve(onDeleteList()).finally(() => setIsDeleting(false));
+      void Promise.resolve(onDeleteList()).catch(() => undefined).finally(() => setIsDeleting(false));
     }, 220);
   };
 
@@ -231,6 +263,8 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
               className={styles.editTitleInput}
               aria-label="리스트 이름"
               value={draftTitle}
+              maxLength={255}
+              disabled={isSaving}
               onChange={(event) => setDraftTitle(event.target.value)}
               onKeyDown={handleEditKeyDown}
               required
@@ -245,9 +279,10 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
               <Heading as="span" size="xl">{title}</Heading>
             </button>
           )}
-          <AppTooltip content={editingField ? "리스트 변경 저장" : isAdding ? "카드 추가 취소" : "카드 추가"}>
+          {!isReadOnly && <AppTooltip content={editingField ? "리스트 변경 저장" : isAdding ? "카드 추가 취소" : "카드 추가"}>
             <button
               ref={addButtonRef}
+              disabled={isSaving}
               type={editingField ? "submit" : "button"}
               className={styles.addButton}
               aria-label={editingField ? `${title} 리스트 변경 저장` : isAdding ? `${title} 카드 추가 취소` : `${title}에 카드 추가`}
@@ -258,7 +293,7 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
                 : isAdding ? <X size={18} aria-hidden="true" />
                   : <Plus size={18} aria-hidden="true" />}
             </button>
-          </AppTooltip>
+          </AppTooltip>}
         </div>
         {editingField === "description" ? (
           <input
@@ -266,6 +301,8 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
             className={styles.editDescriptionInput}
             aria-label="리스트 설명"
             value={draftDescription}
+            maxLength={1000}
+            disabled={isSaving}
             onChange={(event) => setDraftDescription(event.target.value)}
             onKeyDown={handleEditKeyDown}
           />
@@ -295,20 +332,22 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
             aria-label="카드 제목"
             placeholder="카드 제목"
             required
-            disabled={!isAdding}
+            disabled={!isAdding || isSaving}
+            maxLength={255}
             value={cardTitle}
             onChange={(event) => setCardTitle(event.target.value)}
           />
-          <button type="submit" className={styles.cardSubmitButton} disabled={!isAdding || !cardTitle.trim()}>
+          <button type="submit" className={styles.cardSubmitButton} disabled={!isAdding || isSaving || !cardTitle.trim()}>
             추가
           </button>
         </form>
       </Collapse>
-      {cards.length === 0 && !dropPlaceholder && !isSourceOfDraggedCard ? (
+      {!isReadOnly && cards.length === 0 && !hasMoreCards && !dropPlaceholder && !isSourceOfDraggedCard ? (
         <button
           type="button"
           className={styles.deleteListButton}
           aria-label={`${title} 리스트 삭제`}
+          disabled={isDeleting || isSaving}
           onClick={handleDeleteList}
         >
           리스트 삭제
@@ -316,6 +355,7 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
       ) : (
         <ScrollArea.Root className={styles.cardArea} data-kanban-card-scroll-area size="xs" variant="hover">
           <ScrollArea.Viewport
+            ref={cardViewportRef}
             h="100%"
             data-kanban-card-list
             style={{ width: "220px", minWidth: "220px", maxWidth: "220px", flex: "none", overflowX: "hidden", overscrollBehaviorY: "contain" }}
@@ -340,6 +380,11 @@ const CardList = memo(function CardList({ title, description, isPortfolioPublish
                 ))}
                 {dropPlaceholder?.index === cards.length && <li className={styles.dropSpace} style={{ height: dropPlaceholder.height }} aria-hidden="true" />}
               </ul>
+              {hasMoreCards && (
+                <div ref={cardSentinelRef} aria-busy={isLoadingMoreCards}>
+                  <ContentSkeleton />
+                </div>
+              )}
             </ScrollArea.Content>
           </ScrollArea.Viewport>
           <HoverScrollbar />

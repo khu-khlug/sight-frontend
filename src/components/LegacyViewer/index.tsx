@@ -1,12 +1,14 @@
 import DOMPurify from "dompurify";
 import { useMemo } from "react";
+import { resolveApiUrl } from "../../api/client/resolveApiUrl";
 
 import { cn } from "../../util/cn";
+import { removeMediaElements } from "../BlockContent/removeMediaElements";
 import styles from "./style.module.css";
 
-type Props = { content: string; className?: string };
+type Props = { content: string; className?: string; hideMedia?: boolean };
 
-function prepareHtml(content: string): string {
+function prepareHtml(content: string, hideMedia: boolean): string {
   const body = DOMPurify.sanitize(content, {
     RETURN_DOM: true,
     ADD_TAGS: ["iframe"],
@@ -18,6 +20,8 @@ function prepareHtml(content: string): string {
   if (!(body instanceof Element)) {
     throw new Error("레거시 본문을 HTML 요소로 정리하지 못했습니다.");
   }
+
+  if (hideMedia) removeMediaElements(body);
 
   // 레거시 아코디언의 jQuery 동작을 브라우저 기본 접기/펼치기로 대체한다.
   for (const accordion of Array.from(body.querySelectorAll(".accordion-content")).reverse()) {
@@ -33,15 +37,17 @@ function prepareHtml(content: string): string {
     accordion.replaceWith(details);
   }
 
-  // 기존 사이트의 이미지/파일은 현재 사이트의 레거시 파일 경로로 요청한다.
+  // 기존 파일 경로도 API 서버에서 조회하여 저장소 주소로 리다이렉션한다.
   for (const element of body.querySelectorAll("[src], [href], [poster]")) {
     for (const attribute of ["src", "href", "poster"]) {
       const value = element.getAttribute(attribute);
       if (!value || value.startsWith("#")) continue;
       try {
         const url = new URL(value, window.location.origin);
-        if (/^\/(?:image|file)\//.test(url.pathname)) {
-          element.setAttribute(attribute, `/legacy${url.pathname}${url.search}${url.hash}`);
+        const isSiteUrl = url.origin === window.location.origin
+          || ["khlug.org", "www.khlug.org"].includes(url.hostname);
+        if (isSiteUrl && /^\/(?:image|file)\//.test(url.pathname)) {
+          element.setAttribute(attribute, resolveApiUrl(`${url.pathname}${url.search}${url.hash}`));
         }
       }
       catch { element.removeAttribute(attribute); }
@@ -65,7 +71,7 @@ function prepareHtml(content: string): string {
   return body.innerHTML;
 }
 
-export default function LegacyViewer({ content, className }: Props) {
-  const html = useMemo(() => prepareHtml(content), [content]);
+export default function LegacyViewer({ content, className, hideMedia = false }: Props) {
+  const html = useMemo(() => prepareHtml(content, hideMedia), [content, hideMedia]);
   return <div className={cn(styles.document, className)} dangerouslySetInnerHTML={{ __html: html }} />;
 }

@@ -18,12 +18,15 @@ export function hasFileDrag(dataTransfer: DataTransfer): boolean {
 export function draggableFileProps(file: DraggedFile) {
   return {
     draggable: true,
-    onDragStart: (event: DragEvent) => {
-      event.dataTransfer.setData(SIGHT_FILE_DRAG_TYPE, JSON.stringify(file));
-      event.dataTransfer.setData("text/uri-list", file.url);
-      event.dataTransfer.setData("text/plain", file.url);
-    },
+    onDragStart: (event: DragEvent) => setDraggedFileData(event.dataTransfer, file),
   };
+}
+
+// 이미 끌 수 있는 요소(본문 이미지 등)의 dragstart에서 직접 실을 때도 쓴다.
+export function setDraggedFileData(dataTransfer: DataTransfer, file: DraggedFile) {
+  dataTransfer.setData(SIGHT_FILE_DRAG_TYPE, JSON.stringify(file));
+  dataTransfer.setData("text/uri-list", file.url);
+  dataTransfer.setData("text/plain", file.url);
 }
 
 export function readDraggedFile(dataTransfer: DataTransfer | null): DraggedFile | null {

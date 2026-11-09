@@ -10,12 +10,19 @@
   height: calc(100% - 16px);
   margin: 8px 8px 8px 56px;
   padding: 0;
+  transition: padding-top 160ms ease-in;
   /* 카드 영역은 불투명하게 두고, 투명한 바깥 마진에는 공통 배경이 보이게 한다. */
   background-color: var(--chakra-colors-gray-200);
 }
 
+/* 헤더 여백은 보드에만 적용하고 창 본문으로 상속되는 변수는 변경하지 않는다. */
+:global([data-group-detail]):has(:global(.js-window-minimized)) .box {
+  padding-top: 46px;
+}
+
 /* 폭이 줄어들지 않아야 넘칠 때 스크롤이 생기고, flex로 감싸 카드리스트가 컨테이너 높이 전체를 쓴다 */
-.list {
+.list,
+.listSkeleton {
   display: flex;
   flex: none;
   flex-direction: column;
@@ -231,8 +238,9 @@
 .content {
   box-sizing: border-box;
   padding: 8px 12px 8px calc(12px + var(--dashboard-width) - 56px);
-  /* 패딩과 scrollLeft를 같은 커밋에서 보정하기 위해 폭 전환은 잠시 꺼둔다.
-     기존 전환: transition: padding-left 250ms ease, padding-right 250ms ease; */
+  /* 대시보드 폭 전환(Dashboard/style.module.css)과 같은 시간·곡선으로 리스트가 밀린다.
+     scrollLeft로 보던 자리를 유지할 때는 KanbanBoard/index.tsx가 이 전환을 잠시 끈다. */
+  transition: padding-left 160ms ease-in;
 }
 
 /* 듀얼 카드 창이 리스트를 가리는 쪽에 자리 차지용으로 넣는 빈 flex 자식 — 그만큼 scrollWidth가
@@ -259,9 +267,7 @@
   transition-delay: 0ms !important;
   margin-left: calc(2px + var(--dashboard-width) - 56px) !important;
   transition: margin-left 160ms ease-in;
-  /* 내려간 카드 창은 화면 진짜 바닥에 붙어서(WindowLayer/style.module.css) 이 스크롤바
-     트랙과 같은 자리를 차지할 수 있다 — 창(WindowLayer의 .overlay, z-index: 2)이 겹치는
-     자리에서는 창 버튼이 우선 반응해야 하니 스크롤바를 그 아래에 둔다. */
+  /* 보드 스크롤바의 기본 쌓임 순서. */
   z-index: 1;
 }
 
@@ -274,13 +280,7 @@
   z-index: 4;
 }
 
-/* 내려간 카드 창이 이 스크롤바 트랙과 같은 자리를 차지하면(위에서 z-index를 창보다 낮춰
-   버튼이 우선 반응하게 했으므로) 스크롤바가 창에 가려 네이티브 :hover를 못 받는다. 어떤
-   헤더가 호버됐는지(class)가 아니라 그 좌표가 실제로 이 스크롤바 자리와 겹치는지를
-   KanbanBoard/index.tsx의 pointermove 리스너가 매번 좌표로 비교해서 이 요소에
-   data-force-visible을 직접 찍어준다 — class 매칭(:has())만으로는 "겹치는 위치인지"를
-   구분할 수 없어서(다른 위치의 내려간 헤더를 호버해도 걸림) 판정을 JS 좌표 비교로 옮겼다. */
-.scrollbar[data-force-visible="true"] {
-  opacity: 1 !important;
-  z-index: 4;
+/* 다음 리스트를 불러오는 동안 리스트 자리에 보이는 스켈레톤 — 폭은 .list와 같은 규칙을 쓴다. */
+.listSkeleton {
+  align-self: flex-start;
 }

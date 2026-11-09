@@ -1,3 +1,4 @@
+import { parseBlockContent } from "../BlockContent/document";
 import { ScrollArea } from "@chakra-ui/react";
 import { Selection } from "@tiptap/extensions";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -31,7 +32,7 @@ const EMPTY_LINK_CARDS: LinkCard[] = [];
 
 // 바깥(저장 로직 등)이 필요할 때만 본문을 직렬화해서 가져가기 위한 손잡이다.
 // refreshTableOfContents: 입력이 잠잠해진 시점(임시저장 디바운스)에 불러, 그동안 제목이 바뀌었으면 목차를 다시 그린다.
-export type BlockEditorHandle = { getHTML: () => string; refreshTableOfContents: () => void };
+export type BlockEditorHandle = { getContent: () => string; replaceFileUrls: (replacements: { from: string; to: string }[]) => void; refreshTableOfContents: () => void };
 
 type Props = {
   // 에디터가 만들어질 때의 본문이다. 이후 값이 바뀌면(예: 임시저장 복구) 그 내용으로 교체하지만,
@@ -39,7 +40,7 @@ type Props = {
   initialValue: string;
   // 본문이 바뀔 때마다 호출된다. 본문 내용은 넘기지 않는다.
   onInput: () => void;
-  // 보내기 버튼을 누른 결과만 받는다 — 아직 내용이 정해지지 않은 입력 박스를 뺀 본문 HTML이 온다.
+  // 보내기 버튼을 누른 결과만 받는다 — 아직 내용이 정해지지 않은 입력 박스를 뺀 Tiptap JSON 문자열이 온다.
   // 파일을 올리거나 확인하는 중에는 호출되지 않는다.
   onSubmit: (value: string) => void;
   placeholder?: string;
@@ -51,6 +52,9 @@ type Props = {
   uploadFile?: (file: File, signal: AbortSignal) => Promise<string>;
   // 앱 안 파일(저장소 등)을 끌어다 넣을 때 용량·형식을 확인한다. 없으면 용량 없이 넣는다.
   resolveFileMetadata?: (url: string) => Promise<FileMetadata>;
+  // 끌어온 앱 안 파일을 참조하거나 내려받는다. 없으면 끌어온 주소를 그대로 넣는다(MediaServices 참고).
+  referenceFile?: MediaServices["referenceFile"];
+  fetchFile?: MediaServices["fetchFile"];
   // 링크 주소 입력 상자에서 "#"로 찾을 카드 목록이다. 없으면 카드 자동완성이 나오지 않는다.
   linkCards?: LinkCard[];
 };
@@ -74,7 +78,7 @@ type Props = {
  * 글자를 칠 때 React가 다시 그리는 범위를 줄이려고 이 컴포넌트는 본문 상태를 들고 있지 않다.
  * 툴바·상태바는 각자 useEditorState로 필요한 값만 구독하는 별도 컴포넌트다.
  */
-function BlockEditor({ initialValue, onInput, onSubmit, placeholder, disabled = false, defaultCodeWrap, handleRef, uploadFile, resolveFileMetadata, linkCards }: Props) {
+function BlockEditor({ initialValue, onInput, onSubmit, placeholder, disabled = false, defaultCodeWrap, handleRef, uploadFile, resolveFileMetadata, referenceFile, fetchFile, linkCards }: Props) {
   // onUpdate는 에디터가 만들어질 때 한 번 등록되므로, 최신 콜백은 ref로 읽는다.
   const onInputRef = useRef(onInput);
   onInputRef.current = onInput;
@@ -82,7 +86,7 @@ function BlockEditor({ initialValue, onInput, onSubmit, placeholder, disabled = 
   onSubmitRef.current = onSubmit;
   // 확장은 에디터가 만들어질 때 한 번 등록되므로, 입력 박스는 이 ref로 최신 기능을 읽는다.
   const mediaServices = useRef<MediaServices>({});
-  mediaServices.current = { uploadFile, resolveFileMetadata };
+  mediaServices.current = { uploadFile, resolveFileMetadata, referenceFile, fetchFile };
   const linkServices = useRef<LinkServices>({});
   linkServices.current = { cards: linkCards };
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -104,7 +108,7 @@ function BlockEditor({ initialValue, onInput, onSubmit, placeholder, disabled = 
       withDragHandle(MediaInput.configure({ services: mediaServices })), MediaInputDrop,
     ],
     editorProps: { attributes: { class: contentStyles.document } },
-    content: initialValue,
+    content: parseBlockContent(initialValue),
     // 렌더 중에 만들면 useEditor가 1ms 안에 마운트되지 않은 에디터를 destroy하는데, lazy로 불러올 때는
     // 렌더와 effect 사이가 그보다 길어져 destroy된 에디터를 쓰게 된다. effect에서 만들어 이를 피한다.
     immediatelyRender: false,
@@ -120,7 +124,7 @@ function BlockEditor({ initialValue, onInput, onSubmit, placeholder, disabled = 
   useEffect(() => {
     if (!editor) return;
     if (serializeContent(editor) === initialValue) return;
-    editor.commands.setContent(initialValue, { emitUpdate: false });
+    editor.commands.setContent(parseBlockContent(initialValue), { emitUpdate: false });
   }, [editor, initialValue]);
 
   useEffect(() => {
@@ -130,7 +134,24 @@ function BlockEditor({ initialValue, onInput, onSubmit, placeholder, disabled = 
   useEffect(() => {
     if (!handleRef || !editor) return;
     handleRef.current = {
-      getHTML: () => serializeContent(editor),
+      getContent: () => serializeContent(editor),
+      replaceFileUrls: (replacements) => {
+        if (editor.isDestroyed || !replacements.length) return;
+        const changes = new Map(replacements.map(({ from, to }) => [from, to]));
+        const tr = editor.state.tr;
+        editor.state.doc.descendants((node, pos) => {
+          const next = changes.get(node.attrs.src);
+          if (next) tr.setNodeMarkup(pos, undefined, { ...node.attrs, src: next });
+          for (const mark of node.marks) {
+            const href = changes.get(mark.attrs.href);
+            if (href) {
+              tr.removeMark(pos, pos + node.nodeSize, mark);
+              tr.addMark(pos, pos + node.nodeSize, mark.type.create({ ...mark.attrs, href }));
+            }
+          }
+        });
+        if (tr.docChanged) editor.view.dispatch(tr.setMeta("addToHistory", false));
+      },
       refreshTableOfContents: () => { if (!editor.isDestroyed) editor.commands.refreshTableOfContents(); },
     };
     return () => { handleRef.current = null; };

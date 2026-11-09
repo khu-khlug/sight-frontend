@@ -7,7 +7,7 @@ export type GroupLeaderDto = {
 };
 
 export type GroupDto = {
-  id: number;
+  id: string;
   category: string;
   title: string;
   state: string;

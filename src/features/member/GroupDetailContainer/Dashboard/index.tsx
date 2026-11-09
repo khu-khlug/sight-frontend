@@ -1,4 +1,5 @@
 import { Badge, Box, Heading, ScrollArea, Text } from "@chakra-ui/react";
+import { GroupStatus } from "../../../../constant";
 import { Users } from "lucide-react";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 
@@ -15,11 +16,12 @@ import GroupExposure from "../tabs/GroupExposure";
 import GroupInfo from "../tabs/GroupInfo";
 import { GroupInfo as GroupInfoData } from "../tabs/GroupInfo/types";
 import GroupMemberList from "../tabs/GroupMemberList";
+import GroupSchedule from "../tabs/GroupSchedule";
 import GroupRepository from "../tabs/GroupRepository";
 import type { RepositoryScrollMetrics } from "../tabs/GroupRepository";
 import RepositoryHorizontalScrollbar from "../tabs/GroupRepository/RepositoryHorizontalScrollbar";
 import GroupSearch from "../tabs/GroupSearch";
-import GroupSettings from "../tabs/GroupSettings";
+import GroupSettings, { type SettingsEntryRequest } from "../tabs/GroupSettings";
 import TabBar from "../TabBar";
 import { GroupDetailTabId, GROUP_DETAIL_TAB_LABEL, GROUP_DETAIL_TABS } from "../groupDetailTabs";
 import { CardListData } from "../KanbanBoard";
@@ -37,6 +39,8 @@ type Props = {
   enabledFilters: Set<LabelFilterKey>;
   onToggleFilter: (key: LabelFilterKey) => void;
   onOpenFile: (content: FileWindowContent) => void;
+  onOpenRecord: (groupId: string, recordId: string) => void;
+  onOpenCard: (cardId: string, recordId?: string | null) => void;
   // GroupSettings(개인설정 탭)에 그대로 전달한다 — 실제 싱글/듀얼 강제는 WindowLayer가 하고,
   // 여기서는 그 설정의 공통 조상으로서 체크박스 상태만 전달한다.
   dualWindowEnabled: boolean;
@@ -61,6 +65,8 @@ export default function Dashboard({
   enabledFilters,
   onToggleFilter,
   onOpenFile,
+  onOpenRecord,
+  onOpenCard,
   dualWindowEnabled,
   onDualWindowEnabledChange,
 }: Props) {
@@ -90,13 +96,15 @@ export default function Dashboard({
   }, [isExpanded]);
 
   const currentUserQuery = useCurrentUser();
-  const isLeader = currentUserQuery.data?.id === groupInfo.leaderUserId;
+  const isLeader = groupInfo.isLeader;
   const specialOrganizations = [...new Set(groupInfo.specialOrganizations)];
   const portfolioCounts = { listCount: groupInfo.portfolioListCount, cardCount: groupInfo.portfolioCardCount };
   const repoViewportRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLTextAreaElement>(null);
   const repoViewportId = useId();
   const [isEditingGroupInfo, setIsEditingGroupInfo] = useState(false);
+  const [settingsEntryRequest, setSettingsEntryRequest] = useState<SettingsEntryRequest | null>(null);
+  const settingsEntryIdRef = useRef(0);
   const [draftGroupTitle, setDraftGroupTitle] = useState(groupInfo.title);
   const [repoScrollMetrics, setRepoScrollMetrics] = useState<RepositoryScrollMetrics>({
     viewportWidth: 0,
@@ -124,7 +132,16 @@ export default function Dashboard({
     if (pendingPersonalSettingsLeaveConfirmRef.current && !pendingPersonalSettingsLeaveConfirmRef.current()) return;
     if (pendingGroupInfoLeaveConfirmRef.current && !pendingGroupInfoLeaveConfirmRef.current()) return;
     setIsEditingGroupInfo(false);
+    setSettingsEntryRequest(null);
     onTabChange(id);
+  };
+
+  const handleSettingsBadge = (target: SettingsEntryRequest["target"]) => {
+    if (pendingPersonalSettingsLeaveConfirmRef.current && !pendingPersonalSettingsLeaveConfirmRef.current()) return;
+    if (pendingGroupInfoLeaveConfirmRef.current && !pendingGroupInfoLeaveConfirmRef.current()) return;
+    setIsEditingGroupInfo(false);
+    setSettingsEntryRequest({ id: ++settingsEntryIdRef.current, target });
+    if (activeId !== "settings") onTabChange("settings");
   };
 
   const handleStartGroupInfoEdit = () => {
@@ -150,26 +167,25 @@ export default function Dashboard({
         {showContent && (
           <>
             <Box className={styles.header} display="flex" flexWrap="wrap" gap="6px" px="15px" mb={2}>
-              <button
-                type="button"
-                className={styles.badgeButton}
-                aria-label="그룹 설정으로 이동"
-                onClick={() => {
-                  if (activeId !== "settings") handleTabChange("settings");
-                }}
-              >
-                {specialOrganizations.map((organization) => (
-                  <GroupSpecialOrganizationBadge key={organization} organization={organization} />
-                ))}
+              {specialOrganizations.map((organization) => (
+                <button key={organization} type="button" className={styles.badgeButton} aria-label="그룹 정보 변경으로 이동" onClick={() => handleSettingsBadge("info")}>
+                  <GroupSpecialOrganizationBadge organization={organization} />
+                </button>
+              ))}
+              <button type="button" className={styles.badgeButton} aria-label="그룹 정보 변경으로 이동" onClick={() => handleSettingsBadge("info")}>
                 <GroupCategoryBadge category={groupInfo.category} />
+              </button>
+              <button type="button" className={styles.badgeButton} aria-label="그룹 상태 변경 펼치기" onClick={() => handleSettingsBadge("status")}>
                 <GroupStatusBadge status={groupInfo.status} />
+              </button>
                 {/* 그룹장은 항상 멤버이기도 하므로, 그룹장이면 "내 그룹" 대신 "그룹장"만 보여준다 */}
+              {(isLeader || groupInfo.isMember) && <button type="button" className={styles.badgeButton} aria-label="그룹 설정으로 이동" onClick={() => { if (activeId !== "settings") handleTabChange("settings"); }}>
                 {isLeader ? (
                   <Badge colorPalette="red" size="sm"><Users size="16px" /> 그룹장</Badge>
                 ) : (
                   groupInfo.isMember && <Badge colorPalette="yellow" size="sm"><Users size="16px" /> 내 그룹</Badge>
                 )}
-              </button>
+              </button>}
             </Box>
             <Heading className={styles.header} size="xl" px="15px" mb={4}>
               {isEditingGroupInfo && activeId === "settings" ? (
@@ -194,20 +210,31 @@ export default function Dashboard({
                   // ScrollArea가 아니라 .tabArea가 준 높이를 그대로 GroupChat에 넘긴다.
                   <GroupChat
                     isMember={groupInfo.isMember}
+                    isLeader={groupInfo.isLeader}
+                    hasChatRoom={groupInfo.hasChatRoom}
+                    chatRoomUrl={groupInfo.chatRoomUrl}
+                    isChatParticipant={groupInfo.isChatParticipant}
+                    isWritable={groupInfo.status === GroupStatus.PROGRESS}
                     groupId={groupInfo.id}
-                    onTabChange={handleTabChange}
                   />
                 ) : activeId === "search" ? (
                   // 검색 탭도 마찬가지 — 라벨 필터/검색대상/검색창은 고정, 검색결과만 스크롤돼야
                   // 해서 공용 ScrollArea 대신 .tabArea 높이를 그대로 넘긴다.
                   <GroupSearch
                     groupId={groupInfo.id}
+                    isMember={groupInfo.isMember}
+                    onOpenCard={onOpenCard}
                     enabledFilters={enabledFilters}
                     onToggleFilter={onToggleFilter}
                   />
+                ) : activeId === "schedule" ? (
+                  // 스케줄 탭은 달력을 고정하고 주간 일정만 스크롤한다.
+                  <GroupSchedule groupId={groupInfo.id} category={groupInfo.category} isMember={groupInfo.isMember} />
                 ) : activeId === "archive" ? (
                   // 아카이브 전환 버튼은 고정하고, 두 목록만 각자 스크롤한다.
-                  <GroupArchive groupId={groupInfo.id} lists={lists} />
+                  <GroupArchive groupId={groupInfo.id} lists={lists} onOpenRecord={onOpenRecord}
+                    canViewDeletedCards={groupInfo.isMember}
+                    canRestore={groupInfo.isMember && groupInfo.status !== GroupStatus.SUCCESS && groupInfo.status !== GroupStatus.FAIL} />
                 ) : activeId === "exposure" ? (
                   // 활동공개 탭도 마찬가지 — 포트폴리오/활동보고 폼은 고정, 이전 활동보고
                   // 내역만 스크롤돼야 해서 공용 ScrollArea 대신 .tabArea 높이를 그대로 넘긴다.
@@ -218,6 +245,7 @@ export default function Dashboard({
                   />
                 ) : activeId === "repository" ? (
                   <GroupRepository
+                    groupId={groupInfo.id}
                     repositoryUrls={groupInfo.repositoryUrls}
                     viewportRef={repoViewportRef}
                     viewportId={repoViewportId}
@@ -226,6 +254,7 @@ export default function Dashboard({
                   />
                 ) : activeId === "settings" ? (
                   <GroupSettings
+                    entryRequest={settingsEntryRequest}
                     info={groupInfo}
                     isManager={currentUserQuery.data?.manager ?? false}
                     isLeader={isLeader}
@@ -258,11 +287,15 @@ export default function Dashboard({
                         px="15px"
                       >
                         {activeId === "info" ? (
-                          <GroupInfo info={groupInfo} portfolioCounts={portfolioCounts} onTabChange={handleTabChange} />
+                          <GroupInfo isManager={currentUserQuery.data?.manager ?? false} info={groupInfo} portfolioCounts={portfolioCounts} onTabChange={handleTabChange} />
                         ) : activeId === "member" ? (
-                          <GroupMemberList groupId={groupInfo.id} category={groupInfo.category} />
+                          <GroupMemberList groupId={groupInfo.id} category={groupInfo.category} status={groupInfo.status} />
                         ) : activeId === "log" ? (
-                          <GroupActivityLog groupId={groupInfo.id} />
+                          groupInfo.isMember ? (
+                            <GroupActivityLog groupId={groupInfo.id} onOpenCard={onOpenCard} />
+                          ) : (
+                            <Text role="status" fontSize="sm" color="gray.500">그룹 멤버만 활동 로그를 볼 수 있습니다.</Text>
+                          )
                         ) : activeId === "aiChat" ? (
                         <AiChat/>
                         ) : (

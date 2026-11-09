@@ -1,18 +1,25 @@
+import { AssigneeFilterProvider, useAssigneeFilter } from "./AssigneeFilter";
 import ContentSkeleton from "../../../components/ContentSkeleton";
+import { GroupStatus } from "../../../constant";
+import { toast } from "react-toastify";
 import { Box, Button, Text } from "@chakra-ui/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
-import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ComponentProps, CSSProperties, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 
 import { GroupInfoApi } from "../../../api/public/group/GroupInfoApi";
-import { CardLabelDto, KanbanApi, type CardCoverImageInput, type RecordPageDto } from "../../../api/public/group/KanbanApi";
+import { CardLabelDto, KanbanApi, type CardCoverImageInput, type RecordPageDto, type RecordFileInput, type RecordUploadDto } from "../../../api/public/group/KanbanApi";
 import { useGroupAction } from "../../../hooks/group/useGroupAction";
 import { GroupDetailPageStateProvider } from "./pageState";
 import { groupPagePreferences } from "./groupPagePreferences";
 import { useGroupPagePreferences } from "./useGroupPagePreferences";
-import { encodeWindowOpenRequest, type MinimizedHoverRequest, type WindowOpenRequest } from "./actions";
+import { encodeWindowOpenRequest, type WindowOpenRequest } from "./actions";
+import RecordWindow from "./RecordWindow";
+import { decodeRecordContentKey } from "./RecordWindow/types";
 import CardWindow from "./CardWindow";
+import Window from "./Window";
 import Dashboard from "./Dashboard";
 import EditWindow from "./EditWindow";
 import { decodeEditContentKey, type EditWindowTarget } from "./EditWindow/types";
@@ -25,30 +32,122 @@ import styles from "./style.module.css";
 import WindowLayer, { HistoryMode, WindowBinding, WindowCoverage, WindowLayerHandle, WindowRole } from "./WindowLayer";
 import type { WindowHistoryState } from "./WindowLayer";
 import { isCardKey } from "./WindowLayer/contentKey";
+import { isIntegerId } from "../../../util/integerId";
 
 export type { CardListData };
 const DASHBOARD_WIDTH_COLLAPSED = 56;
 const DASHBOARD_WIDTH_EXPANDED = 56 + 1 + 280;
+const handleMainCardChange = () => undefined;
 
-export default function GroupDetailContainer({ groupId }: { groupId: number }) {
+export default function GroupDetailContainer({ groupId }: { groupId: string }) {
   return (
     <GroupDetailPageStateProvider>
-      <GroupDetailPage groupId={groupId} />
+      <AssigneeFilterProvider key={groupId}>
+        <GroupDetailPage groupId={groupId} />
+      </AssigneeFilterProvider>
     </GroupDetailPageStateProvider>
   );
 }
 
-function GroupDetailPage({ groupId }: { groupId: number }) {
+type CardWindowWithDetailProps = Omit<ComponentProps<typeof CardWindow>, "card" | "listTitle" | "isDetailLoading" | "onTogglePortfolio" | "onToggleDisabled"> & { cardId: string };
+
+function CardWindowWithDetail({ cardId, ...props }: CardWindowWithDetailProps) {
+  const detailQuery = useQuery({
+    queryKey: ["group-detail", props.groupId, "card", cardId],
+    queryFn: () => KanbanApi.getGroupCard(props.groupId, cardId),
+  });
+  const action = useGroupAction(props.groupId);
+  const card = detailQuery.data;
+  const unavailable = isAxiosError(detailQuery.error) && [400, 401, 403, 404].includes(detailQuery.error.response?.status ?? 0);
+  if (!card || unavailable) return <Window
+    headerLeft={<Text>카드</Text>}
+    minimized={props.binding.minimized} isSub={props.binding.role === "sub"} isClosing={props.binding.isClosing}
+    onToggleMinimize={props.binding.onToggleMinimize} onRequestClose={() => props.binding.onClose()}
+  >
+    <Box p={4}>{detailQuery.isPending ? <ContentSkeleton /> : <>
+      <Text role="alert">카드를 불러올 수 없습니다. 삭제되었거나 열람 권한이 없을 수 있습니다.</Text>
+      <Button onClick={() => void detailQuery.refetch()}>다시 시도</Button>
+    </>}</Box>
+  </Window>;
+  return <CardWindow {...props} card={card} listTitle={card.listTitle} isDetailLoading={false}
+    onTogglePortfolio={() => action.mutate(() => KanbanApi.updateGroupCardPortfolio(props.groupId, cardId, { isInPortfolio: !card.isInPortfolio }))}
+    onToggleDisabled={() => action.mutate(() => KanbanApi.updateGroupCardDisabled(props.groupId, cardId, { isDisabled: !card.isDisabled }))}
+  />;
+}
+
+function GroupDetailPage({ groupId }: { groupId: string }) {
+  const { setOnlyAssignedToMe } = useAssigneeFilter();
   const infoQuery = useQuery({
     queryKey: ["group-detail", groupId, "info"],
     queryFn: () => GroupInfoApi.getGroup(groupId),
   });
-  const listsQuery = useQuery({
-    queryKey: ["group-detail", groupId, "kanban"],
-    queryFn: () => KanbanApi.listGroupLists(groupId),
-  });
+  // 비그룹원에게는 필터 버튼이 없으므로 켜진 상태로 남으면 끌 방법이 없다.
+  useEffect(() => {
+    if (infoQuery.data?.isMember === false) setOnlyAssignedToMe(false);
+  }, [infoQuery.data?.isMember, setOnlyAssignedToMe]);
   const queryClient = useQueryClient();
   const kanbanQueryKey = useMemo(() => ["group-detail", groupId, "kanban"] as const, [groupId]);
+  // 리스트는 10개, 리스트 안의 카드는 15개씩 이어 불러온다. 다시 불러올 때(변경 후 무효화 등)는
+  // 지금까지 펼친 범위를 유지하도록 이미 받은 개수만큼 다시 받는다.
+  const [listTotalCount, setListTotalCount] = useState<number | null>(null);
+  const listsQuery = useQuery({
+    queryKey: kanbanQueryKey,
+    queryFn: async ({ signal }) => {
+      const loaded = queryClient.getQueryData<CardListData[]>(kanbanQueryKey) ?? [];
+      const nextLists: CardListData[] = [];
+      let totalCount = 0;
+      for (let pageNumber = 0; ; pageNumber += 1) {
+        const page = await KanbanApi.listGroupLists(groupId, pageNumber, signal);
+        nextLists.push(...page.lists);
+        totalCount = page.totalCount;
+        if (page.receivedCount === 0 || nextLists.length >= Math.min(Math.max(loaded.length, 1), totalCount)) break;
+      }
+      setListTotalCount(totalCount);
+      return Promise.all(nextLists.map(async (list) => {
+        const loadedCount = loaded.find((item) => item.id === list.id)?.cards.length ?? 0;
+        const cards = [...list.cards];
+        for (let pageNumber = 1; cards.length < Math.min(loadedCount, list.cardCount); pageNumber += 1) {
+          const page = await KanbanApi.listGroupCards(groupId, list.id, pageNumber, signal);
+          if (page.receivedCount === 0) break;
+          cards.push(...page.cards);
+        }
+        return { ...list, cards };
+      }));
+    },
+  });
+  const [isLoadingMoreLists, setIsLoadingMoreLists] = useState(false);
+  const [loadingCardListIds, setLoadingCardListIds] = useState<ReadonlySet<string>>(() => new Set());
+  const loadMoreLists = useCallback(() => {
+    const current = queryClient.getQueryData<CardListData[]>(kanbanQueryKey) ?? [];
+    if (isLoadingMoreLists || listTotalCount === null || current.length >= listTotalCount) return;
+    setIsLoadingMoreLists(true);
+    KanbanApi.listGroupLists(groupId, Math.floor(current.length / 10))
+      .then((page) => {
+        setListTotalCount(page.totalCount);
+        queryClient.setQueryData<CardListData[]>(kanbanQueryKey, (previous = []) => [
+          ...previous, ...page.lists.filter((list) => !previous.some((item) => item.id === list.id)),
+        ]);
+      })
+      .catch(() => toast.error("리스트를 더 불러오지 못했습니다."))
+      .finally(() => setIsLoadingMoreLists(false));
+  }, [groupId, isLoadingMoreLists, kanbanQueryKey, listTotalCount, queryClient]);
+  const loadMoreCards = useCallback((listId: string) => {
+    const list = (queryClient.getQueryData<CardListData[]>(kanbanQueryKey) ?? []).find((item) => item.id === listId);
+    if (!list || loadingCardListIds.has(listId) || list.cards.length >= list.cardCount) return;
+    setLoadingCardListIds((previous) => new Set(previous).add(listId));
+    KanbanApi.listGroupCards(groupId, listId, Math.floor(list.cards.length / 15))
+      .then((page) => {
+        queryClient.setQueryData<CardListData[]>(kanbanQueryKey, (previous = []) => previous.map((item) => item.id === listId
+          ? { ...item, cardCount: page.totalCount, cards: [...item.cards, ...page.cards.filter((card) => !item.cards.some((c) => c.id === card.id))] }
+          : item));
+      })
+      .catch(() => toast.error("카드를 더 불러오지 못했습니다."))
+      .finally(() => setLoadingCardListIds((previous) => {
+        const next = new Set(previous);
+        next.delete(listId);
+        return next;
+      }));
+  }, [groupId, kanbanQueryKey, loadingCardListIds, queryClient]);
   const { mutate, mutateAsync } = useGroupAction(groupId);
   const [pendingBoard, setPendingBoard] = useState<CardListData[] | null>(null);
   const [activeId, setActiveId] = useState<GroupDetailTabId | null>(GROUP_DETAIL_TABS[0].id as GroupDetailTabId);
@@ -63,18 +162,10 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
   locationStateRef.current = location.state;
   const historyIndexRef = useRef<number | null>(typeof window.history.state?.idx === "number" ? window.history.state.idx : null);
   const windowLayerRef = useRef<WindowLayerHandle>(null);
-  // WindowLayer가 상태전이와 URL 해시 문법(knowledge/frontend/card-window-manager.md §9)을
-  // 전부 소유한다 — 여기서는 "지금 메인이 뭔지"(존재 확인용)와 "URL을 이렇게 맞춰달라"는
-  // 완성된 문자열만 콜백으로 받는다.
-  const [mainCardId, setMainCardId] = useState<string | null>(null);
+  const [recordFocus, setRecordFocus] = useState<{ cardId: string; recordId: string } | null>(null);
   const [windowCoverage, setWindowCoverage] = useState<WindowCoverage | null>(null);
-  // KanbanBoard의 가로 스크롤바가 내려간 헤더와 좌표상 겹칠 때, WindowLayer가 노출한
-  // setMinimizedLift를 그대로 불러준다 — 들뜨기 로직 자체는 WindowLayer 하나에만 있다.
-  const handleMinimizedHoverRequest = useCallback((request: MinimizedHoverRequest) => {
-    windowLayerRef.current?.requestMinimizedHover(request);
-  }, []);
-  const handleScrollbarGrabbedChange = useCallback((grabbed: boolean) => {
-    windowLayerRef.current?.setScrollbarGrabbed(grabbed);
+  const handleCoverageChange = useCallback((next: WindowCoverage | null) => {
+    setWindowCoverage((previous) => previous?.side === next?.side && previous?.widthPx === next?.widthPx ? previous : next);
   }, []);
   const preferences = useGroupPagePreferences();
   const [dualWindowPreview, setDualWindowPreview] = useState<boolean | null>(null);
@@ -131,8 +222,15 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
   const openWindow = useCallback((request: WindowOpenRequest, replaceFrom?: WindowRole) => {
     windowLayerRef.current?.openWindow(encodeWindowOpenRequest(request), replaceFrom ? { replaceFrom } : undefined);
   }, []);
-  const handleCardClick = useCallback((cardId: string) => openWindow({ type: "card", cardId }), [openWindow]);
+  const handleCardClick = useCallback((cardId: string, recordId?: string | null) => {
+    setRecordFocus(recordId ? { cardId, recordId } : null);
+    openWindow({ type: "card", cardId });
+  }, [openWindow]);
   const handleOpenFile = useCallback((content: FileWindowContent) => openWindow({ type: "file", content }), [openWindow]);
+  const handleOpenRecord = useCallback((recordGroupId: string, recordId: string) => {
+    openWindow({ type: "record", target: { groupId: recordGroupId, recordId } });
+  }, [openWindow]);
+  const clearRecordFocus = useCallback(() => setRecordFocus(null), []);
   const handleOpenEdit = useCallback((target: EditWindowTarget, sourceRole: WindowRole) => {
     // 수정 버튼에서 연 기록은 이미 카드 창에 불러온 원문을 그대로 초기값으로 넘긴다.
     if (target.kind === "record") {
@@ -158,26 +256,14 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
     openWindow({ type: "edit", target }, sourceRole);
   }, [groupId, openWindow, queryClient]);
 
-  useEffect(() => {
-    // mainCardId는 "지금 메인 슬롯의 콘텐츠 식별자"일 뿐 항상 카드 id가 아니다 — 파일 창
-    // (이나 앞으로 생길 다른 창 종류)이 메인이면 카드 목록에 당연히 없으므로, 카드 키일
-    // 때만 이 확인을 한다(§9.1의 "타입:내용" 컨벤션, isCardKey로 판별).
-    if (listsQuery.isPending || !mainCardId || !isCardKey(mainCardId)) return;
-    const exists = lists.some((list) => list.cards.some((card) => card.id === mainCardId));
-    if (!exists) {
-      window.alert("존재하지 않는 카드입니다.");
-      windowLayerRef.current?.closeCardIfOpen(mainCardId);
-    }
-  }, [listsQuery.isPending, lists, mainCardId]);
-
   const handleAddCard = useCallback((listId: string, title: string) => {
-    mutate(() => KanbanApi.createGroupCard(groupId, { listId, title }));
-  }, [groupId, mutate]);
+    return mutateAsync(() => KanbanApi.createGroupCard(groupId, { listId, title })).then(() => undefined);
+  }, [groupId, mutateAsync]);
   const handleAddList = useCallback((title: string) => {
-    mutate(() => KanbanApi.createGroupList(groupId, { title }));
-  }, [groupId, mutate]);
+    return mutateAsync(() => KanbanApi.createGroupList(groupId, { title })).then(() => undefined);
+  }, [groupId, mutateAsync]);
   const handleDeleteList = useCallback((listId: string) => {
-    return mutateAsync(() => KanbanApi.deleteGroupList(groupId, listId)).then(() => undefined).catch(() => undefined);
+    return mutateAsync(() => KanbanApi.deleteGroupList(groupId, listId)).then(() => undefined);
   }, [groupId, mutateAsync]);
   const handleMoveList = useCallback((listId: string, targetIndex: number) => {
     const previous = listsRef.current;
@@ -234,7 +320,7 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
   }, [groupId, kanbanQueryKey, mutateAsync, queryClient]);
   const handleToggleCardPortfolio = useCallback((listId: string, cardId: string) => {
     const card = listsRef.current.find((list) => list.id === listId)?.cards.find((item) => item.id === cardId);
-    if (card) mutate(() => KanbanApi.updateGroupCardPortfolio(groupId, cardId, { portfolio: !card.portfolio }));
+    if (card) mutate(() => KanbanApi.updateGroupCardPortfolio(groupId, cardId, { isInPortfolio: !card.isInPortfolio }));
   }, [groupId, mutate]);
   const handleUpdateCardLabels = useCallback((cardId: string, labels: CardLabelDto[]) => {
     mutate(() => KanbanApi.updateGroupCardLabels(groupId, cardId, { labels }));
@@ -247,72 +333,68 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
   const handleUpdateCardCoverImage = useCallback((cardId: string, input: CardCoverImageInput) => {
     return mutateAsync(() => KanbanApi.updateGroupCardCoverImage(groupId, cardId, input));
   }, [groupId, mutateAsync]);
-  const handleToggleCardDisabled = useCallback((listId: string, cardId: string) => {
-    const card = listsRef.current.find((list) => list.id === listId)?.cards.find((item) => item.id === cardId);
-    if (card) mutate(() => KanbanApi.updateGroupCardDisabled(groupId, cardId, { disabled: !card.disabled }));
-  }, [groupId, mutate]);
   const handleUpdateList = useCallback((listId: string, changes: { title: string; description: string }) => {
-    mutate(() => KanbanApi.updateGroupList(groupId, listId, changes));
-  }, [groupId, mutate]);
-  const handleDeleteCard = useCallback((cardId: string) => {
-    mutate(() => KanbanApi.archiveGroupCard(groupId, cardId));
-  }, [groupId, mutate]);
-  const handleDeleteRecord = useCallback((cardId: string, recordId: string) => {
-    mutate(() => KanbanApi.archiveGroupRecord(groupId, cardId, recordId));
-  }, [groupId, mutate]);
-  const handleRestoreRecord = useCallback((cardId: string, recordId: string) => {
-    mutate(() => KanbanApi.restoreGroupRecord(groupId, cardId, recordId));
-  }, [groupId, mutate]);
-  // EditWindow가 보내기를 누른 뒤 창을 닫기 전에 완료를 기다려야 해서 mutateAsync를 쓴다
-  // (handleDeleteCard 등의 fire-and-forget mutate와 다르다).
-  const handleCreateRecord = useCallback((cardId: string, content: string) => {
-    return mutateAsync(() => KanbanApi.createGroupRecord(groupId, cardId, { content })).then(() => undefined);
+    return mutateAsync(() => KanbanApi.updateGroupList(groupId, listId, changes)).then(() => undefined);
   }, [groupId, mutateAsync]);
-  const handleUpdateRecord = useCallback((cardId: string, recordId: string, content: string) => {
-    return mutateAsync(() => KanbanApi.updateGroupRecord(groupId, cardId, recordId, { content })).then(() => undefined);
+  // 카드 창이 삭제 완료를 기다렸다가 닫혀야 해서 mutateAsync를 쓴다.
+  const handleDeleteCard = useCallback((cardId: string) => {
+    return mutateAsync(() => KanbanApi.archiveGroupCard(groupId, cardId), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
+  }, [groupId, mutateAsync, queryClient]);
+  const handleDeleteRecord = useCallback((_cardId: string, recordId: string) => {
+    mutate(() => KanbanApi.archiveGroupRecord(groupId, recordId), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
+  }, [groupId, mutate, queryClient]);
+  const handleRestoreRecord = useCallback((_cardId: string, recordId: string) => {
+    mutate(() => KanbanApi.restoreGroupRecord(groupId, recordId), { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }) });
+  }, [groupId, mutate, queryClient]);
+  // 기록 저장 응답의 파일 정보를 받은 뒤 업로드까지 완료해야 편집창을 닫을 수 있다.
+  const handleCreateRecord = useCallback((cardId: string, content: string, files: RecordFileInput[]) => {
+    return mutateAsync(() => KanbanApi.createGroupRecord(groupId, cardId, { content, files })).then((response) => {
+      const record = response as { id: string; uploads: RecordUploadDto[] };
+      return { id: record.id, uploads: record.uploads };
+    });
+  }, [groupId, mutateAsync]);
+  const handleUpdateRecord = useCallback((_cardId: string, recordId: string, content: string, files: RecordFileInput[]) => {
+    return mutateAsync(() => KanbanApi.updateGroupRecord(groupId, recordId, { content, files })).then((response) => (response as { uploads: RecordUploadDto[] }).uploads);
   }, [groupId, mutateAsync]);
 
   // WindowLayer는 카드 id만 알고 내용은 모른다 — id별로 실제 CardWindow를 그리는 함수를
   // 통째로 넘겨서, WindowLayer가 지금 열려 있는 카드에 대해서만 호출하게 한다.
   const isPortfolioPublished = infoQuery.data?.hasPublishedPortfolio ?? false;
-  // EditWindow의 "new" 케이스가 카드명을 추가 API 호출 없이 바로 찾기 위한 평탄화된 카드 목록.
+  const isMember = infoQuery.data?.isMember ?? false;
+  // 상세 조회 중 표시할 카드 이름의 초기 후보 목록이다.
   const allCards = useMemo(() => lists.flatMap((list) => list.cards), [lists]);
-  const cardsForWindowLayer = useMemo(() => {
-    const entries = lists.flatMap((list) => list.cards.map((card) => [card.id, (binding: WindowBinding) => (
-      <CardWindow
-        key={card.id}
-        binding={binding}
-        groupId={groupId}
-        card={card}
-        listTitle={list.title}
-        isPortfolioPublished={isPortfolioPublished}
-        onUpdateLabels={handleUpdateCardLabels}
-        onUpdateAssignee={handleUpdateCardAssignee}
-        onUpdateCoverImage={handleUpdateCardCoverImage}
-        onTogglePortfolio={() => handleToggleCardPortfolio(list.id, card.id)}
-        onToggleDisabled={() => handleToggleCardDisabled(list.id, card.id)}
-        onDeleteCard={() => handleDeleteCard(card.id)}
-        onDeleteRecord={(recordId) => handleDeleteRecord(card.id, recordId)}
-        onRestoreRecord={(recordId) => handleRestoreRecord(card.id, recordId)}
-        onOpenNewRecord={() => handleOpenEdit({ kind: "new", cardId: card.id }, binding.role)}
-        onOpenEditRecord={(recordId) => handleOpenEdit({ kind: "record", recordId }, binding.role)}
-        onOpenCard={handleCardClick}
-      />
-    )] as const));
-    return Object.fromEntries(entries);
-  }, [lists, groupId, isPortfolioPublished, handleUpdateCardLabels, handleUpdateCardAssignee, handleUpdateCardCoverImage, handleToggleCardPortfolio, handleToggleCardDisabled, handleDeleteCard, handleDeleteRecord, handleRestoreRecord, handleOpenEdit, handleCardClick]);
-
-  // 콘텐츠 종류의 판별은 페이지가 담당한다. 지원하지 않는 주소는 복원 시 제외한다.
   const isSupportedContent = useCallback((key: string) => (
-    isCardKey(key) || Boolean(decodeFileContentKey(key)) || Boolean(decodeEditContentKey(key))
+    (isCardKey(key) && isIntegerId(key)) || Boolean(decodeRecordContentKey(key)) || Boolean(decodeFileContentKey(key)) || Boolean(decodeEditContentKey(key))
   ), []);
   const handleUnsupportedContent = useCallback(() => {
     window.alert("지원하지 않거나 잘못된 창 주소입니다.");
   }, []);
 
   const renderContent = useCallback((key: string, binding: WindowBinding): ReactNode => {
-    const renderCard = cardsForWindowLayer[key];
-    if (renderCard) return renderCard(binding);
+    if (isCardKey(key) && isIntegerId(key)) return (
+      <CardWindowWithDetail
+        key={key}
+        binding={binding}
+        groupId={groupId}
+        cardId={key}
+        isMember={isMember}
+        isPortfolioPublished={isPortfolioPublished}
+        groupStatus={infoQuery.data?.status ?? GroupStatus.FAIL}
+        onUpdateLabels={handleUpdateCardLabels}
+        onUpdateAssignee={handleUpdateCardAssignee}
+        onUpdateCoverImage={handleUpdateCardCoverImage}
+        onDeleteCard={() => handleDeleteCard(key)}
+        onDeleteRecord={(recordId) => handleDeleteRecord(key, recordId)}
+        onRestoreRecord={(recordId) => handleRestoreRecord(key, recordId)}
+        onOpenNewRecord={() => handleOpenEdit({ kind: "new", cardId: key }, binding.role)}
+        onOpenEditRecord={(recordId) => handleOpenEdit({ kind: "record", recordId }, binding.role)}
+        onOpenCard={handleCardClick}
+        focusRecordId={recordFocus?.cardId === key ? recordFocus.recordId : null}
+        onRecordFocused={clearRecordFocus}
+      />
+    );
+    const recordTarget = decodeRecordContentKey(key);
+    if (recordTarget) return <RecordWindow key={key} binding={binding} target={recordTarget} currentGroupId={groupId} onOpenCard={handleCardClick} />;
     const fileContent = decodeFileContentKey(key);
     if (fileContent) {
       return (
@@ -332,6 +414,8 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
           key={key}
           binding={binding}
           groupId={groupId}
+          groupStatus={infoQuery.data?.status ?? GroupStatus.FAIL}
+          isMember={isMember}
           target={editTarget}
           cards={allCards}
           onCreateRecord={handleCreateRecord}
@@ -340,7 +424,7 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
       );
     }
     return null;
-  }, [cardsForWindowLayer, textFontSize, handleChangeTextFontSize, groupId, allCards, handleCreateRecord, handleUpdateRecord]);
+  }, [isMember, isPortfolioPublished, infoQuery.data?.status, handleUpdateCardLabels, handleUpdateCardAssignee, handleUpdateCardCoverImage, handleDeleteCard, handleDeleteRecord, handleRestoreRecord, handleOpenEdit, handleCardClick, recordFocus, clearRecordFocus, textFontSize, handleChangeTextFontSize, groupId, allCards, handleCreateRecord, handleUpdateRecord]);
 
   if (infoQuery.isPending || listsQuery.isPending) return <Box p={10}><ContentSkeleton /></Box>;
   if (infoQuery.isError || listsQuery.isError) return <Box p={6}>
@@ -348,24 +432,30 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
     <Button onClick={() => { void infoQuery.refetch(); void listsQuery.refetch(); }}>다시 시도</Button>
   </Box>;
   const info = infoQuery.data;
+  const isGroupEnded = info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL;
   const sectionStyle = {
     "--dashboard-width": `${activeId === null ? DASHBOARD_WIDTH_COLLAPSED : DASHBOARD_WIDTH_EXPANDED}px`,
   } as CSSProperties;
 
   return (
     <>
-      <div className={styles.section} style={sectionStyle}>
+      <div className={styles.section} style={sectionStyle} data-group-detail>
         <div className={styles.kanbanBackground} aria-hidden="true" />
         <KanbanBoard
           lists={lists}
-          isMovePending={pendingBoard !== null}
+          hasMoreLists={listTotalCount !== null && lists.length < listTotalCount}
+          isLoadingMoreLists={isLoadingMoreLists}
+          onLoadMoreLists={loadMoreLists}
+          loadingCardListIds={loadingCardListIds}
+          onLoadMoreCards={loadMoreCards}
+          // 종료 그룹에서는 리스트·카드를 옮기거나 추가할 수 없다.
+          isMovePending={pendingBoard !== null || isGroupEnded || !isMember}
+          isReadOnly={isGroupEnded || !isMember}
           isPortfolioPublished={info.hasPublishedPortfolio}
           dashboardOverlayRef={dashboardOverlayRef}
           dashboardExtraWidthPx={activeId === null ? 0 : DASHBOARD_WIDTH_EXPANDED - DASHBOARD_WIDTH_COLLAPSED}
           enabledFilters={enabledFilters}
           windowCoverage={windowCoverage}
-          onMinimizedHoverRequest={handleMinimizedHoverRequest}
-          onScrollbarGrabbedChange={handleScrollbarGrabbedChange}
           onAddCard={handleAddCard}
           onAddList={handleAddList}
           onDeleteList={handleDeleteList}
@@ -389,6 +479,8 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
               return next;
             })}
             onOpenFile={handleOpenFile}
+            onOpenRecord={handleOpenRecord}
+            onOpenCard={handleCardClick}
             dualWindowEnabled={dualWindowEnabled}
             onDualWindowEnabledChange={setDualWindowPreview}
           />
@@ -400,8 +492,8 @@ function GroupDetailPage({ groupId }: { groupId: number }) {
           onUnsupportedContent={handleUnsupportedContent}
           isDashboardExpanded={activeId !== null}
           onHashChange={handleHashChange}
-          onMainCardChange={setMainCardId}
-          onCoverageChange={setWindowCoverage}
+          onMainCardChange={handleMainCardChange}
+          onCoverageChange={handleCoverageChange}
           dualWindowEnabled={dualWindowEnabled}
           initialSplitRatio={preferences.splitRatio}
           onSplitRatioCommit={handleSplitRatioCommit}

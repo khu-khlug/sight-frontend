@@ -21,7 +21,6 @@ export {
   sideForRole,
 } from "./WindowLayer/windowManager";
 export type {
-  MinimizedHoverRequest,
   SendTarget,
   WindowAction,
   WindowOpenRequest,

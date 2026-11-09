@@ -1,7 +1,8 @@
 import ContentSkeleton from "../../../../../components/ContentSkeleton";
 import { AutosaveApi } from "../../../../../api/public/group/AutosaveApi";
 import { GroupArchiveApi } from "../../../../../api/public/group/GroupArchiveApi";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { KanbanApi } from "../../../../../api/public/group/KanbanApi";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useGroupAction } from "../../../../../hooks/group/useGroupAction";
 import { Box, Button, createListCollection, Portal, ScrollArea, Select, Text } from "@chakra-ui/react";
 import { ChevronDown, CreditCard, PenBox } from "lucide-react";
@@ -10,59 +11,86 @@ import { useRef, useState } from "react";
 import Collapse from "../../../../../components/Collapse";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
-import { decodeEditContentKey, encodeDraftOpenHash } from "../../EditWindow/types";
+import { cn } from "../../../../../util/cn";
+import { encodeDraftOpenHash } from "../../EditWindow/types";
 import RecordViewer from "../../RecordViewer";
 import { groupSavedRecords } from "../../savedRecords";
 import { useGroupDetailPageState } from "../../pageState";
-import { ArchivedCard } from "./types";
 import styles from "./style.module.css";
-
-// EditWindow가 AutosaveApi.save 때 넣어주는 extra 모양 — 지금 그룹과 같을 때만 이 탭에 노출한다
-// (자동저장은 회원별 전역 슬롯 하나뿐이라 다른 그룹 카드 것일 수도 있다).
-type AutosaveExtra = { groupId: number; cardTitle: string | null };
 
 type ListOption = { id: string; title: string };
 
 type Props = {
-  groupId: number;
+  groupId: string;
   lists: ListOption[];
+  canRestore: boolean;
+  canViewDeletedCards: boolean;
+  // 보관한 기록의 "더보기"는 그룹과 기록을 식별해 읽기 전용 창을 연다.
+  onOpenRecord: (groupId: string, recordId: string) => void;
 };
 
 type ArchiveView = "cards" | "records";
-
-const sortByNewest = (cards: ArchivedCard[]) =>
-  [...cards].sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
 
 /*
  * 삭제된 카드와 개인이 보관한 기록을 전환해 보여준다. 삭제된 카드를 선택하면 그 밑에
  * 복구 폼(리스트 선택 + 복구하기 버튼)이 펼쳐진다.
  */
-export default function GroupArchive({ groupId, lists }: Props) {
+export default function GroupArchive({ groupId, lists, canRestore, canViewDeletedCards, onOpenRecord }: Props) {
   const { pageState } = useGroupDetailPageState();
   const queryClient = useQueryClient();
-  const cardsQuery = useQuery({ queryKey: ["group-detail", groupId, "archived-cards"], queryFn: () => GroupArchiveApi.listArchivedGroupCards(groupId) });
-  const recordsQuery = useQuery(groupSavedRecords.queryOptions(groupId));
-  const autosaveQuery = useQuery({ queryKey: ["group-detail", groupId, "autosave-metadata"], queryFn: () => AutosaveApi.getMetadata() });
-  const cards = cardsQuery.data ?? [];
-  const savedRecords = recordsQuery.data ?? [];
+  const cardsQuery = useInfiniteQuery({
+    queryKey: ["group-detail", groupId, "archived-cards"],
+    queryFn: ({ pageParam, signal }) => GroupArchiveApi.listDeletedGroupCardsPage(groupId, pageParam, signal),
+    initialPageParam: 0,
+    enabled: canViewDeletedCards,
+    getNextPageParam: (last) => {
+      const next = last.page + 1;
+      return last.receivedCount > 0 && next * 20 < last.totalCount ? next : undefined;
+    },
+  });
+  // 보관한 기록은 그룹에 관계없이 사용자 기준으로 10개씩 받는다.
+  const recordsQuery = useInfiniteQuery({
+    queryKey: ["saved-records-page"],
+    queryFn: ({ pageParam, signal }) => GroupArchiveApi.listSavedRecordsPage(pageParam, signal),
+    initialPageParam: 0,
+    getNextPageParam: (last) => {
+      const next = last.page + 1;
+      return last.receivedCount > 0 && next * 10 < last.totalCount ? next : undefined;
+    },
+  });
+  const autosaveQuery = useQuery({ queryKey: ["group-detail", groupId, "autosave-metadata"], queryFn: () => AutosaveApi.getMetadata(groupId), enabled: canViewDeletedCards });
+  const cards = canViewDeletedCards ? cardsQuery.data?.pages.flatMap((page) => page.cards) ?? [] : [];
+  const deletedCardCount = cardsQuery.data?.pages[0]?.totalCount ?? 0;
+  const savedRecords = recordsQuery.data?.pages.flatMap((page) => page.records) ?? [];
+  const savedRecordCount = recordsQuery.data?.pages[0]?.totalCount ?? 0;
 
-  // 자동저장은 회원별 전역 슬롯 하나뿐이다 — "새 기록"이든 "기록 수정"이든, extra에 담긴
-  // groupId가 지금 보고 있는 그룹과 같을 때만 "임시저장: 카드명" 버튼을 띄운다. 눌렀을 때는
-  // "불러올까요?"를 다시 묻지 않도록 encodeDraftOpenHash로 전용 해시를 만든다.
-  const autosave = autosaveQuery.data;
-  const autosaveTarget = autosave ? decodeEditContentKey(autosave.location) : null;
-  const autosaveExtra = autosave?.extra ? (JSON.parse(autosave.extra) as AutosaveExtra) : null;
-  const draft = autosaveTarget && autosaveExtra?.groupId === groupId
-    ? { cardTitle: autosaveExtra.cardTitle ?? "제목 없음", hash: encodeDraftOpenHash(autosaveTarget) }
+  // 임시저장은 회원별 전역 슬롯 하나뿐이고, 서버는 그 슬롯이 이 그룹 것일 때만 메타데이터를 돌려준다 —
+  // 있으면 "임시저장: 카드명" 버튼을 띄운다. 눌렀을 때는 "불러올까요?"를 다시 묻지 않도록
+  // encodeDraftOpenHash로 전용 해시를 만든다.
+  const autosave = canViewDeletedCards ? autosaveQuery.data : undefined;
+  const draft = autosave
+    ? {
+      cardTitle: autosave.cardTitle || "제목 없음",
+      hash: encodeDraftOpenHash(autosave.recordId === null
+        ? { kind: "new", cardId: autosave.cardId }
+        : { kind: "record", recordId: autosave.recordId }),
+    }
     : null;
   const action = useGroupAction(groupId);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [activeView, setActiveView] = useState<ArchiveView>("records");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [targetListId, setTargetListId] = useState<string | null>(null);
+  const restoreListsQuery = useInfiniteQuery({
+    queryKey: ["group-detail", groupId, "restore-lists"],
+    queryFn: ({ pageParam, signal }) => KanbanApi.listGroupLists(groupId, pageParam, signal),
+    initialPageParam: 0,
+    enabled: canRestore && selectedCardId !== null,
+    getNextPageParam: (last) => last.receivedCount > 0 && (last.page + 1) * 10 < last.totalCount ? last.page + 1 : undefined,
+  });
 
   const listCollection = createListCollection({
-    items: lists.map((list) => ({ label: list.title, value: list.id })),
+    items: (restoreListsQuery.data?.pages.flatMap((page) => page.lists) ?? lists).map((list) => ({ label: list.title, value: list.id })),
   });
 
   const handleSelectCard = (cardId: string) => {
@@ -78,8 +106,6 @@ export default function GroupArchive({ groupId, lists }: Props) {
     viewportRef.current?.scrollTo({ top: 0 });
   };
 
-  if (cardsQuery.isPending || recordsQuery.isPending) return <ContentSkeleton />;
-  if (cardsQuery.isError || recordsQuery.isError) return <Text role="alert">아카이브를 불러오지 못했습니다.</Text>;
   return (
     <Box className={styles.container}>
       {draft && (
@@ -95,7 +121,7 @@ export default function GroupArchive({ groupId, lists }: Props) {
           aria-pressed={activeView === "records"}
           onClick={() => handleViewChange("records")}
         >
-          보관한 기록 <span className={styles.count}>{savedRecords.length}</span>
+          내 보관 기록 <span className={styles.count}>{savedRecordCount}</span>
         </button>
         <button
           type="button"
@@ -103,7 +129,7 @@ export default function GroupArchive({ groupId, lists }: Props) {
           aria-pressed={activeView === "cards"}
           onClick={() => handleViewChange("cards")}
         >
-          삭제된 카드 <span className={styles.count}>{cards.length}</span>
+          삭제된 카드 <span className={styles.count}>{deletedCardCount}</span>
         </button>
       </div>
       <ScrollArea.Root className={styles.listArea} size="sm" variant="hover">
@@ -111,8 +137,10 @@ export default function GroupArchive({ groupId, lists }: Props) {
           <ScrollArea.Content w="100%" px="15px" pb="12px">
       {activeView === "cards" ? (
         <Box key="cards" className={styles.viewContent} display="flex" flexDirection="column" gap="8px">
-          {cards.length === 0 && <Text fontSize="sm" color="gray.500">삭제된 카드가 없습니다.</Text>}
-          {sortByNewest(cards).map((card) => {
+          {!canViewDeletedCards ? <Text fontSize="sm">그룹 멤버만 삭제된 카드를 볼 수 있습니다.</Text> : cardsQuery.isPending ? <ContentSkeleton /> : cardsQuery.isError && !cardsQuery.data ? (
+            <Box><Text role="alert">삭제된 카드를 불러오지 못했습니다.</Text><Button size="sm" onClick={() => void cardsQuery.refetch()}>다시 시도</Button></Box>
+          ) : cards.length === 0 && <Text fontSize="sm" color="gray.500">삭제된 카드가 없습니다.</Text>}
+          {cards.map((card) => {
             const isSelected = selectedCardId === card.id;
 
             return (
@@ -125,11 +153,11 @@ export default function GroupArchive({ groupId, lists }: Props) {
                   py="6px"
                   borderRadius="6px"
                   bg={isSelected ? "blackAlpha.100" : "whiteAlpha.700"}
-                  cursor="pointer"
+                  cursor={canRestore ? "pointer" : "default"}
                   transition="background-color 150ms ease, transform 100ms ease"
                   _hover={{ bg: "blackAlpha.50" }}
                   _active={{ transform: "scale(0.97)" }}
-                  onClick={() => handleSelectCard(card.id)}
+                  onClick={() => canRestore && handleSelectCard(card.id)}
                 >
                   <Text fontSize="sm" fontWeight="medium" wordBreak="break-all">
                     {card.title}
@@ -145,7 +173,7 @@ export default function GroupArchive({ groupId, lists }: Props) {
                     </Text>
                   </Box>
                 </Box>
-                <Collapse open={isSelected}>
+                <Collapse open={isSelected && canRestore}>
                   <Box
                     display="flex"
                     flexDirection="column"
@@ -180,7 +208,13 @@ export default function GroupArchive({ groupId, lists }: Props) {
                         </Select.Positioner>
                       </Portal>
                     </Select.Root>
-                    <Button size="sm" _disabled={{ color: "gray.500" }} disabled={!targetListId || action.isPending} onClick={() => targetListId && action.mutate(() => GroupArchiveApi.restoreGroupCard(groupId, card.id, { targetListId }), { onSuccess: () => { setSelectedCardId(null); setTargetListId(null); } })}>
+                    {restoreListsQuery.isError && <Text role="alert" fontSize="sm">복구할 리스트를 불러오지 못했습니다.</Text>}
+                    {(restoreListsQuery.hasNextPage || restoreListsQuery.isError) && (
+                      <Button size="sm" variant="outline" disabled={restoreListsQuery.isFetching} onClick={() => void (restoreListsQuery.isError && !restoreListsQuery.isFetchNextPageError ? restoreListsQuery.refetch() : restoreListsQuery.fetchNextPage())}>
+                        {restoreListsQuery.isError ? "리스트 다시 불러오기" : "리스트 더보기"}
+                      </Button>
+                    )}
+                    <Button size="sm" _disabled={{ color: "gray.500" }} disabled={!targetListId || action.isPending} onClick={() => targetListId && action.mutate(() => GroupArchiveApi.restoreGroupCard(groupId, card.id, { targetListId }), { onSuccess: () => { setSelectedCardId(null); setTargetListId(null); void queryClient.invalidateQueries({ queryKey: ["saved-records-page"] }); } })}>
                       복구하기
                     </Button>
                   </Box>
@@ -188,33 +222,38 @@ export default function GroupArchive({ groupId, lists }: Props) {
               </Box>
             );
           })}
+          {cardsQuery.isFetchingNextPage && (
+            <div aria-busy>
+              <ContentSkeleton />
+            </div>
+          )}
+          {canViewDeletedCards && cardsQuery.hasNextPage && !cardsQuery.isFetchingNextPage && (
+            <Button w="100%" size="sm" variant="outline" onClick={() => void cardsQuery.fetchNextPage()}>
+              {cardsQuery.isFetchNextPageError ? "다시 시도" : "더보기"}
+            </Button>
+          )}
         </Box>
       ) : (
         <Box key="records" className={styles.viewContent} display="flex" flexDirection="column" gap="8px">
-          {savedRecords.length === 0 && <Text fontSize="sm" color="gray.500">보관한 기록이 없습니다.</Text>}
-          {[...savedRecords]
-            .sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime())
-            .map((record) => (
-              <Box key={record.id} className={styles.savedRecord}>
+          {recordsQuery.isPending ? <ContentSkeleton /> : recordsQuery.isError && !recordsQuery.data ? (
+            <Box><Text role="alert">보관한 기록을 불러오지 못했습니다.</Text><Button size="sm" onClick={() => void recordsQuery.refetch()}>다시 시도</Button></Box>
+          ) : savedRecords.length === 0 && <Text fontSize="sm" color="gray.500">보관한 기록이 없습니다.</Text>}
+          {/* 서버가 최근 보관순으로 준다. */}
+          {savedRecords.map((record) => (
+              <Box key={record.id} className={cn(styles.savedRecord, (record.isDeleted || record.isCardDeleted) && styles.savedRecordDeleted)}>
                 <Text fontSize="sm" color="gray.500" className={styles.recordMeta}>
-                  {/* 이 링크를 누르는 시점에 이미 그룹 상세 페이지(경로)에 있으므로 해시만
-                      바꾸면 된다 — groupId나 /dev/group/ 같은 경로 문자열을 몰라도 된다.
-                      접두사 없는 bare id 형태(windowHash.ts)는 예전에 외부로 공유된 카드
-                      URL과의 하위 호환용이고, 앱 내부에서 새로 만드는 링크는 명시적인
-                      "card=<id>" 형태를 쓴다. */}
-                  <a className={styles.cardLink} href={`#card=${record.cardId}`}><CreditCard size={14} className={styles.icon} />{record.cardTitle}</a> · {record.authorName} 작성
+                  {record.groupName}<br />
+                  <CreditCard size={14} className={styles.icon} />{record.cardTitle} · {record.authorName} 작성
                 </Text>
                 <Text fontSize="xs" color="gray.500" className={styles.recordMeta}>
                   <RelativeDateTime value={record.savedAt} /> 보관됨
                 </Text>
-                <RecordViewer type={record.type} content={record.content} className={styles.recordContent} defaultCodeWrap={pageState.textWrap} />
+                <RecordViewer type={record.type} content={record.content} hideMedia className={styles.recordContent} defaultCodeWrap={pageState.textWrap} />
                 <div className={styles.recordActions}>
                   <button
                     type="button"
                     className={styles.moreButton}
-                    onClick={() => {
-                      // TODO: 기록 상세 팝업이 구현되면 record.id를 전달해 팝업을 여는 이벤트를 연결한다.
-                    }}
+                    onClick={() => onOpenRecord(record.groupId, record.id)}
                   >
                     더보기
                   </button>
@@ -222,13 +261,23 @@ export default function GroupArchive({ groupId, lists }: Props) {
                     type="button"
                     className={styles.removeButton}
                     disabled={action.isPending}
-                    onClick={() => action.mutate(() => groupSavedRecords.remove(queryClient, groupId, record.id))}
+                    onClick={() => action.mutate(() => groupSavedRecords.remove(queryClient, record.groupId, record.id))}
                   >
                     제거
                   </button>
                 </div>
               </Box>
             ))}
+          {recordsQuery.isFetchingNextPage && (
+            <div aria-busy>
+              <ContentSkeleton />
+            </div>
+          )}
+          {recordsQuery.hasNextPage && !recordsQuery.isFetchingNextPage && (
+            <Button w="100%" size="sm" variant="outline" onClick={() => void recordsQuery.fetchNextPage()}>
+              {recordsQuery.isFetchNextPageError ? "다시 시도" : "더보기"}
+            </Button>
+          )}
         </Box>
       )}
           </ScrollArea.Content>

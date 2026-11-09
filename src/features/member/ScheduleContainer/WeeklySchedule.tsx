@@ -14,7 +14,7 @@ export type ScheduleItem = {
   endAt: string; // ISO 8601
   expoint: number;
   author: number;
-  groupId: number | null;
+  groupId: string | null;
 };
 
 type Props = {

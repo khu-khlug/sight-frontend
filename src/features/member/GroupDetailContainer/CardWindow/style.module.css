@@ -1,5 +1,5 @@
 /*
- * 카드 창 전용 콘텐츠. 창 자체(오버레이·딤 배경·내리기/올리기·닫기 애니메이션 등)는
+ * 카드 창 전용 콘텐츠. 창 자체(오버레이·딤 배경·접기/펼치기·닫기 애니메이션 등)는
  * Window(../Window)가 맡는다 — 여기 있는 건 카드 헤더 표시와 카드 본문뿐이다.
  */
 .cardContent {
@@ -18,7 +18,7 @@
 }
 
 /*
- * 라벨 필터 줄 ↔ 제목 텍스트가 서로 자리를 주고받는 크로스페이드. 현재 상태(내려감 여부)에
+ * 라벨 필터 줄 ↔ 제목 텍스트가 서로 자리를 주고받는 크로스페이드. 현재 상태(접힘 여부)에
  * 맞는 쪽만 보통 흐름으로 남아 헤더 높이를 정하고, 반대쪽은 절대 위치로 겹쳐서 위/아래로
  * 살짝 밀려나며 사라진다.
  */
@@ -31,10 +31,11 @@
 }
 
 .headerLeftLayer {
-  /* 라벨 점(18px)·제목 텍스트 모두 이 패딩으로 세로 중앙에 맞춘다(--window-header-height
-     38px 기준 (38-18)/2=10px) — 부모(.headerLeftStack)의 align-items 같은 flex 정렬에
-     기대지 않고, 들어오는 콘텐츠 쪽에서 직접 맞춘다. */
-  padding: 10px 0;
+  /* 제목과 라벨의 높이가 달라도 실제 헤더 높이를 기준으로 중앙 정렬한다. */
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0;
   transition: transform 180ms ease, opacity 180ms ease;
 }
 
@@ -120,6 +121,12 @@
 
 .titleDisabled,
 .titleDisabled:hover {
+  background-color: var(--chakra-colors-gray-100, #f4f4f5);
+}
+
+/* 접는 동안에도 sticky 제목의 흰 배경이 본문 위에 따로 남지 않게 한다. */
+:global(.js-window-minimized) .titleSection,
+:global(.js-window-minimized) .titleSection:hover {
   background-color: var(--chakra-colors-gray-100, #f4f4f5);
 }
 

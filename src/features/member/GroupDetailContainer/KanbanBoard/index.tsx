@@ -1,6 +1,9 @@
+import { isOtherAssignee, useAssigneeFilter } from "../AssigneeFilter";
 import { CSSProperties, FormEvent, memo, PointerEvent as ReactPointerEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ScrollArea } from "@chakra-ui/react";
+import ContentSkeleton from "../../../../components/ContentSkeleton";
+import { useLoadMoreOnScroll } from "../../../../hooks/useLoadMoreOnScroll";
 import { Plus } from "lucide-react";
 
 import Container from "../../../../components/Container";
@@ -53,11 +56,13 @@ const WINDOW_COVER_EXTRA_SCROLL = 40;
 // mainCardId)만 바뀌어도 부모가 리렌더된다 — memo로 감싸서 실제로 전달받는 props가
 // 안 바뀌면(핸들러는 전부 useGroupAction의 안정적인 mutate에 물린 useCallback) 이 무거운
 // 보드 전체가 같이 리렌더(깜빡임)되지 않게 막는다.
-const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfolioPublished, dashboardOverlayRef, dashboardExtraWidthPx, enabledFilters = DEFAULT_ENABLED_FILTERS, windowCoverage = null, onMinimizedHoverRequest, onScrollbarGrabbedChange, onAddCard, onAddList, onDeleteList, onMoveList, onMoveCard, onToggleCardPortfolio, onCardClick, onUpdateList }: Props) {
+const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMoreLists, onLoadMoreLists, loadingCardListIds, onLoadMoreCards, isMovePending, isReadOnly = false, isPortfolioPublished, dashboardOverlayRef, dashboardExtraWidthPx, enabledFilters = DEFAULT_ENABLED_FILTERS, windowCoverage = null, onAddCard, onAddList, onDeleteList, onMoveList, onMoveCard, onToggleCardPortfolio, onCardClick, onUpdateList }: Props) {
+  const { onlyAssignedToMe, currentUserId } = useAssigneeFilter();
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const scrollbarRef = useRef<HTMLDivElement>(null);
   const addListFormRef = useRef<HTMLFormElement>(null);
+  const listSentinelRef = useRef<HTMLDivElement>(null);
+  useLoadMoreOnScroll({ rootRef: viewportRef, sentinelRef: listSentinelRef, hasMore: hasMoreLists, isLoading: isLoadingMoreLists, loadMore: onLoadMoreLists, axis: "horizontal" });
   const pendingPointerRef = useRef<PendingPointer | null>(null);
   const dragRef = useRef<DragSession | null>(null);
   const pendingCardPointerRef = useRef<PendingCardPointer | null>(null);
@@ -73,6 +78,7 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
   const settleFrameRef = useRef<number | null>(null);
   const placedCardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [listTitle, setListTitle] = useState("");
+  const [isAddingList, setIsAddingList] = useState(false);
   const [deletingListIds, setDeletingListIds] = useState<Set<string>>(() => new Set());
   const [drag, setDrag] = useState<DragSession | null>(null);
   const [cardDrag, setCardDrag] = useState<CardDragSession | null>(null);
@@ -92,23 +98,51 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
   const leftCoverSpacerSpace = leftCoverSpacerWidth > 0 ? leftCoverSpacerWidth + LIST_GAP : 0;
   const leftSpace = dashboardExtraWidthPx + leftCoverSpacerSpace;
   const prevLeftSpaceRef = useRef(leftSpace);
-  // useEffect(페인트 이후 실행)로 두면, spacer 폭은 이미 반영됐는데 scrollLeft는 아직 안
-  // 바뀐 프레임이 브라우저에 실제로 한 번 그려진다 — 콘텐츠가 밀렸다가 다음 프레임에 제자리로
-  // "돌아오는" 깜빡임의 원인이었다. useLayoutEffect(페인트 이전 실행)로 같은 커밋 안에서
-  // scrollLeft까지 맞춘 뒤에 그려야 그 프레임 자체가 생기지 않는다.
+  const prevDashboardExtraWidthRef = useRef(dashboardExtraWidthPx);
+  const restoreTransitionFrameRef = useRef<number | null>(null);
+  // useLayoutEffect(페인트 이전 실행)로 같은 커밋 안에서 scrollLeft까지 맞춘 뒤에 그린다 —
+  // useEffect(페인트 이후 실행)면 spacer 폭은 반영됐는데 scrollLeft는 아직 안 바뀐 프레임이
+  // 한 번 그려져, 콘텐츠가 밀렸다가 다음 프레임에 제자리로 돌아오는 깜빡임이 생긴다.
   useLayoutEffect(() => {
     const delta = leftSpace - prevLeftSpaceRef.current;
+    const dashboardDelta = dashboardExtraWidthPx - prevDashboardExtraWidthRef.current;
     prevLeftSpaceRef.current = leftSpace;
+    prevDashboardExtraWidthRef.current = dashboardExtraWidthPx;
     const viewport = viewportRef.current;
-    if (delta === 0 || !viewport) return;
+    const content = contentRef.current;
+    if (delta === 0 || !viewport || !content) return;
+    // 스크롤 위치를 판단하려면 바뀐 패딩으로 레이아웃을 읽어야 한다. 읽는 순간 패딩 전환이
+    // 시작되지 않도록 먼저 전환을 끄고, 필요한 경우에만 아래에서 다시 켠다.
+    content.style.transition = "none";
+    if (restoreTransitionFrameRef.current !== null) cancelAnimationFrame(restoreTransitionFrameRef.current);
     // 스크롤이 이미 양 끝 중 한쪽이면 보정하지 않는다 — 양 끝에서는 콘텐츠가 밀리는 바로 그
     // 효과가 "창에 가려졌던 리스트를 드러낸다"는 spacer 본연의 목적이다(보정해버리면 가려진
     // 리스트가 다시 안 보이게 된다). 중간 어딘가를 보고 있을 때만 "보던 자리 유지"가 맞다.
     const isAtStart = viewport.scrollLeft <= 0;
     const isAtEnd = viewport.scrollLeft >= viewport.scrollWidth - viewport.clientWidth - 1;
-    if (isAtStart || isAtEnd) return;
-    viewport.scrollLeft += delta;
-  }, [leftSpace]);
+    if (isAtStart || isAtEnd) {
+      // 보정하지 않으면 대시보드 폭 변화만큼 리스트가 밀린다. 바뀌기 전 패딩에서 시작해
+      // CSS의 padding-left 전환으로 밀려 가게 한다(spacer 폭 변화는 즉시 반영된다).
+      if (dashboardDelta !== 0) {
+        const finalPadding = parseFloat(getComputedStyle(content).paddingLeft);
+        content.style.paddingLeft = `${finalPadding - dashboardDelta}px`;
+        void content.offsetWidth;
+        content.style.transition = "";
+        content.style.paddingLeft = "";
+        return;
+      }
+    } else {
+      viewport.scrollLeft += delta;
+    }
+    // 보정했으면 리스트는 제자리라 전환이 필요 없다. 이번 변경이 그려진 뒤에 전환을 되돌린다.
+    restoreTransitionFrameRef.current = requestAnimationFrame(() => {
+      restoreTransitionFrameRef.current = null;
+      content.style.transition = "";
+    });
+  }, [leftSpace, dashboardExtraWidthPx]);
+  useEffect(() => () => {
+    if (restoreTransitionFrameRef.current !== null) cancelAnimationFrame(restoreTransitionFrameRef.current);
+  }, []);
 
   const setDragSession = useCallback((next: DragSession | null) => {
     dragRef.current = next;
@@ -587,7 +621,7 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
   }, [onDeleteList]);
 
   useEffect(() => {
-    if (!listTitle) return;
+    if (!listTitle || isAddingList) return;
 
     const cancelListAddOnOutsideClick = (event: PointerEvent) => {
       if (event.target instanceof Node && !addListFormRef.current?.contains(event.target)) {
@@ -597,96 +631,50 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
 
     document.addEventListener("pointerdown", cancelListAddOnOutsideClick);
     return () => document.removeEventListener("pointerdown", cancelListAddOnOutsideClick);
-  }, [listTitle]);
+  }, [listTitle, isAddingList]);
 
-  const handleAddList = (event: FormEvent<HTMLFormElement>) => {
+  const handleAddList = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedTitle = listTitle.trim();
-    if (!trimmedTitle) return;
-    onAddList(trimmedTitle);
-    setListTitle("");
+    if (!trimmedTitle || isAddingList || isReadOnly) return;
+    setIsAddingList(true);
+    try {
+      await onAddList(trimmedTitle);
+      setListTitle("");
+    } catch {
+      return;
+    } finally {
+      setIsAddingList(false);
+    }
   };
 
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    const wheelRoot = viewport.closest<HTMLElement>("[data-group-detail]") ?? viewport;
 
     const handleWheel = (event: WheelEvent) => {
-      if (event.ctrlKey || event.metaKey || !(event.target instanceof Element)) return;
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || !(event.target instanceof Element)) return;
+      const overMinimizedHeader = !!event.target.closest(".js-window-minimized .js-window-header, [data-minimized-window-gap]");
+      if (!viewport.contains(event.target) && !overMinimizedHeader) return;
       if (event.target.closest("input, textarea, select")) return;
       const cardArea = event.target.closest<HTMLElement>("[data-kanban-card-scroll-area]");
       const cardViewport = cardArea?.querySelector<HTMLElement>("[data-kanban-card-list]");
       if (cardViewport && cardViewport.scrollHeight > cardViewport.clientHeight + 1) return;
-      if (event.target.closest("button") && !cardArea && !event.target.closest("[data-kanban-header]")) return;
-      if (viewport.scrollWidth <= viewport.clientWidth || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      if (!overMinimizedHeader && event.target.closest("button") && !cardArea && !event.target.closest("[data-kanban-header]")) return;
+      if (viewport.scrollWidth <= viewport.clientWidth) return;
+      const horizontalWheel = Math.abs(event.deltaY) <= Math.abs(event.deltaX);
+      if (horizontalWheel && !overMinimizedHeader) return;
 
       const unit = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
         : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? viewport.clientWidth : 1;
-      viewport.scrollLeft += event.deltaY * unit;
+      viewport.scrollLeft += (horizontalWheel ? event.deltaX : event.deltaY) * unit;
       event.preventDefault();
     };
 
-    viewport.addEventListener("wheel", handleWheel, { passive: false });
-    return () => viewport.removeEventListener("wheel", handleWheel);
+    wheelRoot.addEventListener("wheel", handleWheel, { passive: false });
+    return () => wheelRoot.removeEventListener("wheel", handleWheel);
   }, []);
-
-  // 내려간 카드 창이 이 가로 스크롤바 트랙과 같은 자리를 차지하면 스크롤바가 창에 가려
-  // 네이티브 :hover를 못 받는다 — 그래서 좌표를 직접 비교해서 겹칠 때만 scrollbar에
-  // data-force-visible을 찍는다. "커서 아래 hit-test된 요소가 헤더인가"(event.target 기준)로
-  // 내려간 헤더 위인지를 판정하면 안 된다 — 스크롤바가 뜨자마자 z-index로 헤더보다 위로
-  // 올라와서, 바로 다음 pointermove에서는 hit-test 대상 자체가 스크롤바로 바뀌어 "헤더 위가
-  // 아님"으로 뒤집히고, 그러면 다시 꺼졌다 켜졌다를 매 프레임 반복한다(자기 판정 근거를 자기가
-  // 가리는 셈). 대신 "내려간 창이 하나라도 있는가"는 hit-test와 무관한 사실이고, 그 상태에서
-  // 커서가 스크롤바의 실제 좌표 안에 있다는 것 자체가 이미 "내려간 헤더 위에서 스크롤바와
-  // 겹친다"는 뜻이다(내려간 창이 없으면 애초에 스크롤바를 가릴 것도 없으니 보통 :hover로 충분).
-  // 그 들뜨기는 직접 흉내 내지 않고(WindowLayer가 이미 liftMinimizedSlots라는 같은 로직을
-  // 갖고 있으므로) WindowOpenRequest와 같은 패턴의 요청(MinimizedHoverRequest)만 던져
-  // WindowLayer가 그 함수를 그대로 쓰게 한다(GroupDetailContainer가
-  // WindowLayerHandle.requestMinimizedHover로 중계).
-  const wasOverScrollbarRef = useRef(false);
-  useEffect(() => {
-    const handlePointerMove = (event: PointerEvent) => {
-      const scrollbar = scrollbarRef.current;
-      if (!scrollbar) return;
-      const hasMinimizedWindow = document.querySelector(".js-window-minimized") !== null;
-      const rect = scrollbar.getBoundingClientRect();
-      const isOverScrollbar = hasMinimizedWindow
-        && event.clientX >= rect.left && event.clientX <= rect.right
-        && event.clientY >= rect.top && event.clientY <= rect.bottom;
-      if (isOverScrollbar) scrollbar.dataset.forceVisible = "true";
-      else delete scrollbar.dataset.forceVisible;
-      if (isOverScrollbar !== wasOverScrollbarRef.current) {
-        wasOverScrollbarRef.current = isOverScrollbar;
-        onMinimizedHoverRequest?.({ hovering: isOverScrollbar });
-      }
-    };
-
-    document.addEventListener("pointermove", handlePointerMove);
-    return () => {
-      document.removeEventListener("pointermove", handlePointerMove);
-      delete scrollbarRef.current?.dataset.forceVisible;
-      if (wasOverScrollbarRef.current) {
-        wasOverScrollbarRef.current = false;
-        onMinimizedHoverRequest?.({ hovering: false });
-      }
-    };
-  }, [onMinimizedHoverRequest]);
-
-  // 스크롤바 썸을 드래그로 잡고 있는 동안(zag-js가 드래그 시작~끝 사이에 data-scrolling
-  // 속성을 붙였다 뗀다)도 독립된 호버 소스로 등록한다 — 드래그 중 포인터가 트랙 바깥으로
-  // 잠깐 나가도(포인터 캡처라 스크롤 자체는 계속됨) 좌표 기반 판정과 무관하게 계속 들떠
-  // 있어야 한다.
-  useEffect(() => {
-    const scrollbar = scrollbarRef.current;
-    if (!scrollbar) return;
-    const notifyGrabbed = () => onScrollbarGrabbedChange?.(scrollbar.hasAttribute("data-scrolling"));
-    const observer = new MutationObserver(notifyGrabbed);
-    observer.observe(scrollbar, { attributes: true, attributeFilter: ["data-scrolling"] });
-    return () => {
-      observer.disconnect();
-      onScrollbarGrabbedChange?.(false);
-    };
-  }, [onScrollbarGrabbedChange]);
 
   const draggedList = drag ? lists.find((list) => list.id === drag.id) : null;
   const draggedCard = cardDrag ? lists.find((list) => list.id === cardDrag.sourceListId)?.cards.find((card) => card.id === cardDrag.cardId) : null;
@@ -747,29 +735,41 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
                 onListHandleKeyDown={handleHandleKeyDown}
                 onCardHandlePointerDown={handleCardHandlePointerDown}
                 onCardHandleKeyDown={handleCardHandleKeyDown}
+                isLoadingMoreCards={loadingCardListIds.has(list.id)}
+                isReadOnly={isReadOnly}
+                onLoadMoreCards={onLoadMoreCards}
               />
             ))}
+            {hasMoreLists && (
+              <div ref={listSentinelRef} className={styles.listSkeleton} aria-busy={isLoadingMoreLists}>
+                <ContentSkeleton />
+              </div>
+            )}
+            {!isReadOnly && (
             <form ref={addListFormRef} className={styles.addListForm} onSubmit={handleAddList}>
               <input
                 className={styles.addListInput}
                 type="text"
                 aria-label="리스트 이름"
                 value={listTitle}
+                maxLength={255}
+                disabled={isAddingList}
                 onChange={(event) => setListTitle(event.target.value)}
                 placeholder="리스트 이름"
                 required
               />
-              <button className={styles.addListButton} type="submit" disabled={!listTitle.trim()}>
+              <button className={styles.addListButton} type="submit" disabled={isAddingList || !listTitle.trim()}>
                 <Plus size={16} aria-hidden="true" />
                 리스트 생성
               </button>
             </form>
+            )}
             {windowCoverage?.side === "right" && (
               <div className={styles.coverSpacer} style={{ width: windowCoverage.widthPx + WINDOW_COVER_EXTRA_SCROLL }} aria-hidden="true" />
             )}
           </ScrollArea.Content>
         </ScrollArea.Viewport>
-        <ScrollArea.Scrollbar ref={scrollbarRef} orientation="horizontal" className={styles.scrollbar} />
+        <ScrollArea.Scrollbar orientation="horizontal" className={styles.scrollbar} />
       </ScrollArea.Root>
       {drag && draggedList && createPortal(
         <div
@@ -794,14 +794,13 @@ const KanbanBoard = memo(function KanbanBoard({ lists, isMovePending, isPortfoli
             title={draggedCard.title}
             recordCount={draggedCard.recordCount}
             hasDescription={draggedCard.hasDescription}
-            inPortfolio={draggedCard.portfolio}
+            inPortfolio={draggedCard.isInPortfolio}
             showPortfolioStatus={isPortfolioPublished}
             assigneeName={draggedCard.assigneeName}
-            inheritedFrom={draggedCard.inheritedFrom}
             coverImageUrl={draggedCard.coverImageUrl}
             labels={draggedCard.labels}
-            disabled={draggedCard.disabled}
-            dimmed={isCardDimmed(draggedCard.labels ?? [], enabledFilters)}
+            disabled={draggedCard.isDisabled}
+            dimmed={isCardDimmed(draggedCard.labels ?? [], enabledFilters) || isOtherAssignee(draggedCard.assigneeUserId, onlyAssignedToMe, currentUserId)}
             showDragHandle
           />
         </div>,

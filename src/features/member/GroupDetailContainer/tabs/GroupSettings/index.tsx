@@ -2,7 +2,8 @@ import { GroupSettingsApi } from "../../../../../api/public/group/GroupSettingsA
 import { UserPublicApi } from "../../../../../api/public/user";
 import { useGroupAction } from "../../../../../hooks/group/useGroupAction";
 import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/browser/useUnsavedChangesBeforeUnload";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { BookOpen, Circle, CircleHelp, LogOut, RefreshCw, Settings2, ShieldAlert, SquarePen, X } from "lucide-react";
@@ -17,7 +18,10 @@ import { useGroupPagePreferences } from "../../useGroupPagePreferences";
 import GroupInfoEditor, { type EditableGroupInfo } from "./GroupInfoEditor";
 import styles from "./style.module.css";
 
+export type SettingsEntryRequest = { id: number; target: "info" | "status" };
+
 type Props = {
+  entryRequest?: SettingsEntryRequest | null;
   info: GroupInfo;
   isManager: boolean;
   isLeader: boolean;
@@ -93,11 +97,15 @@ type PersonalSettingsDraft = {
   usePersonalGithub: boolean;
 };
 
-export default function GroupSettings({ info, isManager, isLeader, isEditing, titleDraft, onStartEdit, onCloseEdit, onSave, dualWindowEnabled, onDualWindowEnabledChange, onUnsavedPersonalSettingsGuardChange, onUnsavedGroupInfoGuardChange }: Props) {
+export default function GroupSettings({ entryRequest, info, isManager, isLeader, isEditing, titleDraft, onStartEdit, onCloseEdit, onSave, dualWindowEnabled, onDualWindowEnabledChange, onUnsavedPersonalSettingsGuardChange, onUnsavedGroupInfoGuardChange }: Props) {
   const preferences = useGroupPagePreferences();
   const action = useGroupAction(info.id);
   const [showStatus, setShowStatus] = useState(false);
   const [showPersonalSettings, setShowPersonalSettings] = useState(false);
+  const { data: currentUser } = useCurrentUser();
+  const queryClient = useQueryClient();
+  const preferenceKey = ["user-preference", currentUser?.id];
+  const preferenceQuery = useQuery({ queryKey: preferenceKey, queryFn: UserPublicApi.getPreference, enabled: !!currentUser && showPersonalSettings });
   const [showManagerSettings, setShowManagerSettings] = useState(false);
   // 패널이 닫히면 미리보기 값을 마지막 저장값으로 되돌린다.
   const [draft, setDraft] = useState<PersonalSettingsDraft>(() => ({
@@ -109,6 +117,13 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
   const savedSettingsRef = useRef(draft);
   const draftRef = useRef(draft);
   const previewActiveRef = useRef(false);
+  useEffect(() => {
+    if (!preferenceQuery.data || previewActiveRef.current) return;
+    const saved = { ...savedSettingsRef.current, usePersonalGithub: preferenceQuery.data.usePersonalGithubUsage };
+    savedSettingsRef.current = saved;
+    draftRef.current = saved;
+    setDraft(saved);
+  }, [preferenceQuery.data]);
   const personalSettingsGuardChangeRef = useRef(onUnsavedPersonalSettingsGuardChange);
   personalSettingsGuardChangeRef.current = onUnsavedPersonalSettingsGuardChange;
   const applyPersonalSettings = useCallback((settings: PersonalSettingsDraft) => {
@@ -143,7 +158,7 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
 
   // 상태 갱신 함수 안에서 부모 상태를 변경하지 않고, 같은 이벤트에서 미리보기를 반영한다.
   const updateDraft = (updater: (current: PersonalSettingsDraft) => PersonalSettingsDraft) => {
-    if (preferenceMutation.isPending) return;
+    if (preferenceMutation.isPending || !preferenceQuery.isSuccess) return;
     const next = updater(draftRef.current);
     draftRef.current = next;
     setDraft(next);
@@ -166,6 +181,10 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
       usePersonalGithubUsage: usePersonalGithub,
     }),
     onSuccess: (_data, usePersonalGithub) => {
+      queryClient.setQueryData(preferenceKey, { usePersonalGithubUsage: usePersonalGithub });
+      queryClient.removeQueries({
+        predicate: (query) => ["repo-branches", "repo-commits", "repo-tree"].includes(String(query.queryKey[0])),
+      });
       const saved = { dualWindowEnabled: groupPagePreferences.getSnapshot().dualWindowEnabled, usePersonalGithub };
       savedSettingsRef.current = saved;
       draftRef.current = saved;
@@ -179,7 +198,7 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
   useUnsavedChangesBeforeUnload(preferenceMutation.isPending);
   const handleSavePersonalSettings = () => {
     // 로컬 저장은 서버 요청과 독립적이다. GitHub 저장 실패로 듀얼 설정을 되돌리지 않는다.
-    if (preferenceMutation.isPending) return;
+    if (preferenceMutation.isPending || !preferenceQuery.isSuccess) return;
     groupPagePreferences.update({ dualWindowEnabled: draft.dualWindowEnabled });
     savedSettingsRef.current = { ...savedSettingsRef.current, dualWindowEnabled: draft.dualWindowEnabled };
     onDualWindowEnabledChange(null);
@@ -205,8 +224,8 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
       window.alert("그룹장만 그룹 정보를 변경할 수 있습니다.");
       return;
     }
-    if (info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL) {
-      window.alert("활동이 종료된 그룹의 정보는 변경할 수 없습니다.");
+    if (info.status !== GroupStatus.PROGRESS) {
+      window.alert("중단되거나 종료된 그룹의 정보는 변경할 수 없습니다.");
       return;
     }
     if (showPersonalSettings) handleCancelPersonalSettings();
@@ -214,33 +233,92 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
   };
 
   const toggleStatusActions = () => {
-    if (!isLeader) {
-      window.alert("그룹장만 그룹 상태를 변경할 수 있습니다.");
+    if (!isLeader && !isManager) {
+      window.alert("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.");
       return;
     }
     setShowStatus((value) => !value);
   };
 
-  // 진행 → 종료(성공/실패)는 그룹장 또는 운영진이 변경할 수 있다(진행 → 중단과 달리 운영진
-  // 전용이 아니다) — tasks/group/GROUP_BUSINESS_RULES.md §3 상태 전이 규칙. 그래서 "그룹 상태
-  // 변경"(그룹장용)과 "운영진 전용" 두 패널에 같은 버튼이 중복해서 있다.
+  // 배지 진입도 기존 메뉴와 같은 권한·그룹 상태 검사를 거친다.
+  const entryActionsRef = useRef({ openEditor, openStatus: () => undefined as void });
+  entryActionsRef.current = {
+    openEditor,
+    openStatus: () => {
+      if (!isLeader && !isManager) {
+        window.alert("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.");
+        return;
+      }
+      setShowStatus(true);
+    },
+  };
+  const handledEntryRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!entryRequest || handledEntryRef.current === entryRequest.id) return;
+    handledEntryRef.current = entryRequest.id;
+    if (entryRequest.target === "info") entryActionsRef.current.openEditor();
+    else entryActionsRef.current.openStatus();
+  }, [entryRequest]);
+
+  // 종료는 진행 중인 그룹만 할 수 있다. 중단 그룹은 먼저 재진행해야 한다.
+  const canEndGroup = info.status === GroupStatus.PROGRESS;
+  const canProgressGroup = info.status === GroupStatus.STOP || info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL;
+  const closeStatusPanels = () => { setShowStatus(false); setShowManagerSettings(false); };
+
   const endGroup = (status: typeof GroupStatus.SUCCESS | typeof GroupStatus.FAIL) => {
     if (!isLeader && !isManager) {
       window.alert("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.");
       return;
     }
-    if (action.isPending || info.status !== GroupStatus.PROGRESS) return;
+    if (action.isPending || !canEndGroup) return;
     const result = status === GroupStatus.SUCCESS ? "성공" : "실패";
     if (!window.confirm(`"${info.title}" 그룹의 활동을 ${result}으로 종료하시겠습니까?`)) return;
-    action.mutate(() => GroupSettingsApi.updateGroupState(info.id, { status }), {
-      // 그룹장용/운영진용 두 패널 어느 쪽에서 눌렀는지 모르니 둘 다 접는다 — 이미 닫혀 있던
-      // 쪽은 아무 효과 없다.
-      onSuccess: () => { setShowStatus(false); setShowManagerSettings(false); },
+    action.mutate(() => GroupSettingsApi.endGroup(info.id, { status }), {
+      onSuccess: closeStatusPanels,
     });
   };
 
+  const progressGroup = () => {
+    if (!isLeader && !isManager) {
+      window.alert("그룹장 또는 운영진만 그룹 상태를 변경할 수 있습니다.");
+      return;
+    }
+    if (action.isPending || !canProgressGroup) return;
+    const recoveredPoints = info.status === GroupStatus.SUCCESS ? 90 : info.status === GroupStatus.FAIL ? 70 : 0;
+    const pointNotice = recoveredPoints ? `\n현재 멤버 전체에게서 종료 시 지급한 경험치 ${recoveredPoints}점을 회수합니다.` : "";
+    if (!window.confirm(`"${info.title}" 그룹을 진행중으로 변경하시겠습니까?${pointNotice}`)) return;
+    action.mutate(() => GroupSettingsApi.progressGroup(info.id), { onSuccess: closeStatusPanels });
+  };
+
+  const stopGroup = () => {
+    if (!isManager) {
+      window.alert("운영진만 그룹을 중단할 수 있습니다.");
+      return;
+    }
+    if (action.isPending || info.status !== GroupStatus.PROGRESS) return;
+    if (!window.confirm(`"${info.title}" 그룹의 활동을 중단하시겠습니까?`)) return;
+    action.mutate(() => GroupSettingsApi.stopGroup(info.id), { onSuccess: closeStatusPanels });
+  };
+
+  const renderStatusActions = (isOpen: boolean, managerActions = false) => (
+    <>
+      {canEndGroup && <>
+        <button type="button" className={`${styles.statusAction} ${styles.successAction}`} disabled={!isOpen || action.isPending} onClick={() => endGroup(GroupStatus.SUCCESS)}>성공으로 활동 종료</button>
+        <button type="button" className={`${styles.statusAction} ${styles.failAction}`} disabled={!isOpen || action.isPending} onClick={() => endGroup(GroupStatus.FAIL)}>실패로 활동 종료</button>
+      </>}
+      {canProgressGroup && <button type="button" className={`${styles.statusAction} ${styles.progressAction}`} disabled={!isOpen || action.isPending} onClick={progressGroup}>진행중으로 변경</button>}
+      {managerActions && info.status === GroupStatus.PROGRESS && <button type="button" className={`${styles.statusAction} ${styles.failAction}`} disabled={!isOpen || action.isPending} onClick={stopGroup}>그룹 중단</button>}
+    </>
+  );
+
+  const canLeaveGroup = info.isMember
+    && info.status !== GroupStatus.SUCCESS && info.status !== GroupStatus.FAIL;
   const leaveGroup = () => {
-    if (action.isPending) return;
+    if (action.isPending || !canLeaveGroup) return;
+    if (isLeader && info.category !== GroupCategory.MANAGE) {
+      window.alert("다른 멤버에게 그룹장을 위임한 뒤 나갈 수 있습니다.");
+      return;
+    }
     if (!window.confirm(`"${info.title}" 그룹에서 나가시겠습니까?`)) return;
     action.mutate(() => GroupSettingsApi.leaveGroup(info.id));
   };
@@ -249,30 +327,32 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
     <div className={styles.container}>
       <div className={`${styles.menu} ${!isEditing ? styles.activePane : ""}`} aria-hidden={isEditing}>
         <button type="button" className={styles.menuButton} onClick={openEditor}><SquarePen size={20} aria-hidden="true" />그룹 정보 변경</button>
-        <button type="button" className={styles.menuButton} onClick={toggleStatusActions} aria-expanded={isLeader && showStatus}><RefreshCw size={20} aria-hidden="true" />그룹 상태 변경</button>
-        {isLeader && <div className={styles.statusActions} data-open={showStatus} aria-hidden={!showStatus}>
+        <button type="button" className={styles.menuButton} onClick={toggleStatusActions} aria-expanded={(isLeader || isManager) && showStatus}><RefreshCw size={20} aria-hidden="true" />그룹 상태 변경</button>
+        {(isLeader || isManager) && <div className={styles.statusActions} data-open={showStatus} aria-hidden={!showStatus}>
           <div className={styles.statusActionContent}>
-            {info.status !== GroupStatus.PROGRESS && <p className={styles.statusHint}>진행 중인 그룹만 활동을 종료할 수 있습니다.</p>}
-            <button type="button" className={`${styles.statusAction} ${styles.successAction}`} disabled={!showStatus || action.isPending || info.status !== GroupStatus.PROGRESS} onClick={() => endGroup(GroupStatus.SUCCESS)}>성공으로 활동 종료</button>
-            <button type="button" className={`${styles.statusAction} ${styles.failAction}`} disabled={!showStatus || action.isPending || info.status !== GroupStatus.PROGRESS} onClick={() => endGroup(GroupStatus.FAIL)}>실패로 활동 종료</button>
+            {renderStatusActions(showStatus)}
           </div>
         </div>}
         <button type="button" className={styles.menuButton} onClick={handleTogglePersonalSettings} aria-expanded={showPersonalSettings}><Settings2 size={20} aria-hidden="true" />개인 설정</button>
         <div className={styles.statusActions} data-open={showPersonalSettings} aria-hidden={!showPersonalSettings}>
           <div className={styles.statusActionContent}>
             <p className={styles.statusHint}>변경한 설정은 즉시 임시 적용됩니다. 저장하지 않고 패널을 닫으면 원래 설정으로 돌아갑니다.</p>
+            {preferenceQuery.isPending && <p role="status">개인 설정을 불러오는 중입니다.</p>}
+            {preferenceQuery.isError && <p role="alert">개인 설정을 불러오지 못했습니다. <button type="button" onClick={() => { void preferenceQuery.refetch(); }}>다시 시도</button></p>}
+            <fieldset disabled={!preferenceQuery.isSuccess || preferenceMutation.isPending} style={{ border: 0, margin: 0, padding: 0 }}>
             <SettingToggleRow label="듀얼 윈도우 기능 사용" description="두 개의 창을 나란히 사용할 수 있습니다. 끄면 한 개의 창만 사용합니다." isRightSelected={draft.dualWindowEnabled} {...booleanToggleSides((value) => updateDraft((current) => ({ ...current, dualWindowEnabled: value })))} />
             {/* 그룹 단위가 아니라 전역 설정 — 멤버 마이페이지가 아직 마이그레이션 전이라 임시로 여기 둔다. */}
             <SettingToggleRow
               label="깃허브 API 개인 사용량 사용"
-              description={"조회 제한이 시간당 500회에서 5,000회로 늘어나며, 개인 비공개 저장소도 조회할 수 있습니다. 비공개 저장소의 조회 결과는 백엔드에 캐싱되지 않아, 같은 리소스를 다시 조회해도 API 사용량이 소모될 수 있습니다.\n\n이 개인 설정은 사용자의 모든 그룹에서 동일하게 적용됩니다. 이 설정을 사용하다 비활성화하면, 그로부터 7일 동안 다시 활성화할 수 없습니다."}
+              description={"조회 제한이 시간당 100회에서 5,000회로 늘어나며, 개인 비공개 저장소도 조회할 수 있습니다. 비공개 저장소의 조회 결과는 백엔드에 캐싱되지 않아, 같은 리소스를 다시 조회해도 API 사용량이 소모될 수 있습니다.\n\n이 개인 설정은 사용자의 모든 그룹에서 동일하게 적용됩니다. 이 설정을 사용하다 비활성화하면, 그로부터 7일 동안 다시 활성화할 수 없습니다."}
               isRightSelected={draft.usePersonalGithub}
               {...booleanToggleSides((value) => updateDraft((current) => ({ ...current, usePersonalGithub: value })))}
             />
             {/* 취소/저장 버튼은 그룹 정보 변경 패널(GroupInfoEditor)과 같은 .footer/.cancelButton/.saveButton 스타일을 그대로 쓴다. */}
+            </fieldset>
             <div className={styles.footer}>
               <button type="button" className={styles.cancelButton} onClick={handleCancelPersonalSettings}>취소</button>
-              <button type="button" className={styles.saveButton} disabled={preferenceMutation.isPending} onClick={handleSavePersonalSettings}>저장</button>
+              <button type="button" className={styles.saveButton} disabled={preferenceMutation.isPending || !preferenceQuery.isSuccess} onClick={handleSavePersonalSettings}>저장</button>
             </div>
           </div>
         </div>
@@ -280,16 +360,12 @@ export default function GroupSettings({ info, isManager, isLeader, isEditing, ti
           <button type="button" className={styles.menuButton} onClick={() => setShowManagerSettings((value) => !value)} aria-expanded={showManagerSettings}><ShieldAlert size={20} aria-hidden="true" />운영진 전용</button>
           <div className={styles.statusActions} data-open={showManagerSettings} aria-hidden={!showManagerSettings}>
             <div className={styles.statusActionContent}>
-              {/* 진행 → 종료(성공/실패)는 그룹장용 패널과 동일하게 운영진도 가능 — 버튼을 그대로 복사했다. */}
-              {info.status !== GroupStatus.PROGRESS && <p className={styles.statusHint}>진행 중인 그룹만 활동을 종료할 수 있습니다.</p>}
-              <button type="button" className={`${styles.statusAction} ${styles.successAction}`} disabled={!showManagerSettings || action.isPending || info.status !== GroupStatus.PROGRESS} onClick={() => endGroup(GroupStatus.SUCCESS)}>성공으로 활동 종료</button>
-              <button type="button" className={`${styles.statusAction} ${styles.failAction}`} disabled={!showManagerSettings || action.isPending || info.status !== GroupStatus.PROGRESS} onClick={() => endGroup(GroupStatus.FAIL)}>실패로 활동 종료</button>
-              <button type="button" className={`${styles.statusAction} ${styles.failAction}`}>그룹 정지</button>
+              {renderStatusActions(showManagerSettings, true)}
             </div>
           </div>
         </>}
         <button type="button" className={styles.menuButton}><BookOpen size={20} aria-hidden="true" />사용법 튜토리얼</button>
-        <button type="button" className={styles.menuButton} disabled={action.isPending} onClick={leaveGroup}><LogOut size={20} aria-hidden="true" />그룹 나가기</button>
+        <button type="button" className={styles.menuButton} disabled={action.isPending || !canLeaveGroup} title={isLeader && info.category !== GroupCategory.MANAGE ? "다른 멤버에게 그룹장을 위임한 뒤 나갈 수 있습니다." : undefined} onClick={leaveGroup}><LogOut size={20} aria-hidden="true" />그룹 나가기</button>
       </div>
       <GroupInfoEditor
         info={info}

@@ -1,4 +1,5 @@
 import ContentSkeleton from "../../../../../components/ContentSkeleton";
+import { isAxiosError } from "axios";
 import { Box, Button, ScrollArea, Text } from "@chakra-ui/react";
 import { RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,7 +12,6 @@ import AppTooltip from "../../../../../components/AppTooltip";
 import SimpleIcon from "../../../../../components/SimpleIcon";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import { useRepoBranches } from "../../../../../hooks/repo/useRepoBranches";
-import { useRepoBranchSource } from "../../../../../hooks/repo/useRepoBranchSource";
 import { useRepoCommits } from "../../../../../hooks/repo/useRepoCommits";
 import { useRepoTree } from "../../../../../hooks/repo/useRepoTree";
 import type { FileWindowContent } from "../../FileWindow/types";
@@ -24,6 +24,7 @@ import styles from "./style.module.css";
 export type { RepositoryScrollMetrics } from "./RepositoryTree";
 
 type Props = {
+  groupId: string;
   repositoryUrls: string[];
   viewportRef: RefObject<HTMLDivElement>;
   viewportId: string;
@@ -76,7 +77,15 @@ function commitLabel(commit: RepoCommit | undefined, fallbackSha: string): strin
  * 자체(또는 고정 표시)로 이미 보이므로 따로 다시 적지 않는다.
  * 그 아래에 파일 트리를 보여준다 — 접근 불가/에러면 안내 문구, 정상이면 트리 박스.
  */
+// 429는 요청한 회원이 호출 한도를 넘긴 경우, 502는 저장소 서비스나 공용 한도 문제로 서버가 조회하지 못한 경우다.
+function repositoryErrorMessage(error: unknown, fallback: string): string {
+  if (isAxiosError(error) && error.response?.status === 429) return "요청이 많습니다. 잠시 뒤 다시 시도해 주세요.";
+  if (isAxiosError(error) && error.response?.status === 502) return "지금은 저장소 정보를 불러올 수 없습니다. 잠시 뒤 다시 시도해 주세요.";
+  return fallback;
+}
+
 export default function GroupRepository({
+  groupId,
   repositoryUrls,
   viewportRef,
   viewportId,
@@ -87,7 +96,7 @@ export default function GroupRepository({
   const githubRepos = repositoryUrls;
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshError, setRefreshError] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [revision, setRevision] = useState<{
     url: string;
     branch: string;
@@ -96,51 +105,42 @@ export default function GroupRepository({
   const activeUrl =
     selectedUrl && githubRepos.includes(selectedUrl) ? selectedUrl : (githubRepos[0] ?? null);
 
-  const branchesQuery = useRepoBranches(activeUrl);
+  const branchesQuery = useRepoBranches(groupId, activeUrl);
   const branches = branchesQuery.data ?? [];
   const defaultBranch = branches.find((branch) => branch.isDefault) ?? branches[0];
   const activeBranch =
     (revision?.url === activeUrl && branches.find((branch) => branch.name === revision.branch)) ||
     defaultBranch;
-  const activeCommitSha = activeBranch
-    ? revision?.url === activeUrl && revision.branch === activeBranch.name && revision.commitSha
-      ? revision.commitSha
-      : activeBranch.headSha
+  // 커밋을 고르지 않았으면 브랜치로 파일 트리를 요청한다. 서버가 그 브랜치의 끝 커밋을 대상으로 한다.
+  const pickedCommitSha = activeBranch && revision?.url === activeUrl && revision.branch === activeBranch.name
+    ? revision.commitSha
     : null;
-  const sourceQuery = useRepoBranchSource(activeUrl, activeBranch ?? null, branches);
-  const sourceLookupPending = Boolean(activeBranch && !activeBranch.isDefault && branches.length > 1 && sourceQuery.isPending);
-  const baseBranch = sourceLookupPending
-    ? null
-    : activeBranch?.isDefault
-      ? defaultBranch
-      : sourceQuery.data ?? defaultBranch;
-  const commitsQuery = useRepoCommits(activeUrl, activeBranch ?? null, baseBranch ?? null);
+  const commitsQuery = useRepoCommits(groupId, activeUrl, activeBranch ?? null);
   const commits = useMemo(
     () =>
-      (commitsQuery.data?.pages.flatMap((page) => page.items) ?? []).sort(
-        (a, b) => a.isForkPoint ? 1 : b.isForkPoint ? -1 : Date.parse(b.committedAt) - Date.parse(a.committedAt),
-      ),
+      commitsQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [commitsQuery.data],
   );
   const commitsBySha = useMemo(() => new Map(commits.map((commit) => [commit.sha, commit])), [commits]);
+  const activeCommitSha = pickedCommitSha ?? commits[0]?.sha ?? null;
   const selectedCommit = activeCommitSha ? commitsBySha.get(activeCommitSha) : undefined;
-  const treeQuery = useRepoTree(activeUrl, activeCommitSha);
-  const isFetching = branchesQuery.isFetching || sourceQuery.isFetching || commitsQuery.isFetching || treeQuery.isFetching;
+  const treeQuery = useRepoTree(groupId, activeUrl, pickedCommitSha ? { commitSha: pickedCommitSha } : activeBranch ? { branch: activeBranch.name } : null);
+  const isFetching = branchesQuery.isFetching || commitsQuery.isFetching || treeQuery.isFetching;
 
   async function refreshRepository() {
     if (!activeUrl || isRefreshing || isFetching) return;
     setIsRefreshing(true);
-    setRefreshError(false);
+    setRefreshError(null);
     try {
-      await GroupRepositoryApi.refreshRepository(activeUrl);
+      await GroupRepositoryApi.refreshRepository(groupId, activeUrl, activeBranch ?? null);
       await queryClient.invalidateQueries({
         predicate: (query) =>
           query.queryKey[1] === activeUrl &&
-          ["repo-branches", "repo-branch-source", "repo-commits", "repo-tree"].includes(String(query.queryKey[0])),
+          ["repo-branches", "repo-commits", "repo-tree"].includes(String(query.queryKey[0])),
         refetchType: "active",
       }, { throwOnError: true });
-    } catch {
-      setRefreshError(true);
+    } catch (error) {
+      setRefreshError(repositoryErrorMessage(error, "새로고침에 실패했습니다."));
     } finally {
       setIsRefreshing(false);
     }
@@ -166,7 +166,7 @@ export default function GroupRepository({
           잦은 새로고침은 저장소 API 요청 한도를 초과할 수 있습니다.
         </Text>
       </div>
-      {refreshError && <Text fontSize="xs" color="red.500" mb={2}>새로고침에 실패했습니다.</Text>}
+      {refreshError && <Text fontSize="xs" color="red.500" mb={2}>{refreshError}</Text>}
 
       {githubRepos.length === 0 || !activeUrl ? (
         <Text fontSize="sm" color="gray.500">
@@ -214,7 +214,7 @@ export default function GroupRepository({
             <ContentSkeleton />
           ) : branchesQuery.isError ? (
             <Text fontSize="sm" color="gray.500" mt={4}>
-              저장소에 접근할 수 없습니다.
+              {repositoryErrorMessage(branchesQuery.error, "저장소에 접근할 수 없습니다.")}
             </Text>
           ) : !activeBranch ? (
             <Text fontSize="sm" color="gray.500" mt={4}>브랜치가 없습니다.</Text>
@@ -249,17 +249,7 @@ export default function GroupRepository({
                   menuClassName={styles.commitMenu}
                   itemClassName={styles.commitOption}
                   scrollable
-                  disabled={sourceLookupPending || commitsQuery.isLoading || (commitsQuery.isError && commits.length === 0)}
-                  onMenuScroll={(event) => {
-                    const menu = event.currentTarget;
-                    if (
-                      menu.scrollTop + menu.clientHeight >= menu.scrollHeight - 32 &&
-                      commitsQuery.hasNextPage &&
-                      !commitsQuery.isFetchingNextPage
-                    ) {
-                      void commitsQuery.fetchNextPage();
-                    }
-                  }}
+                  disabled={commitsQuery.isLoading || (commitsQuery.isError && commits.length === 0)}
                   renderValue={
                     <AppTooltip content={commitLabel(selectedCommit, activeCommitSha ?? "")}>
                       <span className={styles.tooltipTarget}>
@@ -276,35 +266,39 @@ export default function GroupRepository({
                   )}
                   footer={
                     <>
-                      {commitsQuery.isFetchingNextPage && (
-                        <ContentSkeleton />
-                      )}
                       {commitsQuery.isFetchNextPageError && (
-                        <Text fontSize="xs" px={2} py={1} color="gray.500">이전 커밋을 불러올 수 없습니다.</Text>
+                        <Text role="alert" fontSize="xs" px={2} py={1} color="gray.500">{repositoryErrorMessage(commitsQuery.error, "이전 커밋을 불러올 수 없습니다.")}</Text>
                       )}
-                      <div className={styles.commitSource} role="note">
-                        {activeBranch.isDefault
-                          ? "기본 브랜치"
-                          : sourceLookupPending
-                            ? "분기 기준 확인 중..."
-                            : sourceQuery.data
-                              ? `${sourceQuery.data.name}에서 분기됨`
-                              : "분기 기준 확인 불가"}
-                      </div>
+                      {(commitsQuery.hasNextPage || commitsQuery.isFetchNextPageError) && (
+                        <Button
+                          type="button"
+                          size="xs"
+                          variant="ghost"
+                          w="100%"
+                          disabled={commitsQuery.isFetching}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (!commitsQuery.isFetching) void commitsQuery.fetchNextPage();
+                          }}
+                        >
+                          {commitsQuery.isFetchingNextPage ? "불러오는 중…" : commitsQuery.isFetchNextPageError ? "다시 시도" : "더보기"}
+                        </Button>
+                      )}
                     </>
                   }
                 />
               </div>
               {commitsQuery.isError && commits.length === 0 && (
                 <Text fontSize="xs" color="gray.500" mt={2}>
-                  커밋 목록을 불러올 수 없습니다. 브랜치 HEAD의 파일을 표시합니다.
+                  {repositoryErrorMessage(commitsQuery.error, "커밋 목록을 불러올 수 없습니다. 브랜치 HEAD의 파일을 표시합니다.")}
                 </Text>
               )}
+              {treeQuery.data?.truncated && <Text role="status" fontSize="xs" color="gray.500">저장소의 파일이 많아 일부만 표시합니다.</Text>}
               {treeQuery.isLoading ? (
                 <ContentSkeleton />
               ) : treeQuery.isError ? (
                 <Text fontSize="sm" color="gray.500" mt={4}>
-                  파일 트리를 불러올 수 없습니다.
+                  {repositoryErrorMessage(treeQuery.error, "파일 트리를 불러올 수 없습니다.")}
                 </Text>
               ) : treeQuery.data ? (
                 <ScrollArea.Root className={styles.treeScrollArea} size="sm" variant="hover">
@@ -312,7 +306,7 @@ export default function GroupRepository({
                     <ScrollArea.Content className={styles.treeScrollContent} w="100%" style={{ minWidth: 0 }}>
                       <RepositoryTree
                         key={`${activeUrl}:${activeCommitSha}`}
-                        entries={treeQuery.data}
+                        entries={treeQuery.data.entries}
                         viewportRef={viewportRef}
                         viewportId={viewportId}
                         onScrollMetricsChange={onScrollMetricsChange}

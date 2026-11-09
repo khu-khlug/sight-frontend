@@ -21,3 +21,13 @@ export const SEASON_LABEL = { summer: "1학기(여름)", winter: "2학기(겨울
  * 한 번에 하나만 열릴 수 있어서 null(없음) | 하나만 있다.
  */
 export type { OpenSeminarCohortDto as OpenSeminarCohort, ActivityReportDto as ActivityReport } from "../../../../../api/public/group/GroupExposureApi";
+
+// 원본 파일명은 조회 계약에 없으므로 명시적인 대체 이름을 사용한다.
+export const activityReportFileName = (report: { id: string; reportFileUrl: string }) => {
+  let extension = "";
+  try {
+    const pathname = new URL(report.reportFileUrl, "https://sight.invalid").pathname;
+    extension = /\.[a-z0-9]{1,10}$/i.exec(pathname)?.[0] ?? "";
+  } catch { /* 주소에서 형식을 알 수 없으면 확장자를 추측하지 않는다. */ }
+  return `활동보고-${report.id}${extension}`;
+};

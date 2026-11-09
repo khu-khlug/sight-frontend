@@ -4,7 +4,7 @@ import styles from "./style.module.css";
 
 const WindowResizingContext = createContext(false);
 
-// 슬롯의 폭·높이 전환만 추적한다. 사용자가 직접 드래그하는 동안에는 내용을 표시한다.
+// 폭 전환에는 스켈레톤을 표시한다. 접기·펼치기의 높이 전환은 측정만 잠시 멈춘다.
 export function SkeletonResizeBoundary({ children }: { children: ReactNode }) {
   const boundaryRef = useRef<HTMLDivElement>(null);
   const [resizing, setResizing] = useState(false);
@@ -14,6 +14,7 @@ export function SkeletonResizeBoundary({ children }: { children: ReactNode }) {
     if (!element) return;
     const layer = element.closest<HTMLElement>("[data-window-layer]");
     const transitions = new Map<EventTarget, Set<string>>();
+    const heightTransitions = new Set<EventTarget>();
     let frame = 0;
     const update = () => {
       cancelAnimationFrame(frame);
@@ -23,8 +24,16 @@ export function SkeletonResizeBoundary({ children }: { children: ReactNode }) {
     };
     const relevant = (event: TransitionEvent) => event.target instanceof HTMLElement
       && event.target !== element && event.target.contains(element)
-      && (["width", "height"].includes(event.propertyName) || (event.target === layer && event.propertyName === "left"));
+      && (event.propertyName === "width" || (event.target === layer && event.propertyName === "left"));
+    const isSlotHeightTransition = (event: TransitionEvent) => event.propertyName === "height"
+      && event.target instanceof HTMLElement && event.target.hasAttribute("data-window-slot")
+      && event.target.contains(element);
     const start = (event: TransitionEvent) => {
+      if (isSlotHeightTransition(event) && event.target) {
+        heightTransitions.add(event.target);
+        element.dataset.heightChanging = "true";
+        return;
+      }
       if (!relevant(event) || !event.target) return;
       const properties = transitions.get(event.target) ?? new Set<string>();
       properties.add(event.propertyName);
@@ -33,6 +42,14 @@ export function SkeletonResizeBoundary({ children }: { children: ReactNode }) {
       setResizing(layer?.dataset.resizing !== "true");
     };
     const end = (event: TransitionEvent) => {
+      if (isSlotHeightTransition(event) && event.target) {
+        heightTransitions.delete(event.target);
+        if (!heightTransitions.size) {
+          delete element.dataset.heightChanging;
+          element.dispatchEvent(new Event("skeleton-layout-settled"));
+        }
+        return;
+      }
       if (!relevant(event) || !event.target) return;
       const properties = transitions.get(event.target);
       properties?.delete(event.propertyName);
@@ -56,12 +73,13 @@ export function SkeletonResizeBoundary({ children }: { children: ReactNode }) {
       document.removeEventListener("transitionrun", start, true);
       document.removeEventListener("transitionend", end, true);
       document.removeEventListener("transitioncancel", end, true);
+      delete element.dataset.heightChanging;
     };
   }, []);
 
   return (
     <WindowResizingContext.Provider value={resizing}>
-      <div ref={boundaryRef} className={styles.boundary}>{children}</div>
+      <div ref={boundaryRef} className={styles.boundary} data-skeleton-resize-boundary>{children}</div>
     </WindowResizingContext.Provider>
   );
 }
@@ -86,7 +104,9 @@ export default function SkeletonWrapper({ children, active, className, style, ..
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element || showSkeleton) return;
+    const boundary = element.closest<HTMLElement>("[data-skeleton-resize-boundary]");
     const measure = () => {
+      if (boundary?.dataset.heightChanging === "true") return;
       if (!element.offsetWidth || !element.offsetHeight) return;
       const computed = getComputedStyle(element);
       const horizontalPadding = parseFloat(computed.paddingLeft) + parseFloat(computed.paddingRight);
@@ -113,7 +133,11 @@ export default function SkeletonWrapper({ children, active, className, style, ..
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
-    return () => observer.disconnect();
+    boundary?.addEventListener("skeleton-layout-settled", measure);
+    return () => {
+      observer.disconnect();
+      boundary?.removeEventListener("skeleton-layout-settled", measure);
+    };
   }, [showSkeleton]);
 
   return (

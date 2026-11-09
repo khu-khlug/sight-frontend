@@ -9,9 +9,11 @@ import AppTooltip from "../../../../../components/AppTooltip";
 import { GROUP_CATEGORY_ICON } from "../../../../../components/GroupCategoryBadge";
 import HoverScrollbar from "../../../../../components/HoverScrollbar";
 import TechBadge from "../../../../../components/TechBadge";
-import { GroupCategory, GroupCategoryLabel, GroupInterest, GroupInterestLabel, GroupVisibility, GroupVisibilityLabel } from "../../../../../constant";
+import { GroupCategory, GroupCategoryLabel, GroupStatus, GroupInterest, GroupInterestLabel, GroupVisibility, GroupVisibilityLabel } from "../../../../../constant";
 import { useUnsavedChangesBeforeUnload } from "../../../../../hooks/browser/useUnsavedChangesBeforeUnload";
 import { GROUP_INTEREST_ICON, GroupInfo } from "../GroupInfo/types";
+import { getGroupRepositoryUrlError, GROUP_REPOSITORY_SEPARATOR, MAX_GROUP_REPOSITORIES } from "../../../../../util/groupRepositoryUrls";
+import { getGroupDelimitedValuesError } from "../../../../../util/groupDelimitedValues";
 import styles from "./style.module.css";
 
 export type EditableGroupInfo = Pick<GroupInfo,
@@ -73,9 +75,11 @@ export default function GroupInfoEditor({ info, isManager, isLeader, isEditing, 
   const action = useGroupAction(info.id);
   const [draft, setDraft] = useState<Draft>(() => makeDraft(info));
   const [newTech, setNewTech] = useState<string | null>(null);
+  const [techInputError, setTechInputError] = useState("");
   const [newRepository, setNewRepository] = useState<string | null>(null);
   const [editingRepository, setEditingRepository] = useState<string | null>(null);
   const [repositoryEditValue, setRepositoryEditValue] = useState("");
+  const [repositoryInputError, setRepositoryInputError] = useState("");
   const showTechField = useFormPresence(newTech !== null);
   const showRepositoryAddField = useFormPresence(newRepository !== null);
   const showRepositoryEditField = useFormPresence(editingRepository !== null);
@@ -95,7 +99,9 @@ export default function GroupInfoEditor({ info, isManager, isLeader, isEditing, 
     if (!opening) return;
     setDraft(makeDraft(info));
     setNewTech(null);
+    setTechInputError("");
     setNewRepository(null);
+    setRepositoryInputError("");
     setEditingRepository(null);
     setDisplayedRepositoryEdit(null);
   }, [isEditing, info]);
@@ -146,15 +152,41 @@ export default function GroupInfoEditor({ info, isManager, isLeader, isEditing, 
   const addTech = () => {
     const value = newTech?.trim();
     if (!value) return;
-    setDraft((current) => ({ ...current, techStack: current.techStack.includes(value) ? current.techStack : [...current.techStack, value] }));
+    if (value.includes(",")) {
+      setTechInputError("기술 이름에는 쉼표(,)를 사용할 수 없습니다.");
+      return;
+    }
+    const techStack = draft.techStack.includes(value) ? draft.techStack : [...draft.techStack, value];
+    const error = getGroupDelimitedValuesError(techStack, "사용 기술");
+    if (error) { setTechInputError(error); return; }
+    setDraft((current) => ({ ...current, techStack }));
     setNewTech(null);
+    setTechInputError("");
   };
 
   const addRepository = () => {
     const value = newRepository?.trim();
     if (!value) return;
-    setDraft((current) => ({ ...current, repositoryUrls: current.repositoryUrls.includes(value) ? current.repositoryUrls : [...current.repositoryUrls, value] }));
+    const error = getGroupRepositoryUrlError(value);
+    if (error) { setRepositoryInputError(error); return; }
+    const repositoryUrls = draft.repositoryUrls.includes(value) ? draft.repositoryUrls : [...draft.repositoryUrls, value];
+    if (repositoryUrls.length > MAX_GROUP_REPOSITORIES) {
+      setRepositoryInputError("저장소는 최대 5개까지 추가할 수 있습니다.");
+      return;
+    }
+    const lengthError = getGroupDelimitedValuesError(repositoryUrls, "저장소 URL", GROUP_REPOSITORY_SEPARATOR);
+    if (lengthError) { setRepositoryInputError(lengthError); return; }
+    setDraft((current) => ({ ...current, repositoryUrls }));
     setNewRepository(null);
+    setRepositoryInputError("");
+  };
+
+  const changeRepositoryInput = (value: string, editing = false) => {
+    const error = getGroupRepositoryUrlError(value);
+    if (error) { setRepositoryInputError(error); return; }
+    setRepositoryInputError("");
+    if (editing) setRepositoryEditValue(value);
+    else setNewRepository(value);
   };
 
   const startRepositoryEdit = (url: string) => {
@@ -162,18 +194,26 @@ export default function GroupInfoEditor({ info, isManager, isLeader, isEditing, 
     setEditingRepository(url);
     setDisplayedRepositoryEdit(url);
     setRepositoryEditValue(url);
+    setRepositoryInputError("");
     requestAnimationFrame(() => repositoryEditInputRef.current?.focus());
   };
 
   const applyRepositoryEdit = () => {
     const value = repositoryEditValue.trim();
     if (!editingRepository || !value) return;
-    setDraft((current) => ({
-      ...current,
-      repositoryUrls: current.repositoryUrls.map((url) => url === editingRepository ? value : url),
-    }));
+    const error = getGroupRepositoryUrlError(value);
+    if (error) { setRepositoryInputError(error); return; }
+    if (value !== editingRepository && draft.repositoryUrls.includes(value)) {
+      setRepositoryInputError("이미 추가한 저장소 URL입니다.");
+      return;
+    }
+    const repositoryUrls = draft.repositoryUrls.map((url) => url === editingRepository ? value : url);
+    const lengthError = getGroupDelimitedValuesError(repositoryUrls, "저장소 URL", GROUP_REPOSITORY_SEPARATOR);
+    if (lengthError) { setRepositoryInputError(lengthError); return; }
+    setDraft((current) => ({ ...current, repositoryUrls }));
     setDisplayedRepositoryEdit(value);
     setEditingRepository(null);
+    setRepositoryInputError("");
   };
 
   const toggleInterest = (interest: GroupInterest) => {
@@ -187,6 +227,11 @@ export default function GroupInfoEditor({ info, isManager, isLeader, isEditing, 
 
   const handleSave = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (action.isPending) return;
+    if (info.status !== GroupStatus.PROGRESS) {
+      window.alert("진행 중인 그룹만 정보를 변경할 수 있습니다.");
+      return;
+    }
     // GroupSettings.openEditor의 canEditGroupInfo와 같은 조건 — 그룹장이 기본이지만 운영
     // 카테고리 그룹은 운영진도 저장할 수 있다(GROUP_BUSINESS_RULES.md §4-2).
     if (!isLeader && !(isManager && info.category === GroupCategory.MANAGE)) {
@@ -288,14 +333,32 @@ export default function GroupInfoEditor({ info, isManager, isLeader, isEditing, 
                   ))}
                   {!showTechField ? (
                     <Badge display="inline-flex" alignItems="center" size="sm" bg="blackAlpha.50" className={styles.addBadge}>
-                      <button type="button" className={styles.addButton} aria-label="사용 기술 추가" onClick={() => { setNewTech(""); requestAnimationFrame(() => techInputRef.current?.focus()); }}><Plus size={16} /></button>
+                      <button type="button" className={styles.addButton} aria-label="사용 기술 추가" onClick={() => { setNewTech(""); setTechInputError(""); requestAnimationFrame(() => techInputRef.current?.focus()); }}><Plus size={16} /></button>
                     </Badge>
                   ) : (
                     <span ref={techAddFieldRef} className={`${styles.addField} ${newTech !== null ? styles.formEnter : styles.formExit}`}>
-                      <textarea ref={techInputRef} className={styles.inlineInput} rows={1} value={newTech ?? ""} placeholder="기술 이름" aria-label="새 사용 기술" onChange={(event) => setNewTech(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTech(); } else if (event.key === "Escape") setNewTech(null); }} />
+                      <textarea
+                        ref={techInputRef}
+                        className={styles.inlineInput}
+                        rows={1}
+                        value={newTech ?? ""}
+                        placeholder="기술 이름"
+                        aria-label="새 사용 기술"
+                        aria-describedby={techInputError ? "group-tech-input-error" : undefined}
+                        onChange={(event) => {
+                          if (event.target.value.includes(",")) {
+                            setTechInputError("기술 이름에는 쉼표(,)를 사용할 수 없습니다.");
+                            return;
+                          }
+                          setTechInputError("");
+                          setNewTech(event.target.value);
+                        }}
+                        onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTech(); } else if (event.key === "Escape") setNewTech(null); }}
+                      />
                       <button type="button" aria-label="사용 기술 추가 완료" disabled={!newTech?.trim()} onClick={addTech}><Check size={15} /></button>
                     </span>
                   )}
+                  {newTech !== null && techInputError && <p id="group-tech-input-error" role="alert" className={styles.statusHint}>{techInputError}</p>}
                 </div>
               </div>
               <div className={styles.row}>
@@ -305,7 +368,7 @@ export default function GroupInfoEditor({ info, isManager, isLeader, isEditing, 
                     <div key={url} className={`${styles.editableTag} ${showRepositoryEditField && displayedRepositoryEdit === url ? styles.editingTag : ""}`}>
                       {showRepositoryEditField && displayedRepositoryEdit === url ? (
                         <span ref={repositoryEditFieldRef} className={`${styles.addField} ${editingRepository === url ? styles.formEnter : styles.formExit}`}>
-                          <textarea ref={repositoryEditInputRef} className={styles.inlineInput} rows={1} value={repositoryEditValue} aria-label="저장소 URL 수정" onChange={(event) => setRepositoryEditValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyRepositoryEdit(); } else if (event.key === "Escape") setEditingRepository(null); }} />
+                          <textarea ref={repositoryEditInputRef} className={styles.inlineInput} rows={1} value={repositoryEditValue} aria-label="저장소 URL 수정" aria-describedby={repositoryInputError ? "group-repository-input-error" : undefined} onChange={(event) => changeRepositoryInput(event.target.value, true)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyRepositoryEdit(); } else if (event.key === "Escape") setEditingRepository(null); }} />
                           <button type="button" aria-label="저장소 수정 완료" disabled={!repositoryEditValue.trim()} onClick={applyRepositoryEdit}><Check size={15} /></button>
                         </span>
                       ) : (
@@ -315,16 +378,17 @@ export default function GroupInfoEditor({ info, isManager, isLeader, isEditing, 
                       )}
                     </div>
                   ))}
-                  {!showRepositoryAddField ? (
+                  {!showRepositoryAddField ? draft.repositoryUrls.length < MAX_GROUP_REPOSITORIES && (
                     <Badge display="inline-flex" alignItems="center" size="sm" bg="blackAlpha.50" className={styles.addBadge}>
-                      <button type="button" className={styles.addButton} aria-label="저장소 추가" onClick={() => { setNewRepository(""); requestAnimationFrame(() => repositoryInputRef.current?.focus()); }}><Plus size={16} /></button>
+                      <button type="button" className={styles.addButton} aria-label="저장소 추가" onClick={() => { setNewRepository(""); setEditingRepository(null); setRepositoryInputError(""); requestAnimationFrame(() => repositoryInputRef.current?.focus()); }}><Plus size={16} /></button>
                     </Badge>
                   ) : (
                     <span ref={repositoryAddFieldRef} className={`${styles.addField} ${newRepository !== null ? styles.formEnter : styles.formExit}`}>
-                      <textarea ref={repositoryInputRef} className={styles.inlineInput} rows={1} value={newRepository ?? ""} placeholder="저장소 URL" aria-label="새 저장소 URL" onChange={(event) => setNewRepository(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addRepository(); } else if (event.key === "Escape") setNewRepository(null); }} />
+                      <textarea ref={repositoryInputRef} className={styles.inlineInput} rows={1} value={newRepository ?? ""} placeholder="저장소 URL" aria-label="새 저장소 URL" aria-describedby={repositoryInputError ? "group-repository-input-error" : undefined} onChange={(event) => changeRepositoryInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addRepository(); } else if (event.key === "Escape") setNewRepository(null); }} />
                       <button type="button" aria-label="저장소 추가 완료" disabled={!newRepository?.trim()} onClick={addRepository}><Check size={15} /></button>
                     </span>
                   )}
+                  {(newRepository !== null || editingRepository !== null) && repositoryInputError && <p id="group-repository-input-error" role="alert" className={styles.statusHint}>{repositoryInputError}</p>}
                 </div>
               </div>
             </div>

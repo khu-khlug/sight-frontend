@@ -20,29 +20,30 @@ import {
 import GitRepoBadge from "../../../../../components/GitRepoBadge";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
 import TechBadge from "../../../../../components/TechBadge";
-import { GroupInterestLabel, GroupVisibilityLabel } from "../../../../../constant";
-import { useCurrentUser } from "../../../../../hooks/user/useCurrentUser";
+import { GroupInterestLabel, GroupVisibilityLabel, GroupStatus, GroupCategory } from "../../../../../constant";
 import { GROUP_INTEREST_ICON, GroupInfo as GroupInfoData } from "./types";
 
 type Props = {
   info: GroupInfoData;
+  isManager: boolean;
   portfolioCounts: { listCount: number; cardCount: number };
   onTabChange: (id: string) => void;
 };
 
 type Row = { label: string; value: React.ReactNode; onClick?: () => void };
 
-export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props) {
+export default function GroupInfo({ info, isManager, portfolioCounts, onTabChange }: Props) {
   const action = useGroupAction(info.id);
   const queryClient = useQueryClient();
   const isBookmarked = info.isBookmarked;
-  const currentUserQuery = useCurrentUser();
-  const isLeader = currentUserQuery.data?.id === info.leaderUserId;
+  const isLeader = info.isLeader;
   const showCreateChatRoom = isLeader && !info.hasChatRoom;
   const handleJoinChat = () => {
-    const memberId = currentUserQuery.data?.id;
-    if (memberId === undefined) return;
-    action.mutate(() => GroupChatApi.joinGroupDiscordChannel(info.id, memberId), {
+    if (info.isChatParticipant) {
+      onTabChange("discord");
+      return;
+    }
+    action.mutate(() => GroupChatApi.joinGroupDiscordChannel(info.id), {
       onSuccess: () => { toast.success("채팅에 참여했습니다."); onTabChange("discord"); },
     });
   };
@@ -172,7 +173,7 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
               flex="1"
               size="sm"
               variant="outline"
-              disabled={action.isPending}
+              disabled={action.isPending || info.status !== GroupStatus.PROGRESS}
               onClick={handleCreateChatRoom}
               transition="background-color 150ms ease, transform 100ms ease"
               _hover={{ bg: "var(--main-color)", color: "white", borderColor: "var(--main-color)" }}
@@ -185,13 +186,13 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
               flex="1"
               size="sm"
               variant="outline"
-              disabled={action.isPending || !info.hasChatRoom || info.isChatParticipant}
-              onClick={info.hasChatRoom && !info.isChatParticipant ? handleJoinChat : undefined}
+              disabled={action.isPending || !info.hasChatRoom || (!info.isChatParticipant && info.status !== GroupStatus.PROGRESS)}
+              onClick={handleJoinChat}
               transition="background-color 150ms ease, transform 100ms ease"
               _hover={{ bg: "var(--main-color)", color: "white", borderColor: "var(--main-color)" }}
               _active={{ transform: "scale(0.97)" }}
             >
-              <MessageCircle size={16} /> 채팅 참여
+              <MessageCircle size={16} /> {info.isChatParticipant ? "채팅 열기" : "채팅 참여"}
             </Button>
           )
         ) : (
@@ -199,7 +200,7 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
             flex="1"
             size="sm"
             variant="outline"
-            disabled={action.isPending || !info.allowJoin}
+            disabled={action.isPending || (info.category === GroupCategory.MANAGE && !isManager) || !info.allowJoin || info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL}
             onClick={handleJoinGroup}
             transition="background-color 150ms ease, transform 100ms ease"
             _hover={{ bg: "var(--main-color)", color: "white", borderColor: "var(--main-color)" }}
@@ -212,7 +213,7 @@ export default function GroupInfo({ info, portfolioCounts, onTabChange }: Props)
           flex="1"
           size="sm"
           variant="outline"
-          disabled={action.isPending}
+          disabled={action.isPending || info.status === GroupStatus.STOP}
           onClick={() => action.mutate(() => isBookmarked ? GroupInfoApi.removeGroupBookmark(info.id) : GroupInfoApi.addGroupBookmark(info.id))}
           aria-pressed={isBookmarked}
           bg="transparent"
