@@ -2,7 +2,7 @@ import apiV2Client from "../client/v2";
 import type { ScheduleCategory } from "../../components/ScheduleCategoryBadge";
 
 export type AttendanceSchedule = {
-  id: number;
+  id: string;
   title: string;
   category: Exclude<ScheduleCategory, "일정없음"> | null;
   scheduledAt: string;
@@ -10,7 +10,7 @@ export type AttendanceSchedule = {
 };
 
 export type HistorySchedule = {
-  id: number;
+  id: string;
   title: string;
   category: ScheduleCategory | null;
   scheduledAt: string;
@@ -26,7 +26,7 @@ export type CheckAttendanceResult =
   | { status: "error" };
 
 type RawSchedule = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   scheduledAt: string;
@@ -85,7 +85,7 @@ export const getSchedule = async (scheduleId: string): Promise<AttendanceSchedul
 export const getSchedulesByMonth = async (
   year: number,
   month: number
-): Promise<{ id: number; title: string; scheduledAt: string }[]> => {
+): Promise<{ id: string; title: string; scheduledAt: string }[]> => {
   const from = new Date(year, month - 1, 1).toISOString().slice(0, 19);
   const res = await apiV2Client.get<{ schedules: RawSchedule[] }>("/schedules", {
     params: { from, limit: 50 },

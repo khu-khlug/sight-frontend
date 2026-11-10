@@ -25,7 +25,7 @@ function createSchedules() {
     const start = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + template.dayOffset, template.hour, template.minute);
     const end = new Date(start.getTime() + template.hours * 60 * 60 * 1000);
     return {
-      id: index + 1,
+      id: String(index + 1),
       title: template.title,
       category: template.category,
       location: template.location,
@@ -61,7 +61,7 @@ export function handleScheduleRequest(method: string | undefined, url: URL, body
   // 일정 수정 폼이 부르는 상세 조회와 수정. 그룹활동·총회 수정 경로도 같은 방식으로 처리한다.
   const detailMatch = url.pathname.match(/^\/schedules\/(?:(?:group-activity|big-seminar)\/)?(\d+)$/);
   if (detailMatch) {
-    const schedule = schedules.find((item) => item.id === Number(detailMatch[1]));
+    const schedule = schedules.find((item) => item.id === detailMatch[1]);
     if (!schedule) return { status: 404, body: { message: "일정을 찾을 수 없습니다." } };
     if (method === "GET") {
       const now = formatLocal(new Date());
@@ -88,7 +88,7 @@ export function handleScheduleRequest(method: string | undefined, url: URL, body
       return { status: 400, body: { message: "일정 입력값을 확인해주세요." } };
     }
     schedules.push({
-      id: schedules.length + 1,
+      id: String(schedules.length + 1),
       title: input.title,
       category,
       location: typeof input.location === "string" ? input.location : null,

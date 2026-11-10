@@ -54,7 +54,7 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
     else openForm();
   };
 
-  const handleEditSchedule = async (scheduleId: number) => {
+  const handleEditSchedule = async (scheduleId: string) => {
     try {
       const detail = await SchedulePublicApi.getSchedule(scheduleId);
       setEditDate(toDateKey(detail.scheduledAt));

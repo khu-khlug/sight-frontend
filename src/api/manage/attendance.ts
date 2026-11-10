@@ -9,7 +9,7 @@ export type AttendanceMember = {
 };
 
 export type CurrentSchedule = {
-  id: number;
+  id: string;
   title: string;
   category: ScheduleCategory;
   scheduledAt: string;
@@ -22,14 +22,14 @@ export type ScheduleAttendee = {
 };
 
 type RawScheduleDto = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   scheduledAt: string;
 };
 
 type RawGetScheduleResponse = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   scheduledAt: string;
@@ -78,7 +78,7 @@ export const getCurrentAttendanceSchedules = async (): Promise<CurrentSchedule[]
 };
 
 export const getScheduleAttendees = async (
-  scheduleId: number
+  scheduleId: string
 ): Promise<ScheduleAttendee[]> => {
   const res = await apiV2Client.get<{ attendances: ScheduleAttendee[] }>(
     `/schedules/${scheduleId}/attendances`
@@ -87,7 +87,7 @@ export const getScheduleAttendees = async (
 };
 
 export const addAttendances = async (
-  scheduleId: number,
+  scheduleId: string,
   userIds: number[]
 ): Promise<void> => {
   if (userIds.length === 0) return;
@@ -95,7 +95,7 @@ export const addAttendances = async (
 };
 
 export const removeAttendance = async (
-  scheduleId: number,
+  scheduleId: string,
   userId: number
 ): Promise<void> => {
   await apiV2Client.delete(`/schedules/${scheduleId}/attendances/${userId}`);

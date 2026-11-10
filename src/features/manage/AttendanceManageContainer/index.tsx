@@ -134,7 +134,7 @@ function ManualGrantSection() {
   );
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [scheduleId, setScheduleId] = useState<number | "">("");
+  const [scheduleId, setScheduleId] = useState<string>("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -154,7 +154,7 @@ function ManualGrantSection() {
 
   const { data: attendances } = useQuery({
     queryKey: ["schedule-attendees", scheduleId],
-    queryFn: () => getScheduleAttendees(scheduleId as number),
+    queryFn: () => getScheduleAttendees(scheduleId),
     enabled: scheduleId !== "",
   });
 
@@ -212,8 +212,8 @@ function ManualGrantSection() {
         (id) => !selected.has(id),
       );
       await Promise.all([
-        addAttendances(scheduleId as number, toAdd),
-        ...toRemove.map((id) => removeAttendance(scheduleId as number, id)),
+        addAttendances(scheduleId, toAdd),
+        ...toRemove.map((id) => removeAttendance(scheduleId, id)),
       ]);
       setOriginalAttendees(new Set(selected));
       queryClient.invalidateQueries({ queryKey: ["attendance-history"] });
@@ -276,7 +276,7 @@ function ManualGrantSection() {
           <label>일정</label>
           <select
             value={scheduleId}
-            onChange={(e) => setScheduleId(Number(e.target.value))}
+            onChange={(e) => setScheduleId(e.target.value)}
             disabled={schedules.length === 0}
             style={{
               flex: 1,
