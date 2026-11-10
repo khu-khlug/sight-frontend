@@ -1,8 +1,9 @@
 import { Archive, BotMessageSquare, CalendarDays, Code2, GitBranch, History, Info, MessageCircle, Presentation, Search, Settings, Users } from "lucide-react";
 
+import { isDevelopmentToolsEnabled } from "../../../util/developmentTools";
 import { TabItem } from "./TabBar";
 
-// 개발 탭은 목업 상태를 조정하는 용도라 개발 빌드에만 포함한다.
+// 개발 탭은 목업 상태를 조정하는 용도라 개발 도구를 켠 빌드에만 포함한다.
 export const GROUP_DETAIL_TAB_IDS = [
   "info",
   "member",
@@ -50,7 +51,7 @@ export const GROUP_DETAIL_TAB_ICON: Record<GroupDetailTabId, TabItem["icon"]> = 
 };
 
 export const GROUP_DETAIL_TABS: TabItem[] = GROUP_DETAIL_TAB_IDS
-  .filter((id) => id !== "development" || import.meta.env.DEV)
+  .filter((id) => id !== "development" || isDevelopmentToolsEnabled)
   .map((id) => ({
     id,
     label: GROUP_DETAIL_TAB_LABEL[id],
