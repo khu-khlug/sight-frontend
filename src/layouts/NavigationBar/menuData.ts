@@ -39,7 +39,8 @@ export const menuItems: MenuItem[] = [
     subItems: [
       { label: "담소", href: "https://khlug.org/talk" },
       { label: "사진첩", href: "https://khlug.org/album" },
-      { label: "일정", href: "https://khlug.org/schedule" },
+      { label: "일정", href: "https://app.khlug.org/schedule" },
+      { label: "출석하기", href: "https://app.khlug.org/attendance" },
       { label: "책방", href: "/book" },
       { label: "내 대출", href: "/book/my" },
       { label: "library", href: "https://library.khlug.org" },
