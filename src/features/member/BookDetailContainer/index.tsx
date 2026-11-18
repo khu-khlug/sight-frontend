@@ -125,11 +125,11 @@ function BookDetail({
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(book.title);
   const [category, setCategory] = useState<BookCategory>(book.category);
-  const [author, setAuthor] = useState(book.author);
-  const [publisher, setPublisher] = useState(book.publisher);
-  const [publishedYear, setPublishedYear] = useState(book.publishedYear);
-  const [description, setDescription] = useState(book.description);
-  const [coverImageUrl, setCoverImageUrl] = useState(book.coverImageUrl);
+  const [author, setAuthor] = useState(book.author ?? "");
+  const [publisher, setPublisher] = useState(book.publisher ?? "");
+  const [publishedYear, setPublishedYear] = useState(book.publishedYear?.toString() ?? "");
+  const [description, setDescription] = useState(book.description ?? "");
+  const [coverImageUrl, setCoverImageUrl] = useState(book.coverImageUrl ?? "");
 
   const { mutate: save, isPending: isSaving } = useMutation({
     mutationFn: () =>
@@ -155,11 +155,11 @@ function BookDetail({
   const handleStartEdit = () => {
     setTitle(book.title);
     setCategory(book.category);
-    setAuthor(book.author);
-    setPublisher(book.publisher);
-    setPublishedYear(book.publishedYear);
-    setDescription(book.description);
-    setCoverImageUrl(book.coverImageUrl);
+    setAuthor(book.author ?? "");
+    setPublisher(book.publisher ?? "");
+    setPublishedYear(book.publishedYear?.toString() ?? "");
+    setDescription(book.description ?? "");
+    setCoverImageUrl(book.coverImageUrl ?? "");
     setIsEditing(true);
   };
 
@@ -267,68 +267,79 @@ function BookDetail({
             color="gray.700"
           >
             <tbody>
-              <tr>
-                <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">카테고리</Box>
-                <Box as="td" py="2px">
-                  {isEditing ? (
-                    <Select.Root
-                      size="sm"
-                      collection={categoryOptions}
-                      value={[category]}
-                      onValueChange={(e) => setCategory(e.value[0] as BookCategory)}
-                    >
-                      <Select.Trigger>
-                        <Select.ValueText />
-                      </Select.Trigger>
-                      <Select.Positioner>
-                        <Select.Content>
-                          {categoryOptions.items.map((item) => (
-                            <Select.Item key={item.value} item={item}>
-                              {item.label}
-                            </Select.Item>
-                          ))}
-                        </Select.Content>
-                      </Select.Positioner>
-                    </Select.Root>
-                  ) : (
-                    book.category && BookCategoryLabel[book.category]
-                  )}
-                </Box>
-              </tr>
-              <tr>
-                <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">저자</Box>
-                <Box as="td" py="2px">
-                  {isEditing ? (
-                    <Input size="sm" value={author} onChange={(e) => setAuthor(e.target.value)} />
-                  ) : (
-                    book.author.replace(/\^/g, ", ")
-                  )}
-                </Box>
-              </tr>
-              <tr>
-                <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">출판사</Box>
-                <Box as="td" py="2px">
-                  {isEditing ? (
-                    <Input size="sm" value={publisher} onChange={(e) => setPublisher(e.target.value)} />
-                  ) : (
-                    book.publisher
-                  )}
-                </Box>
-              </tr>
-              <tr>
-                <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">발행연도</Box>
-                <Box as="td" py="2px">
-                  {isEditing ? (
-                    <Input
-                      size="sm"
-                      value={publishedYear}
-                      onChange={(e) => setPublishedYear(e.target.value)}
-                    />
-                  ) : (
-                    book.publishedYear
-                  )}
-                </Box>
-              </tr>
+              {(isEditing || book.category) && (
+                <tr>
+                  <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">카테고리</Box>
+                  <Box as="td" py="2px">
+                    {isEditing ? (
+                      <Select.Root
+                        size="sm"
+                        collection={categoryOptions}
+                        value={[category]}
+                        onValueChange={(e) => {
+                          const selected = categoryOptions.items.find((item) => item.value === e.value[0]);
+                          if (selected) setCategory(selected.value);
+                        }}
+                      >
+                        <Select.Trigger>
+                          <Select.ValueText />
+                        </Select.Trigger>
+                        <Select.Positioner>
+                          <Select.Content>
+                            {categoryOptions.items.map((item) => (
+                              <Select.Item key={item.value} item={item}>
+                                {item.label}
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Select.Root>
+                    ) : (
+                      book.category && BookCategoryLabel[book.category]
+                    )}
+                  </Box>
+                </tr>
+              )}
+              {(isEditing || book.author) && (
+                <tr>
+                  <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">저자</Box>
+                  <Box as="td" py="2px">
+                    {isEditing ? (
+                      <Input size="sm" value={author} onChange={(e) => setAuthor(e.target.value)} />
+                    ) : (
+                      book.author?.replace(/\^/g, ", ")
+                    )}
+                  </Box>
+                </tr>
+              )}
+              {(isEditing || book.publisher) && (
+                <tr>
+                  <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">출판사</Box>
+                  <Box as="td" py="2px">
+                    {isEditing ? (
+                      <Input size="sm" value={publisher} onChange={(e) => setPublisher(e.target.value)} />
+                    ) : (
+                      book.publisher
+                    )}
+                  </Box>
+                </tr>
+              )}
+              {(isEditing || book.publishedYear != null) && (
+                <tr>
+                  <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">발행연도</Box>
+                  <Box as="td" py="2px">
+                    {isEditing ? (
+                      <Input
+                        size="sm"
+                        value={publishedYear}
+                        onChange={(e) => setPublishedYear(e.target.value)}
+                      />
+                    ) : (
+                      book.publishedYear
+                    )}
+                  </Box>
+                </tr>
+              )}
               <tr>
                 <Box as="td" pr={3} py="2px" whiteSpace="nowrap" color="gray.500" verticalAlign="top">ISBN</Box>
                 <Box as="td" py="2px">{book.isbn}</Box>

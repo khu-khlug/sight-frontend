@@ -1,0 +1,35 @@
+.door-lock-dark {
+  /* Page */
+  --dl-page-bg: #111318;
+  --dl-header-border: #252830;
+  --dl-main-bg: #111318;
+
+  /* Cards / Input */
+  --dl-card-bg: #1a1d27;
+  --dl-card-border: #252830;
+  --dl-card-row-bg: #22252f;
+
+  /* Keypad */
+  --dl-keypad-border: #252830;
+  --dl-key-bg: #22252f;
+  --dl-key-hover-bg: #2a2e3a;
+  --dl-key-border: #363944;
+  --dl-key-text: #dde1ee;
+  --dl-key-active-bg: #1a3d5c;
+
+  /* Enter key */
+  --dl-key-enter-bg: #0d2434;
+  --dl-key-enter-border: #174060;
+  --dl-key-enter-text: #4dc2ff;
+  --dl-key-enter-active-bg: #00a0e9;
+
+  /* Text */
+  --dl-text-primary: #dde1ee;
+  --dl-text-muted: #7a7e96;
+  --dl-text-label: #525668;
+  --dl-text-placeholder: #44485c;
+  --dl-text-error: #fc8181;
+
+  /* Header */
+  --dl-clock-color: #5a5e72;
+}

@@ -1,10 +1,13 @@
 import { useUpcomingSchedules } from "../../../hooks/main/useUpcomingSchedules";
+import { useActiveAttendanceSchedules } from "../../../hooks/main/useActiveAttendanceSchedule";
 import { Box, Text, Spinner } from "@chakra-ui/react";
 import Container from "../../../components/Container";
 import ScheduleItem from "./ScheduleItem";
 
 export default function UpcomingSchedules() {
   const { data, isLoading, isError } = useUpcomingSchedules(5);
+  const { data: activeSchedules } = useActiveAttendanceSchedules();
+  const activeScheduleIds = new Set(activeSchedules?.map((s) => s.id));
 
   return (
     <Container>
@@ -43,7 +46,11 @@ export default function UpcomingSchedules() {
       {!isLoading && !isError && data && data.count > 0 && (
         <Box display="flex" flexDirection="column">
           {data.schedules.map((schedule) => (
-            <ScheduleItem key={schedule.id} schedule={schedule} />
+            <ScheduleItem
+              key={schedule.id}
+              schedule={schedule}
+              isAttendanceOpen={activeScheduleIds.has(schedule.id)}
+            />
           ))}
         </Box>
       )}

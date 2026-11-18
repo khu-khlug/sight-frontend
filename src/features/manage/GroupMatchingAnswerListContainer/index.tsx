@@ -58,7 +58,7 @@ export default function GroupMatchingAnswerListContainer() {
       : null;
 
   const { data: optionsForFilter } = useQuery({
-    queryKey: ["group-matching-options-filter", survey?.id, optionFilterType],
+    queryKey: ["group-matching-options-filter", survey, optionFilterType],
     queryFn: () =>
       GroupMatchingManageApi.listOptions(
         survey!.id,
@@ -72,10 +72,12 @@ export default function GroupMatchingAnswerListContainer() {
   const { status, data, error, refetch } = useQuery({
     queryKey: [
       "group-matching-answers",
-      survey?.id,
+      survey,
       page,
       filterGroupType,
       filterOptionId,
+      limit,
+      offset,
     ],
     queryFn: () =>
       GroupMatchingManageApi.listAnswers({

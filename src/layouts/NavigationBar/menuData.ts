@@ -39,7 +39,8 @@ export const menuItems: MenuItem[] = [
     subItems: [
       { label: "담소", href: "https://khlug.org/talk" },
       { label: "사진첩", href: "https://khlug.org/album" },
-      { label: "일정", href: "https://khlug.org/schedule" },
+      { label: "일정", href: "https://app.khlug.org/schedule" },
+      { label: "출석하기", href: "https://app.khlug.org/attendance" },
       { label: "책방", href: "/book" },
       { label: "내 대출", href: "/book/my" },
       { label: "library", href: "https://library.khlug.org" },
@@ -83,7 +84,7 @@ export const menuItems: MenuItem[] = [
       { label: "회비 납부", href: "https://khlug.org/manage/fee" },
       { label: "세미나 대상", href: "https://khlug.org/manage/seminar" },
       { label: "경험치 지급", href: "https://khlug.org/manage/exp" },
-      { label: "출석 체크", href: "https://khlug.org/manage/attendance" },
+      { label: "출석 관리", href: "https://app.khlug.org/manage/attendance" },
       { label: "문자 발송", href: "/manage/sms" },
       {
         label: "그룹 매칭 관리",

@@ -12,6 +12,7 @@ import {
   Globe2,
   GraduationCap,
   Hospital,
+  LucideIcon,
   LucideProps,
   Microscope,
   Monitor,
@@ -31,7 +32,7 @@ type Props = {
 };
 
 // 더 적절한 아이콘이 있다면 변경 가능
-const CollegeIconMap: Record<string, any> = {
+const CollegeIconMap: Record<string, LucideIcon> = {
   ["공과대학"]: Cog,
   ["전자정보대학"]: Satellite,
   ["소프트웨어융합대학"]: Monitor,

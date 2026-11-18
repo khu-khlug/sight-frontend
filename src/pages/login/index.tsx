@@ -1,4 +1,4 @@
-import { Box, Input, Text, VStack } from "@chakra-ui/react";
+import { Box, Input, Link, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import legacyClient, { LEGACY_SITE_URL } from "../../api/client/legacy";
@@ -50,6 +50,14 @@ export default function LoginPage() {
                   placeholder="비밀번호를 입력하세요"
                 />
               </Box>
+
+              <Link
+                href="https://khlug.org/password/reset"
+                alignSelf="flex-start"
+                fontSize="sm"
+              >
+                비밀번호를 잊으셨나요?
+              </Link>
 
               <Button type="submit" disabled={!csrfToken}>
                 {!csrfToken ? "로딩 중..." : "로그인"}

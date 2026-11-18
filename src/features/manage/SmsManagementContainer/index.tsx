@@ -22,7 +22,7 @@ const STEPS = ["회원 수신자", "직접 수신번호", "메시지 작성", "�
 type User = ManageUserApiDto["UserResponse"];
 
 const byteLength = (value: string) =>
-  Array.from(value).reduce((sum, character) => sum + (/[\x00-\x7F]/.test(character) ? 1 : 2), 0);
+  Array.from(value).reduce((sum, character) => sum + (character.codePointAt(0)! <= 0x7f ? 1 : 2), 0);
 
 const normalizePhones = (value: string) =>
   value
