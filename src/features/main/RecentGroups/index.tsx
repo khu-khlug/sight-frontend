@@ -18,13 +18,13 @@ export default function RecentGroups() {
           최근 활동한 그룹
         </Text>
         <Link
-          href="https://khlug.org/group"
+          href="https://khlug.org/group/progress"
           color="var(--main-color)"
           fontSize="sm"
           fontWeight="medium"
           _hover={{ textDecoration: "underline" }}
         >
-          모든 그룹 보기
+          진행 중인 그룹 보기
         </Link>
       </Box>
 
@@ -54,18 +54,18 @@ export default function RecentGroups() {
         </Box>
       )}
 
-      {!isLoading && !isError && data?.count === 0 && (
+      {!isLoading && !isError && data?.groups.length === 0 && (
         <Box
           display="flex"
           justifyContent="center"
           alignItems="center"
           padding="40px"
         >
-          <Text color="gray.500">가입한 그룹이 없습니다.</Text>
+          <Text color="gray.500">표시할 그룹이 없습니다.</Text>
         </Box>
       )}
 
-      {!isLoading && !isError && data && data.count > 0 && (
+      {!isLoading && !isError && data && data.groups.length > 0 && (
         <Box
           display="grid"
           gridTemplateColumns={{

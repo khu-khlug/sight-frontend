@@ -46,11 +46,14 @@ const listGroups = async (
 };
 
 /**
- * 최근 활동한 그룹 목록 조회 (가입한 그룹 중 최근 변경된 순으로)
+ * 최근 활동한 그룹 목록 조회 (열람 가능한 그룹 중 최근 변경된 순으로)
  * @param limit 조회할 그룹 수 (기본값: 6)
  */
-const listRecentGroups = async (limit: number = 6): Promise<ListGroupsResponseDto> => {
-  return listGroups({ joined: true, orderBy: "changedAt", limit });
+const listRecentGroups = async (limit = 6) => {
+  const response = await apiV2Client.get<{ groups: GroupDto[] }>("/recent-groups", {
+    params: { limit },
+  });
+  return response.data;
 };
 
 const getMyGroups = async (): Promise<ListGroupsResponseDto> => {
