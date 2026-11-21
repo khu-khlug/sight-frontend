@@ -50,7 +50,8 @@ const NotificationItem = ({ notification, onRead, onNavigate }: NotificationItem
     }
   };
 
-  const relativeTimeStr = dayjs(notification.createdAt).fromNow();
+  // 알림 API는 UTC 시각을 오프셋 없이 반환한다.
+  const relativeTimeStr = dayjs.utc(notification.createdAt).fromNow();
 
   return (
     <Box
