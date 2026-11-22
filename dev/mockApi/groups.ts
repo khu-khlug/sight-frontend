@@ -157,7 +157,7 @@ export function findMockCardTitle(cardId: string): string | null {
 }
 export function handleGroupRequest(method: string | undefined, url: URL, body: unknown, isManager = process.env.MOCK_MANAGER !== "false"): Result | null {
   if (method === "GET" && url.pathname === "/seminars/current") return ok(openCohort);
-  if (url.pathname === "/saved-records" && method === "GET") {
+  if (url.pathname === "/groups/saved-records" && method === "GET") {
     const pageNumber = Number(url.searchParams.get("page") ?? 0);
     if (!Number.isSafeInteger(pageNumber) || pageNumber < 0) return fail("조회 범위를 확인해주세요.");
     const { items, ...meta } = page(savedRecordViews(), pageNumber, 10);
