@@ -4,6 +4,7 @@ import { Box } from "@chakra-ui/react";
 import styles from "./MonthlyCalendar.module.css";
 
 type Props = {
+  compact?: boolean;
   anchorDate: string; // YYYY-MM-DD
   scheduleDots?: Record<string, string[]>; // dateStr → 카테고리 색상 배열
   onDateSelect: (date: string) => void;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function MonthlyCalendar({
+  compact = false,
   anchorDate,
   scheduleDots = {},
   onDateSelect,
@@ -54,7 +56,7 @@ export default function MonthlyCalendar({
   const today = dayjs().format("YYYY-MM-DD");
 
   return (
-    <Box className={styles.calendar} bg="#fcfcfc">
+    <Box className={`${styles.calendar}${compact ? ` ${styles.compact}` : ""}`} bg="#fcfcfc">
       <div className={styles.header}>
         <button
           type="button"

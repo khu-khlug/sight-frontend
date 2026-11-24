@@ -44,7 +44,8 @@ type Props = {
   groupInfo: GroupInfoData;
   lists: CardListData[];
   activeId: GroupDetailTabId | null;
-  onTabChange: (id: string) => void;
+  isMobile: boolean;
+  onTabChange: (id: string | null) => void;
   enabledFilters: Set<LabelFilterKey>;
   onToggleFilter: (key: LabelFilterKey) => void;
   onOpenFile: (content: FileWindowContent) => void;
@@ -70,6 +71,7 @@ export default function Dashboard({
   groupInfo,
   lists,
   activeId,
+  isMobile,
   onTabChange,
   enabledFilters,
   onToggleFilter,
@@ -151,7 +153,7 @@ export default function Dashboard({
   const pendingPersonalSettingsLeaveConfirmRef = useRef<(() => boolean) | null>(null);
   const pendingGroupInfoLeaveConfirmRef = useRef<(() => boolean) | null>(null);
 
-  const handleTabChange = (id: string) => {
+  const handleTabChange = (id: string | null) => {
     if (pendingPersonalSettingsLeaveConfirmRef.current && !pendingPersonalSettingsLeaveConfirmRef.current()) return;
     if (pendingGroupInfoLeaveConfirmRef.current && !pendingGroupInfoLeaveConfirmRef.current()) return;
     setIsEditingGroupInfo(false);
@@ -175,7 +177,7 @@ export default function Dashboard({
   return (
     <div className={styles.dashboard}>
       <div className={styles.tabBar}>
-        <TabBar tabs={GROUP_DETAIL_TABS} activeId={activeId} onChange={handleTabChange} />
+        <TabBar tabs={GROUP_DETAIL_TABS} activeId={activeId} onChange={handleTabChange} isMobile={isMobile} />
       </div>
       <div className={cn(styles.divider, activeId === null && styles.collapsed)} />
       <div

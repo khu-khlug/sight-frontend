@@ -76,6 +76,36 @@
 /* 뱃지·제목 헤더. 탭이 바뀌어도 안 움직이는 고정 영역이라 flex: none */
 .header {
   flex: none;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .dashboard {
+    flex-direction: column;
+    width: 100%;
+    background-color: #f8f9fb;
+  }
+
+  .tabBar {
+    height: var(--mobile-tab-height);
+    min-width: 0;
+    border-bottom: 1px solid var(--chakra-colors-gray-200);
+  }
+
+  .divider {
+    display: none;
+  }
+
+  .content {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    transition: none;
+  }
+
+  .content.collapsed {
+    display: none;
+  }
 }
 
 .headingInput {

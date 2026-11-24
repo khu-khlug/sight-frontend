@@ -15,6 +15,7 @@ import { useGroupAction } from "../../../hooks/group/useGroupAction";
 import { GroupDetailPageStateProvider } from "./pageState";
 import { groupPagePreferences } from "./groupPagePreferences";
 import { useGroupPagePreferences } from "./useGroupPagePreferences";
+import { useMobileLayout } from "./useMobileLayout";
 import { encodeWindowOpenRequest, type WindowOpenRequest } from "./actions";
 import RecordWindow from "./RecordWindow";
 import { decodeRecordContentKey } from "./RecordWindow/types";
@@ -76,6 +77,7 @@ function CardWindowWithDetail({ cardId, ...props }: CardWindowWithDetailProps) {
 }
 
 function GroupDetailPage({ groupId }: { groupId: string }) {
+  const isMobile = useMobileLayout();
   const { setOnlyAssignedToMe } = useAssigneeFilter();
   const infoQuery = useQuery({
     queryKey: ["group-detail", groupId, "info"],
@@ -150,7 +152,7 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
   }, [groupId, kanbanQueryKey, loadingCardListIds, queryClient]);
   const { mutate, mutateAsync } = useGroupAction(groupId);
   const [pendingBoard, setPendingBoard] = useState<CardListData[] | null>(null);
-  const [activeId, setActiveId] = useState<GroupDetailTabId | null>(GROUP_DETAIL_TABS[0].id as GroupDetailTabId);
+  const [activeId, setActiveId] = useState<GroupDetailTabId | null>(() => isMobile ? null : GROUP_DETAIL_TABS[0].id as GroupDetailTabId);
   const dashboardOverlayRef = useRef<HTMLDivElement>(null);
   const lists = pendingBoard ?? listsQuery.data ?? [];
   const listsRef = useRef(lists);
@@ -436,13 +438,14 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
   const info = infoQuery.data;
   const isGroupEnded = info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL;
   const sectionStyle = {
-    "--dashboard-width": `${activeId === null ? DASHBOARD_WIDTH_COLLAPSED : DASHBOARD_WIDTH_EXPANDED}px`,
+    "--dashboard-width": `${isMobile ? 0 : activeId === null ? DASHBOARD_WIDTH_COLLAPSED : DASHBOARD_WIDTH_EXPANDED}px`,
   } as CSSProperties;
 
   return (
     <>
-      <div className={styles.section} style={sectionStyle} data-group-detail>
+      <div className={styles.section} style={sectionStyle} data-group-detail data-dashboard-expanded={activeId !== null || undefined}>
         <div className={styles.kanbanBackground} aria-hidden="true" />
+        <div className={styles.board}>
         {listsQuery.isPending ? (
           <Box className={styles.boardStatus}><ContentSkeleton /></Box>
         ) : listsQuery.isError && !listsQuery.data ? (
@@ -462,7 +465,7 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
           isReadOnly={isGroupEnded || !isMember}
           isPortfolioPublished={info.hasPublishedPortfolio}
           dashboardOverlayRef={dashboardOverlayRef}
-          dashboardExtraWidthPx={activeId === null ? 0 : DASHBOARD_WIDTH_EXPANDED - DASHBOARD_WIDTH_COLLAPSED}
+          dashboardExtraWidthPx={isMobile || activeId === null ? 0 : DASHBOARD_WIDTH_EXPANDED - DASHBOARD_WIDTH_COLLAPSED}
           enabledFilters={enabledFilters}
           windowCoverage={windowCoverage}
           onAddCard={handleAddCard}
@@ -474,12 +477,14 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
           onCardClick={handleCardClick}
           onUpdateList={handleUpdateList}
         />}
+        </div>
         <div ref={dashboardOverlayRef} className={styles.dashboardOverlay}>
           <Dashboard
             title={info.title}
             groupInfo={info}
             lists={lists}
             activeId={activeId}
+            isMobile={isMobile}
             onTabChange={(id) => setActiveId((previous) => previous === id ? null : id as GroupDetailTabId)}
             enabledFilters={enabledFilters}
             onToggleFilter={(key) => setEnabledFilters((previous) => {
@@ -503,7 +508,7 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
           onHashChange={handleHashChange}
           onMainCardChange={handleMainCardChange}
           onCoverageChange={handleCoverageChange}
-          dualWindowEnabled={dualWindowEnabled}
+          dualWindowEnabled={!isMobile && dualWindowEnabled}
           initialSplitRatio={preferences.splitRatio}
           onSplitRatioCommit={handleSplitRatioCommit}
         />

@@ -237,3 +237,43 @@
   margin-top: 6px;
   color: var(--chakra-colors-gray-500);
 }
+
+@media (max-width: 767px) {
+  .metaLine {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .metaGroup {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    column-gap: 8px;
+  }
+
+  .metaItem {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .metaIconGroup {
+    flex-wrap: wrap;
+  }
+
+  .moreTrigger {
+    display: none;
+  }
+
+  .moreActions,
+  .moreWrapper:hover .moreActions,
+  .moreWrapper:focus-within .moreActions {
+    max-width: none;
+    opacity: 1;
+  }
+
+  .actionButton,
+  .deleteButton {
+    width: 44px;
+    height: 44px;
+  }
+}

@@ -11,6 +11,7 @@ import { getCategoryColor } from "../../../ScheduleContainer/categoryColors";
 import MonthlyCalendar from "../../../ScheduleContainer/MonthlyCalendar";
 import ScheduleForm from "../../../ScheduleContainer/ScheduleForm";
 import { useSchedules } from "../../../ScheduleContainer/useSchedules";
+import { useMobileLayout } from "../../useMobileLayout";
 import styles from "./style.module.css";
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -20,6 +21,7 @@ const toDateKey = (dateTime: string) => dayjs(dateTime).format("YYYY-MM-DD");
 const formatLocation = (location: string) => (ROOM_IDS.includes(location) ? `${location}호` : location);
 
 export default function GroupSchedule({ groupId, category, isMember }: { groupId: string; category: GroupCategory; isMember: boolean }) {
+  const isMobile = useMobileLayout();
   const [anchorDate, setAnchorDate] = useState(() => dayjs().format("YYYY-MM-DD"));
   const [byRoom, setByRoom] = useState(false);
   const [formMounted, setFormMounted] = useState(false);
@@ -103,8 +105,10 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
   }, [schedules]);
 
   const today = dayjs().format("YYYY-MM-DD");
+  const scrollCalendar = isMobile || formMounted;
   const calendar = (
     <MonthlyCalendar
+      compact={isMobile}
       anchorDate={anchorDate}
       scheduleDots={scheduleDots}
       onDateSelect={setAnchorDate}
@@ -170,12 +174,12 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
           {showForm ? "✕ 닫기" : "+ 일정 예약"}
         </Button>
       </div>
-      {/* 달력은 고정하고 일정만 스크롤한다. 폼이 있으면 높이가 모자라므로 달력도 함께 스크롤한다. */}
-      {!formMounted && <div className={styles.calendar}>{calendar}</div>}
+      {/* 모바일에서는 달력과 일정을 함께 스크롤해 낮은 화면에서도 일정에 접근할 수 있게 한다. */}
+      {!scrollCalendar && <div className={styles.calendar}>{calendar}</div>}
       <ScrollArea.Root className={styles.listArea} size="sm" variant="hover">
         <ScrollArea.Viewport h="100%" style={{ overflowX: "hidden" }}>
           <ScrollArea.Content w="100%" className={styles.list}>
-            {formMounted && <div className={styles.calendarInScroll}>{calendar}</div>}
+            {scrollCalendar && <div className={styles.calendarInScroll}>{calendar}</div>}
             {formMounted && (
               <div
                 ref={formRef}
