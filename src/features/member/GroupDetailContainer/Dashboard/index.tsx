@@ -31,6 +31,7 @@ import RepositoryHorizontalScrollbar from "../tabs/GroupRepository/RepositoryHor
 import GroupSearch from "../tabs/GroupSearch";
 import GroupSettings, { type SettingsEntryRequest } from "../tabs/GroupSettings";
 import TabBar from "../TabBar";
+import GroupTutorial from "../GroupTutorial";
 import { GroupDetailTabId, GROUP_DETAIL_TAB_LABEL, GROUP_DETAIL_TABS } from "../groupDetailTabs";
 import { CardListData } from "../KanbanBoard";
 import { LabelFilterKey } from "../label";
@@ -81,6 +82,7 @@ export default function Dashboard({
   onDualWindowEnabledChange,
 }: Props) {
   const isExpanded = activeId !== null;
+  const [showTutorial, setShowTutorial] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isContentReady, setIsContentReady] = useState(isExpanded);
   const showContent = isExpanded && isContentReady;
@@ -228,7 +230,7 @@ export default function Dashboard({
               ) : title}
             </Heading>
             {activeId !== null && (
-              <div key={activeId} className={cn(styles.tabArea, styles.tabContent)}>
+              <div key={activeId} className={cn(styles.tabArea, styles.tabContent)} data-group-tour="tab-content">
                 {activeId === "discord" ? (
                   // 채팅 탭은 자기만의 스크롤 영역(메시지)과 고정 입력창이 필요해서, 공용
                   // ScrollArea가 아니라 .tabArea가 준 높이를 그대로 GroupChat에 넘긴다.
@@ -278,6 +280,7 @@ export default function Dashboard({
                   />
                 ) : activeId === "settings" ? (
                   <GroupSettings
+                    onStartTutorial={() => setShowTutorial(true)}
                     entryRequest={settingsEntryRequest}
                     info={groupInfo}
                     isManager={currentUserQuery.data?.manager ?? false}
@@ -346,6 +349,7 @@ export default function Dashboard({
           </>
         )}
       </div>
+      {showTutorial && <GroupTutorial activeId={activeId} isMobile={isMobile} onClose={() => setShowTutorial(false)} />}
       {showContent && activeId === "repository" && (
         <RepositoryHorizontalScrollbar
           viewportId={repoViewportId}

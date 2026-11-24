@@ -1,0 +1,25 @@
+﻿.tour { position: fixed; inset: 0; z-index: 1600; pointer-events: none; }
+.highlight { position: absolute; border: 2px solid var(--main-color); border-radius: 10px; box-shadow: 0 0 0 9999px rgb(15 23 42 / 28%); }
+.panel { position: absolute; right: 20px; bottom: 20px; width: min(360px, calc(100% - 32px)); max-height: calc(100dvh - 100px); display: flex; flex-direction: column; overflow: auto; overscroll-behavior: contain; border: 1px solid #e4e4e7; border-radius: 14px; background: white; color: #27272a; box-shadow: 0 12px 40px rgb(0 0 0 / 20%); pointer-events: auto; }
+.header, .footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; flex-shrink: 0; }
+.header { color: #52525b; font-size: 12px; }
+.close { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; }
+.progress { display: flex; gap: 5px; padding: 0 20px; flex-shrink: 0; }
+.progress span { flex: 1; height: 4px; background: #e4e4e7; border-radius: 4px; }
+.progress span[data-current="true"], .progress span[data-complete="true"] { background: var(--main-color); }
+.body { padding: 16px 20px; line-height: 1.7; font-size: 14px; }
+.body h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.body p { color: #52525b; }
+.status { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 12px; color: #52525b; }
+.status svg { flex-shrink: 0; color: var(--main-color); }
+.footer { border-top: 1px solid #e4e4e7; }
+.footer button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 14px; border-radius: 8px; background: #f4f4f5; cursor: pointer; }
+.footer .next { background: var(--main-color); color: white; }
+.footer button:disabled { opacity: 0.4; cursor: default; }
+.panel button:focus-visible { outline: 2px solid var(--main-color); outline-offset: 2px; }
+@media (max-width: 767px) {
+  .panel { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); width: calc(100% - 24px); max-height: min(40dvh, 340px); }
+  .header { padding: 4px 12px; }
+  .body { padding: 10px 16px; }
+  .footer { padding: 8px 12px; }
+}

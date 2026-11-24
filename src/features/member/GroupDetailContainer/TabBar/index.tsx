@@ -46,6 +46,7 @@ export default function TabBar({ tabs, activeId, onChange, isMobile }: Props) {
           type="button"
           role="tab"
           aria-selected={activeId === null}
+          data-group-tour="tab-board"
           className={cn(styles.tab, styles.boardTab, activeId === null && styles.active)}
           onClick={() => onChange(null)}
         >
@@ -65,6 +66,7 @@ export default function TabBar({ tabs, activeId, onChange, isMobile }: Props) {
               role="tab"
               aria-selected={isActive}
               aria-label={tab.label}
+              data-group-tour={`tab-${tab.id}`}
               className={cn(
                 styles.tab,
                 isActive && styles.active,

@@ -445,7 +445,7 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
     <>
       <div className={styles.section} style={sectionStyle} data-group-detail data-dashboard-expanded={activeId !== null || undefined}>
         <div className={styles.kanbanBackground} aria-hidden="true" />
-        <div className={styles.board}>
+        <div className={styles.board} data-group-tour="board">
         {listsQuery.isPending ? (
           <Box className={styles.boardStatus}><ContentSkeleton /></Box>
         ) : listsQuery.isError && !listsQuery.data ? (
