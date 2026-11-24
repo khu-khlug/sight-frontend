@@ -68,6 +68,13 @@ radial-gradient(500px circle at 72px 0%, rgba(255, 250, 235, 0.2) 0%, rgba(255, 
 }
 
 @media (max-width: 767px) {
+  /* 탭을 연 동안 문서 스크롤과 화면 가장자리의 바운스를 막는다. */
+  html:has(.section[data-dashboard-expanded]),
+  body:has(.section[data-dashboard-expanded]) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   .section {
     --mobile-tab-height: 64px;
     padding-bottom: env(safe-area-inset-bottom, 0px);

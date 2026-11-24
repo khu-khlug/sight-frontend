@@ -1,7 +1,7 @@
 /*
  * 배경은 이제 페이지 공유 배경(pages/member/group/detail/style.module.css의 .backdrop)이
  * 담당한다. 탭바 자신은 배경을 그리지 않는 순수 레이아웃이라, 선택된 탭을 물방울 모양으로
- * 부풀리던 효과는 없앴다 — 선택 여부는 아이콘 색(.active)만으로 구분한다.
+ * 부풀리던 효과는 없앴다 — 선택 여부는 아이콘과 글자 색(.active)으로 구분한다.
  */
 .tabBar {
   display: flex;
@@ -66,11 +66,6 @@
     opacity: 1;
   }
 
-  .active {
-    background: var(--chakra-colors-brand-50, #eef8ff);
-    border-color: currentColor;
-  }
-
   .boardTab {
     position: sticky;
     left: 0;
@@ -86,12 +81,13 @@
   }
 }
 
-.tab:hover {
-  border-color: var(--main-color);
+@media (hover: hover) {
+  .tab:hover {
+    border-color: var(--main-color);
+  }
 }
 
-.active,
-.active:hover {
+.active {
   color: var(--main-color);
 }
 
@@ -99,21 +95,19 @@
   margin-top: auto;
 }
 
-.revealOnHover svg {
+.revealOnHover svg,
+.revealOnHover .label {
   opacity: 0;
   transition: opacity 150ms ease;
 }
 
 .revealOnHover:hover svg,
 .revealOnHover.active svg,
-.revealOnHover:focus-visible svg {
+.revealOnHover:focus-visible svg,
+.revealOnHover:hover .label,
+.revealOnHover.active .label,
+.revealOnHover:focus-visible .label {
   opacity: 1;
-}
-
-@media (hover: none), (max-width: 767px) {
-  .revealOnHover svg {
-    opacity: 1;
-  }
 }
 
 @media (max-width: 767px) {

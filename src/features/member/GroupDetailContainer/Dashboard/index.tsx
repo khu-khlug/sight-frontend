@@ -11,7 +11,6 @@ import { extractErrorMessage } from "../../../../util/extractErrorMessage";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 
 import GroupCategoryBadge from "../../../../components/GroupCategoryBadge";
-import Button from "../../../../components/Button";
 import GroupStatusBadge from "../../../../components/GroupStatusBadge";
 import GroupSpecialOrganizationBadge from "../../../../components/GroupSpecialOrganizationBadge";
 import HoverScrollbar from "../../../../components/HoverScrollbar";
@@ -344,13 +343,6 @@ export default function Dashboard({
                 )}
               </div>
             )}
-            <Box flexShrink={0} px="15px" mt={3}>
-              <Button asChild variant="neutral" size="sm" width="100%">
-                <a href={`https://khlug.org/group/${groupInfo.id}`}>
-                  기존 그룹페이지로 이동
-                </a>
-              </Button>
-            </Box>
           </>
         )}
       </div>

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import GitRepoBadge from "../../../../../components/GitRepoBadge";
+import AppButton from "../../../../../components/Button";
 import RelativeDateTime from "../../../../../components/RelativeDateTime";
 import TechBadge from "../../../../../components/TechBadge";
 import { GroupInterestLabel, GroupVisibilityLabel, GroupStatus, GroupCategory } from "../../../../../constant";
@@ -262,6 +263,13 @@ export default function GroupInfo({ info, isManager, portfolioCounts, onTabChang
             ))}
           </Box>
         ))}
+      </Box>
+      <Box mt={3}>
+        <AppButton asChild variant="neutral" size="sm" width="100%">
+          <a href={`https://khlug.org/group/${info.id}`}>
+            기존 그룹페이지로 이동
+          </a>
+        </AppButton>
       </Box>
     </Box>
   );
