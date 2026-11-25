@@ -11,6 +11,7 @@ import { getCategoryColor } from "../../../ScheduleContainer/categoryColors";
 import MonthlyCalendar from "../../../ScheduleContainer/MonthlyCalendar";
 import ScheduleForm from "../../../ScheduleContainer/ScheduleForm";
 import { useSchedules } from "../../../ScheduleContainer/useSchedules";
+import { useMobileLayout } from "../../useMobileLayout";
 import styles from "./style.module.css";
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -20,6 +21,7 @@ const toDateKey = (dateTime: string) => dayjs(dateTime).format("YYYY-MM-DD");
 const formatLocation = (location: string) => (ROOM_IDS.includes(location) ? `${location}호` : location);
 
 export default function GroupSchedule({ groupId, category, isMember }: { groupId: string; category: GroupCategory; isMember: boolean }) {
+  const isMobile = useMobileLayout();
   const [anchorDate, setAnchorDate] = useState(() => dayjs().format("YYYY-MM-DD"));
   const [byRoom, setByRoom] = useState(false);
   const [formMounted, setFormMounted] = useState(false);
@@ -27,6 +29,7 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
   const [pendingOpen, setPendingOpen] = useState(false);
   const [editSchedule, setEditSchedule] = useState<GetScheduleResponseDto | null>(null);
   const [editDate, setEditDate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   // 폼을 접힌 상태로 먼저 그린 다음 프레임에 펼쳐야 여는 전환이 동작한다.
@@ -54,7 +57,8 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
     else openForm();
   };
 
-  const handleEditSchedule = async (scheduleId: number) => {
+  const handleEditSchedule = async (scheduleId: string) => {
+    if (isSubmitting) return;
     try {
       const detail = await SchedulePublicApi.getSchedule(scheduleId);
       setEditDate(toDateKey(detail.scheduledAt));
@@ -103,12 +107,14 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
   }, [schedules]);
 
   const today = dayjs().format("YYYY-MM-DD");
+  const scrollCalendar = isMobile || formMounted;
   const calendar = (
     <MonthlyCalendar
+      compact={isMobile}
       anchorDate={anchorDate}
       scheduleDots={scheduleDots}
-      onDateSelect={setAnchorDate}
-      onMonthChange={setAnchorDate}
+      onDateSelect={(date) => { if (!isSubmitting) setAnchorDate(date); }}
+      onMonthChange={(date) => { if (!isSubmitting) setAnchorDate(date); }}
     />
   );
 
@@ -134,6 +140,7 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
         <button
           key={schedule.id}
           type="button"
+          disabled={isSubmitting}
           className={`${styles.item} ${styles.itemOwnGroup}`}
           aria-label={`${schedule.title} 일정 수정`}
           onClick={() => void handleEditSchedule(schedule.id)}
@@ -166,16 +173,16 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
         >
           장소별 보기
         </Button>
-        <Button size="sm" variant="outline" flex="1" minW={0} disabled={!isMember} onClick={handleToggleForm} _active={{ transform: "scale(0.97)" }}>
+        <Button size="sm" variant="outline" flex="1" minW={0} disabled={!isMember || isSubmitting} onClick={handleToggleForm} _active={{ transform: "scale(0.97)" }}>
           {showForm ? "✕ 닫기" : "+ 일정 예약"}
         </Button>
       </div>
-      {/* 달력은 고정하고 일정만 스크롤한다. 폼이 있으면 높이가 모자라므로 달력도 함께 스크롤한다. */}
-      {!formMounted && <div className={styles.calendar}>{calendar}</div>}
+      {/* 모바일에서는 달력과 일정을 함께 스크롤해 낮은 화면에서도 일정에 접근할 수 있게 한다. */}
+      {!scrollCalendar && <div className={styles.calendar}>{calendar}</div>}
       <ScrollArea.Root className={styles.listArea} size="sm" variant="hover">
         <ScrollArea.Viewport h="100%" style={{ overflowX: "hidden" }}>
           <ScrollArea.Content w="100%" className={styles.list}>
-            {formMounted && <div className={styles.calendarInScroll}>{calendar}</div>}
+            {scrollCalendar && <div className={styles.calendarInScroll}>{calendar}</div>}
             {formMounted && (
               <div
                 ref={formRef}
@@ -189,6 +196,8 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
               >
                 <div className={styles.formWrapperInner}>
                   <ScheduleForm
+                    allowWeeklyRepeat
+                    onSubmittingChange={setIsSubmitting}
                     key={editSchedule?.id ?? "new"}
                     anchorDate={editSchedule ? editDate : anchorDate}
                     onDateChange={editSchedule ? setEditDate : setAnchorDate}

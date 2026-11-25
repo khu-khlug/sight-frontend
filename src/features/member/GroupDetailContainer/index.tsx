@@ -15,6 +15,7 @@ import { useGroupAction } from "../../../hooks/group/useGroupAction";
 import { GroupDetailPageStateProvider } from "./pageState";
 import { groupPagePreferences } from "./groupPagePreferences";
 import { useGroupPagePreferences } from "./useGroupPagePreferences";
+import { useMobileLayout } from "./useMobileLayout";
 import { encodeWindowOpenRequest, type WindowOpenRequest } from "./actions";
 import RecordWindow from "./RecordWindow";
 import { decodeRecordContentKey } from "./RecordWindow/types";
@@ -76,6 +77,7 @@ function CardWindowWithDetail({ cardId, ...props }: CardWindowWithDetailProps) {
 }
 
 function GroupDetailPage({ groupId }: { groupId: string }) {
+  const isMobile = useMobileLayout();
   const { setOnlyAssignedToMe } = useAssigneeFilter();
   const infoQuery = useQuery({
     queryKey: ["group-detail", groupId, "info"],
@@ -150,7 +152,7 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
   }, [groupId, kanbanQueryKey, loadingCardListIds, queryClient]);
   const { mutate, mutateAsync } = useGroupAction(groupId);
   const [pendingBoard, setPendingBoard] = useState<CardListData[] | null>(null);
-  const [activeId, setActiveId] = useState<GroupDetailTabId | null>(GROUP_DETAIL_TABS[0].id as GroupDetailTabId);
+  const [activeId, setActiveId] = useState<GroupDetailTabId | null>(() => isMobile ? null : GROUP_DETAIL_TABS[0].id as GroupDetailTabId);
   const dashboardOverlayRef = useRef<HTMLDivElement>(null);
   const lists = pendingBoard ?? listsQuery.data ?? [];
   const listsRef = useRef(lists);
@@ -195,9 +197,10 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
 
   // URL이 바뀔 때마다(직접 진입, 브라우저 뒤로/앞으로가기, WindowLayer 자신이 낸 변경 모두)
   // 해시와 해당 히스토리 항목의 창 ID를 함께 넘긴다. 목표 배치는 해시가 정하고,
-  // WindowLayer가 현재 창과 비교해 공통 상태 적용 경로로 복원한다. 정보나 목록이 pending인 동안은
-  // 아래에서 스피너만 반환해 <WindowLayer>가 아직 마운트 전이라 windowLayerRef가 비어있다 —
-  // 각 쿼리의 로딩 상태를 의존성에 넣어서 로딩이 끝나는 시점에 다시 시도한다.
+  // WindowLayer가 현재 창과 비교해 공통 상태 적용 경로로 복원한다. 정보가 pending인 동안은
+  // 아래에서 스피너만 반환해 <WindowLayer>가 아직 마운트 전이라 windowLayerRef가 비어있고,
+  // 목록이 pending인 동안은 창 내용이 쓰는 카드 목록이 아직 없다 — 각 쿼리의 로딩 상태를
+  // 의존성에 넣어서 로딩이 끝나는 시점에 다시 시도한다.
   useEffect(() => {
     if (infoQuery.isPending || listsQuery.isPending) return;
     const layer = windowLayerRef.current;
@@ -426,22 +429,31 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
     return null;
   }, [isMember, isPortfolioPublished, infoQuery.data?.status, handleUpdateCardLabels, handleUpdateCardAssignee, handleUpdateCardCoverImage, handleDeleteCard, handleDeleteRecord, handleRestoreRecord, handleOpenEdit, handleCardClick, recordFocus, clearRecordFocus, textFontSize, handleChangeTextFontSize, groupId, allCards, handleCreateRecord, handleUpdateRecord]);
 
-  if (infoQuery.isPending || listsQuery.isPending) return <Box p={10}><ContentSkeleton /></Box>;
-  if (infoQuery.isError || listsQuery.isError) return <Box p={6}>
+  // 페이지는 그룹 정보만 기다린다. 칸반 리스트를 불러오지 못해도 대시보드 탭은 쓸 수 있게 보드 자리에만 상태를 표시한다.
+  if (infoQuery.isPending) return <Box p={10}><ContentSkeleton /></Box>;
+  if (infoQuery.isError) return <Box p={6}>
     <Text>그룹 정보를 불러오지 못했습니다.</Text>
-    <Button onClick={() => { void infoQuery.refetch(); void listsQuery.refetch(); }}>다시 시도</Button>
+    <Button onClick={() => void infoQuery.refetch()}>다시 시도</Button>
   </Box>;
   const info = infoQuery.data;
   const isGroupEnded = info.status === GroupStatus.SUCCESS || info.status === GroupStatus.FAIL;
   const sectionStyle = {
-    "--dashboard-width": `${activeId === null ? DASHBOARD_WIDTH_COLLAPSED : DASHBOARD_WIDTH_EXPANDED}px`,
+    "--dashboard-width": `${isMobile ? 0 : activeId === null ? DASHBOARD_WIDTH_COLLAPSED : DASHBOARD_WIDTH_EXPANDED}px`,
   } as CSSProperties;
 
   return (
     <>
-      <div className={styles.section} style={sectionStyle} data-group-detail>
+      <div className={styles.section} style={sectionStyle} data-group-detail data-dashboard-expanded={activeId !== null || undefined}>
         <div className={styles.kanbanBackground} aria-hidden="true" />
-        <KanbanBoard
+        <div className={styles.board} data-group-tour="board">
+        {listsQuery.isPending ? (
+          <Box className={styles.boardStatus}><ContentSkeleton /></Box>
+        ) : listsQuery.isError && !listsQuery.data ? (
+          <Box className={styles.boardStatus} role="alert">
+            <Text>리스트를 불러오지 못했습니다.</Text>
+            <Button onClick={() => void listsQuery.refetch()}>다시 시도</Button>
+          </Box>
+        ) : <KanbanBoard
           lists={lists}
           hasMoreLists={listTotalCount !== null && lists.length < listTotalCount}
           isLoadingMoreLists={isLoadingMoreLists}
@@ -453,7 +465,7 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
           isReadOnly={isGroupEnded || !isMember}
           isPortfolioPublished={info.hasPublishedPortfolio}
           dashboardOverlayRef={dashboardOverlayRef}
-          dashboardExtraWidthPx={activeId === null ? 0 : DASHBOARD_WIDTH_EXPANDED - DASHBOARD_WIDTH_COLLAPSED}
+          dashboardExtraWidthPx={isMobile || activeId === null ? 0 : DASHBOARD_WIDTH_EXPANDED - DASHBOARD_WIDTH_COLLAPSED}
           enabledFilters={enabledFilters}
           windowCoverage={windowCoverage}
           onAddCard={handleAddCard}
@@ -464,13 +476,15 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
           onToggleCardPortfolio={handleToggleCardPortfolio}
           onCardClick={handleCardClick}
           onUpdateList={handleUpdateList}
-        />
+        />}
+        </div>
         <div ref={dashboardOverlayRef} className={styles.dashboardOverlay}>
           <Dashboard
             title={info.title}
             groupInfo={info}
             lists={lists}
             activeId={activeId}
+            isMobile={isMobile}
             onTabChange={(id) => setActiveId((previous) => previous === id ? null : id as GroupDetailTabId)}
             enabledFilters={enabledFilters}
             onToggleFilter={(key) => setEnabledFilters((previous) => {
@@ -494,7 +508,7 @@ function GroupDetailPage({ groupId }: { groupId: string }) {
           onHashChange={handleHashChange}
           onMainCardChange={handleMainCardChange}
           onCoverageChange={handleCoverageChange}
-          dualWindowEnabled={dualWindowEnabled}
+          dualWindowEnabled={!isMobile && dualWindowEnabled}
           initialSplitRatio={preferences.splitRatio}
           onSplitRatioCommit={handleSplitRatioCommit}
         />

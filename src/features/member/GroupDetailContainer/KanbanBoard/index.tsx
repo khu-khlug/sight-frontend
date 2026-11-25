@@ -577,7 +577,9 @@ const KanbanBoard = memo(function KanbanBoard({ lists, hasMoreLists, isLoadingMo
       const viewport = viewportRef.current;
       if (current && viewport && viewport.scrollWidth > viewport.clientWidth) {
         const rect = viewport.getBoundingClientRect();
-        const visibleLeft = Math.max(rect.left, dashboardOverlayRef.current?.getBoundingClientRect().right ?? rect.left);
+        const dashboardRect = dashboardOverlayRef.current?.getBoundingClientRect();
+        const overlapsDashboard = dashboardRect && current.y >= dashboardRect.top && current.y <= dashboardRect.bottom;
+        const visibleLeft = Math.max(rect.left, overlapsDashboard ? dashboardRect.right : rect.left);
         const edge = 48;
         const direction = current.x > rect.right - edge && current.x <= rect.right + edge ? 1
           : current.x < visibleLeft + edge && current.x >= rect.left ? -1 : 0;

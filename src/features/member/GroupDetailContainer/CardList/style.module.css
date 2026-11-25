@@ -238,6 +238,17 @@
   outline-offset: 2px;
 }
 
+@media (max-width: 767px) {
+  .addButton {
+    width: 44px;
+    height: 44px;
+  }
+
+  .cardSubmitButton {
+    min-height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .deleteListButton {
     transition: none;

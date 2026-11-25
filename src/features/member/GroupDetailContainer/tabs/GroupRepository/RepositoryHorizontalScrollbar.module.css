@@ -28,3 +28,10 @@
 .track:is(:hover, :active) .thumb {
   background: color-mix(in srgb, var(--chakra-colors-gray-500) 50%, transparent);
 }
+
+@media (max-width: 767px) {
+  .track {
+    inset-inline-start: 15px;
+    bottom: calc(var(--mobile-tab-area-height) + 10px);
+  }
+}

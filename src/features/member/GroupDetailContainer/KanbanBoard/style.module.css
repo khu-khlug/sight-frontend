@@ -284,3 +284,30 @@
 .listSkeleton {
   align-self: flex-start;
 }
+
+@media (max-width: 767px) {
+  .box {
+    margin: 8px;
+  }
+
+  .content {
+    padding-left: 12px;
+  }
+
+  .scrollbar {
+    margin-left: 2px !important;
+    opacity: 1 !important;
+  }
+
+  :global([data-group-detail]):has(:global(.js-window-minimized)) .box {
+    padding-top: 54px;
+  }
+
+  .dragHandle {
+    height: 28px;
+  }
+
+  .addListButton {
+    min-height: 44px;
+  }
+}

@@ -13,6 +13,7 @@
   position: relative;
   isolation: isolate;
   height: calc(100vh - var(--layout-header-height, 80px));
+  height: calc(100dvh - var(--layout-header-height, 80px));
   overflow: hidden;
   background-image: linear-gradient(180deg, #f8f9fb 0%, #f3f4f6 55%, #ebeff0 100%);
   --dashboard-surface: rgba(255, 255, 255, 0.6);
@@ -46,10 +47,67 @@ radial-gradient(500px circle at 72px 0%, rgba(255, 250, 235, 0.2) 0%, rgba(255, 
  * 자체 배경은 없다 — Dashboard의 흰 알파와 backdrop-filter가 뒤의 탭바 배경 또는
  * 칸반 배경과 카드를 직접 비춘다.
  */
+/* 칸반 리스트를 불러오는 중이거나 불러오지 못했을 때 보드 자리에 띄우는 상태 표시. 대시보드에 가리지 않게 그 폭만큼 비운다. */
+.boardStatus {
+  padding: var(--chakra-spacing-6);
+  padding-left: calc(var(--dashboard-width) + var(--chakra-spacing-6));
+}
+
 .dashboardOverlay {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
   z-index: 1;
+}
+
+.board {
+  display: flow-root;
+  height: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  /* 탭을 연 동안 문서 스크롤과 화면 가장자리의 바운스를 막는다. */
+  html:has(.section[data-dashboard-expanded]),
+  body:has(.section[data-dashboard-expanded]) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .section {
+    --mobile-tab-height: 64px;
+    --mobile-tab-area-height: calc(var(--mobile-tab-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .board {
+    padding-bottom: var(--mobile-tab-area-height);
+  }
+
+  .boardStatus {
+    padding: 16px;
+  }
+
+  .dashboardOverlay {
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: var(--mobile-tab-area-height);
+  }
+
+  .section[data-dashboard-expanded] .dashboardOverlay {
+    height: 100%;
+  }
+
+  /* Keep the board mounted so changing tabs preserves its scroll position. */
+  .section[data-dashboard-expanded] .board {
+    visibility: hidden;
+  }
+
+  .section input,
+  .section textarea,
+  .section select,
+  .section [contenteditable="true"] {
+    font-size: max(16px, 1em);
+  }
 }

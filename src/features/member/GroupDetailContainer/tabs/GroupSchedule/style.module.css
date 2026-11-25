@@ -1,4 +1,4 @@
-/* Dashboard가 공용 ScrollArea 대신 .tabArea 높이를 그대로 넘긴다. 달력은 고정, 주간 일정만 스크롤된다. */
+/* Dashboard의 .tabArea 높이를 채운다. 모바일에서는 달력도 일정 목록과 함께 스크롤된다. */
 .container {
   --schedule-gutter: 15px;
   --schedule-gap: 8px;

@@ -283,3 +283,20 @@
 .overlay[data-available-area-changing] .slot {
   transition: none;
 }
+
+@media (max-width: 767px) {
+  .overlay {
+    --content-inset: 8px;
+    --sub-window-inset: 0px;
+    --window-header-height: 46px;
+    top: 0;
+    bottom: var(--mobile-tab-area-height);
+    left: 0;
+    transition: none;
+  }
+
+  .overlayDim {
+    left: 8px;
+    border-radius: 8px;
+  }
+}

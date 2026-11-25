@@ -21,6 +21,7 @@ import styles from "./style.module.css";
 export type SettingsEntryRequest = { id: number; target: "info" | "status" };
 
 type Props = {
+  onStartTutorial: () => void;
   entryRequest?: SettingsEntryRequest | null;
   info: GroupInfo;
   isManager: boolean;
@@ -97,7 +98,7 @@ type PersonalSettingsDraft = {
   usePersonalGithub: boolean;
 };
 
-export default function GroupSettings({ entryRequest, info, isManager, isLeader, isEditing, titleDraft, onStartEdit, onCloseEdit, onSave, dualWindowEnabled, onDualWindowEnabledChange, onUnsavedPersonalSettingsGuardChange, onUnsavedGroupInfoGuardChange }: Props) {
+export default function GroupSettings({ onStartTutorial, entryRequest, info, isManager, isLeader, isEditing, titleDraft, onStartEdit, onCloseEdit, onSave, dualWindowEnabled, onDualWindowEnabledChange, onUnsavedPersonalSettingsGuardChange, onUnsavedGroupInfoGuardChange }: Props) {
   const preferences = useGroupPagePreferences();
   const action = useGroupAction(info.id);
   const [showStatus, setShowStatus] = useState(false);
@@ -364,7 +365,7 @@ export default function GroupSettings({ entryRequest, info, isManager, isLeader,
             </div>
           </div>
         </>}
-        <button type="button" className={styles.menuButton}><BookOpen size={20} aria-hidden="true" />사용법 튜토리얼</button>
+        <button type="button" className={styles.menuButton} onClick={onStartTutorial}><BookOpen size={20} aria-hidden="true" />사용법 튜토리얼</button>
         <button type="button" className={styles.menuButton} disabled={action.isPending || !canLeaveGroup} title={isLeader && info.category !== GroupCategory.MANAGE ? "다른 멤버에게 그룹장을 위임한 뒤 나갈 수 있습니다." : undefined} onClick={leaveGroup}><LogOut size={20} aria-hidden="true" />그룹 나가기</button>
       </div>
       <GroupInfoEditor

@@ -5,7 +5,7 @@ import { getCategoryColor } from "./categoryColors";
 import styles from "./WeeklySchedule.module.css";
 
 export type ScheduleItem = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   location: string | null;

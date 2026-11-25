@@ -17,7 +17,7 @@ export type ScheduleDto = {
 };
 
 export type ScheduleListItemDto = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   location: string | null;
@@ -40,7 +40,7 @@ export type ListSchedulesResponseDto = {
 };
 
 export type GetScheduleResponseDto = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   location: string | null;
@@ -89,7 +89,7 @@ const listUpcomingSchedules = async (
   return listSchedules({ from, limit });
 };
 
-const getSchedule = async (scheduleId: number): Promise<GetScheduleResponseDto> => {
+const getSchedule = async (scheduleId: string): Promise<GetScheduleResponseDto> => {
   const response = await apiV2Client.get<GetScheduleResponseDto>(`/schedules/${scheduleId}`);
   return response.data;
 };
@@ -129,7 +129,7 @@ const createBigSeminarSchedule = async (body: {
   await apiV2Client.post("/schedules/big-seminar", body);
 };
 
-const updateSchedule = async (scheduleId: number, body: {
+const updateSchedule = async (scheduleId: string, body: {
   title: string;
   location: string | null;
   scheduledAt: string;
@@ -139,7 +139,7 @@ const updateSchedule = async (scheduleId: number, body: {
   await apiV2Client.patch(`/schedules/${scheduleId}`, body);
 };
 
-const updateGroupActivitySchedule = async (scheduleId: number, body: {
+const updateGroupActivitySchedule = async (scheduleId: string, body: {
   title: string;
   location: string | null;
   scheduledAt: string;
@@ -148,7 +148,7 @@ const updateGroupActivitySchedule = async (scheduleId: number, body: {
   await apiV2Client.patch(`/schedules/group-activity/${scheduleId}`, body);
 };
 
-const updateBigSeminarSchedule = async (scheduleId: number, body: {
+const updateBigSeminarSchedule = async (scheduleId: string, body: {
   title: string;
   location: string | null;
   scheduledAt: string;
@@ -160,7 +160,7 @@ const updateBigSeminarSchedule = async (scheduleId: number, body: {
   await apiV2Client.patch(`/schedules/big-seminar/${scheduleId}`, body);
 };
 
-const updateScheduleCategory = async (scheduleId: number, body: {
+const updateScheduleCategory = async (scheduleId: string, body: {
   category: string;
   isSummerSeason?: boolean;
   isSpeakAfter?: boolean;
@@ -168,15 +168,15 @@ const updateScheduleCategory = async (scheduleId: number, body: {
   await apiV2Client.patch(`/schedules/${scheduleId}/category`, body);
 };
 
-const deleteSchedule = async (scheduleId: number): Promise<void> => {
+const deleteSchedule = async (scheduleId: string): Promise<void> => {
   await apiV2Client.delete(`/schedules/${scheduleId}`);
 };
 
-const deleteGroupActivitySchedule = async (scheduleId: number): Promise<void> => {
+const deleteGroupActivitySchedule = async (scheduleId: string): Promise<void> => {
   await apiV2Client.delete(`/schedules/group-activity/${scheduleId}`);
 };
 
-const deleteBigSeminarSchedule = async (scheduleId: number): Promise<void> => {
+const deleteBigSeminarSchedule = async (scheduleId: string): Promise<void> => {
   await apiV2Client.delete(`/schedules/big-seminar/${scheduleId}`);
 };
 

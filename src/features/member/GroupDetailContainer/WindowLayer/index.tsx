@@ -1,6 +1,7 @@
 import { CSSProperties, forwardRef, PointerEvent as ReactPointerEvent, ReactNode, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
 import { cn } from "../../../../util/cn";
+import { useMobileLayout } from "../useMobileLayout";
 import {
   applyCloseWindow,
   applyRestore,
@@ -173,6 +174,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
   { renderContent, isSupportedContent, onUnsupportedContent, isDashboardExpanded = false, onHashChange, onMainCardChange, onCoverageChange, dualWindowEnabled = true, initialSplitRatio = 0.7, onSplitRatioCommit },
   ref,
 ) {
+  const isMobile = useMobileLayout();
   const [snapshot, setSnapshot] = useState<WindowSnapshot>({
     state: null, roleData: {}, windowIds: {},
     splitRatio: initialSplitRatio,
@@ -565,6 +567,12 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
         decoded = next === null ? { state: null, roleData: {} } : normalizeRoles(next, decoded.roleData);
       }
       if (rejectedContent) onUnsupportedContent();
+      // Desktop links may contain two windows. Keep the main content readable on phones.
+      if (isMobile && decoded.state?.kind === "Dual") {
+        const target = typeof decoded.state.main === "number" ? "dualMain" : "dualSub";
+        const single = applyWindowAction(decoded.state, { type: "expand", target });
+        decoded = single === null ? { state: null, roleData: {} } : normalizeRoles(single, decoded.roleData);
+      }
       const canonicalHash = encodeWindowHash(decoded.state, decoded.roleData);
       const history = readWindowHistory(savedHistory, canonicalHash, decoded.roleData);
       if (history) {
@@ -602,7 +610,7 @@ const WindowLayer = forwardRef<WindowLayerHandle, Props>(function WindowLayer(
       }
       return true;
     },
-  }), [state, roleData, windowIds, canGoDual, onMainCardChange, onHashChange, setHoverSource, splitRatio, mainSide, overlayWidth, overlayHeight, isSupportedContent, onUnsupportedContent]);
+  }), [state, roleData, windowIds, canGoDual, onMainCardChange, onHashChange, setHoverSource, splitRatio, mainSide, overlayWidth, overlayHeight, isSupportedContent, onUnsupportedContent, isMobile]);
 
   // 화면이 좁아지면 듀얼을 싱글로 되돌린다(되돌릴 수 없는 전환 — 나중에 다시 넓어져도 자동으로
   // 복귀하지 않는다. §5 펼치기의 "의도 유지"와 다르다). 싱글은 canGoDual과 무관하므로
