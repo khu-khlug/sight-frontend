@@ -18,7 +18,7 @@
 .footer button:disabled { opacity: 0.4; cursor: default; }
 .panel button:focus-visible { outline: 2px solid var(--main-color); outline-offset: 2px; }
 @media (max-width: 767px) {
-  .panel { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); width: calc(100% - 24px); max-height: min(40dvh, 340px); }
+  .panel { right: 12px; bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 12px); width: calc(100% - 24px); max-height: min(40dvh, 340px); }
   .header { padding: 4px 12px; }
   .body { padding: 10px 16px; }
   .footer { padding: 8px 12px; }

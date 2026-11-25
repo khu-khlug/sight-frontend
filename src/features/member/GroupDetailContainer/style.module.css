@@ -77,11 +77,11 @@ radial-gradient(500px circle at 72px 0%, rgba(255, 250, 235, 0.2) 0%, rgba(255, 
 
   .section {
     --mobile-tab-height: 64px;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --mobile-tab-area-height: calc(var(--mobile-tab-height) + env(safe-area-inset-bottom, 0px));
   }
 
   .board {
-    padding-top: var(--mobile-tab-height);
+    padding-bottom: var(--mobile-tab-area-height);
   }
 
   .boardStatus {
@@ -89,13 +89,14 @@ radial-gradient(500px circle at 72px 0%, rgba(255, 250, 235, 0.2) 0%, rgba(255, 
   }
 
   .dashboardOverlay {
+    top: auto;
+    bottom: 0;
     width: 100%;
-    height: var(--mobile-tab-height);
+    height: var(--mobile-tab-area-height);
   }
 
   .section[data-dashboard-expanded] .dashboardOverlay {
     height: 100%;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* Keep the board mounted so changing tabs preserves its scroll position. */

@@ -289,8 +289,8 @@
     --content-inset: 8px;
     --sub-window-inset: 0px;
     --window-header-height: 46px;
-    top: var(--mobile-tab-height);
-    bottom: env(safe-area-inset-bottom, 0px);
+    top: 0;
+    bottom: var(--mobile-tab-area-height);
     left: 0;
     transition: none;
   }

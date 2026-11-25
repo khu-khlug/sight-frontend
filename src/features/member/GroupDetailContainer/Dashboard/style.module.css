@@ -81,15 +81,17 @@
 
 @media (max-width: 767px) {
   .dashboard {
-    flex-direction: column;
+    flex-direction: column-reverse;
     width: 100%;
     background-color: #f8f9fb;
   }
 
   .tabBar {
-    height: var(--mobile-tab-height);
+    box-sizing: border-box;
+    height: var(--mobile-tab-area-height);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     min-width: 0;
-    border-bottom: 1px solid var(--chakra-colors-gray-200);
+    border-top: 1px solid var(--chakra-colors-gray-200);
   }
 
   .divider {
