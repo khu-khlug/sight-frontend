@@ -29,6 +29,7 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
   const [pendingOpen, setPendingOpen] = useState(false);
   const [editSchedule, setEditSchedule] = useState<GetScheduleResponseDto | null>(null);
   const [editDate, setEditDate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   // 폼을 접힌 상태로 먼저 그린 다음 프레임에 펼쳐야 여는 전환이 동작한다.
@@ -57,6 +58,7 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
   };
 
   const handleEditSchedule = async (scheduleId: string) => {
+    if (isSubmitting) return;
     try {
       const detail = await SchedulePublicApi.getSchedule(scheduleId);
       setEditDate(toDateKey(detail.scheduledAt));
@@ -111,8 +113,8 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
       compact={isMobile}
       anchorDate={anchorDate}
       scheduleDots={scheduleDots}
-      onDateSelect={setAnchorDate}
-      onMonthChange={setAnchorDate}
+      onDateSelect={(date) => { if (!isSubmitting) setAnchorDate(date); }}
+      onMonthChange={(date) => { if (!isSubmitting) setAnchorDate(date); }}
     />
   );
 
@@ -138,6 +140,7 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
         <button
           key={schedule.id}
           type="button"
+          disabled={isSubmitting}
           className={`${styles.item} ${styles.itemOwnGroup}`}
           aria-label={`${schedule.title} 일정 수정`}
           onClick={() => void handleEditSchedule(schedule.id)}
@@ -170,7 +173,7 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
         >
           장소별 보기
         </Button>
-        <Button size="sm" variant="outline" flex="1" minW={0} disabled={!isMember} onClick={handleToggleForm} _active={{ transform: "scale(0.97)" }}>
+        <Button size="sm" variant="outline" flex="1" minW={0} disabled={!isMember || isSubmitting} onClick={handleToggleForm} _active={{ transform: "scale(0.97)" }}>
           {showForm ? "✕ 닫기" : "+ 일정 예약"}
         </Button>
       </div>
@@ -193,6 +196,8 @@ export default function GroupSchedule({ groupId, category, isMember }: { groupId
               >
                 <div className={styles.formWrapperInner}>
                   <ScheduleForm
+                    allowWeeklyRepeat
+                    onSubmittingChange={setIsSubmitting}
                     key={editSchedule?.id ?? "new"}
                     anchorDate={editSchedule ? editDate : anchorDate}
                     onDateChange={editSchedule ? setEditDate : setAnchorDate}

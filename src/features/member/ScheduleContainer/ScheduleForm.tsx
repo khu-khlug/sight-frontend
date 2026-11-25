@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
 import { Box, Portal, Select, createListCollection } from "@chakra-ui/react";
 import { useIsManager } from "../../../hooks/user/useIsManager";
 import { SchedulePublicApi, type GetScheduleResponseDto } from "../../../api/public/schedule";
 import { useMyGroups } from "./useMyGroups";
+import { useUnsavedChangesBeforeUnload } from "../../../hooks/browser/useUnsavedChangesBeforeUnload";
+import { createSchedulesSequentially, getWeeklyDates, MAX_WEEKLY_OCCURRENCES } from "./scheduleRepeat";
 import styles from "./ScheduleForm.module.css";
 
 const MANAGER_CATEGORIES = [
@@ -55,6 +58,8 @@ type Props = {
   onClose: () => void;
   editSchedule?: GetScheduleResponseDto;
   fixedGroupId?: string; // 지정하면 카테고리와 그룹을 고르지 않고 이 그룹의 그룹활동으로만 등록한다
+  allowWeeklyRepeat?: boolean;
+  onSubmittingChange?: (submitting: boolean) => void;
 };
 
 const PRESET_LOCATIONS = ["405", "406", "410"];
@@ -76,12 +81,29 @@ export default function ScheduleForm({
   onClose,
   editSchedule,
   fixedGroupId,
+  allowWeeklyRepeat = false,
+  onSubmittingChange,
 }: Props) {
   const queryClient = useQueryClient();
   const { isManager } = useIsManager();
   const { data: myGroups = [] } = useMyGroups();
 
   const isEditMode = !!editSchedule;
+  const repeatId = useId();
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [repeatCount, setRepeatCount] = useState("4");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const submittingRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+  useUnsavedChangesBeforeUnload(isSubmitting);
+  const isRepeating = allowWeeklyRepeat && !isEditMode && repeatWeekly;
+  const dates = getWeeklyDates(anchorDate, isRepeating ? Number(repeatCount) : 1);
   const initialLoc = parseLocation(editSchedule?.location ?? null);
 
   const [title, setTitle] = useState(() => editSchedule?.title ?? "");
@@ -109,13 +131,19 @@ export default function ScheduleForm({
   const expointPlaceholder = EXPOINT_DEFAULTS[effectiveCategory] ?? "";
 
   const canSubmit =
+    dates.length > 0 && timeToMinutes(endTime) > timeToMinutes(startTime) &&
     title.trim() !== "" &&
     (!isOther || customLocation.trim() !== "") &&
     (!isGroupActivity || isEditMode || groupId !== "") &&
     (!isBigSeminar || (isSummerSeason !== "" && isSpeakAfter !== ""));
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || submittingRef.current) return;
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    onSubmittingChange?.(true);
+    setCompletedCount(0);
+    setSubmitMessage("");
     const scheduledAt = `${anchorDate}T${startTime}:00`;
     const endAt = `${anchorDate}T${endTime}:00`;
     const loc = isOther ? customLocation : location;
@@ -143,31 +171,52 @@ export default function ScheduleForm({
         } else {
           await SchedulePublicApi.updateSchedule(editSchedule.id, { title, location: loc, scheduledAt, endAt, expoint: exp });
         }
-      } else if (isGroupActivity) {
-        await SchedulePublicApi.createGroupActivitySchedule({
-          title, location: loc, scheduledAt, endAt, groupId,
-        });
-      } else if (isBigSeminar) {
-        await SchedulePublicApi.createBigSeminarSchedule({
-          title, location: loc, scheduledAt, endAt, expoint: exp,
-          generateCheckCode, isSummerSeason: isSummerSeason === "true", isSpeakAfter: isSpeakAfter === "true",
-        });
       } else {
-        await SchedulePublicApi.createSchedule({
-          title, category: effectiveCategory, location: loc, scheduledAt, endAt, expoint: exp, generateCheckCode,
-        });
+        const result = await createSchedulesSequentially(dates, async (date) => {
+          const times = { scheduledAt: `${date}T${startTime}:00`, endAt: `${date}T${endTime}:00` };
+          if (isGroupActivity) {
+            await SchedulePublicApi.createGroupActivitySchedule({ title, location: loc, ...times, groupId });
+          } else if (isBigSeminar) {
+            await SchedulePublicApi.createBigSeminarSchedule({
+              title, location: loc, ...times, expoint: exp, generateCheckCode,
+              isSummerSeason: isSummerSeason === "true", isSpeakAfter: isSpeakAfter === "true",
+            });
+          } else {
+            await SchedulePublicApi.createSchedule({
+              title, category: effectiveCategory, location: loc, ...times, expoint: exp, generateCheckCode,
+            });
+          }
+        }, (completed) => {
+          if (mountedRef.current) setCompletedCount(completed);
+        }, () => mountedRef.current);
+        if (result.remaining.length > 0) {
+          const message = `${dates.length}개 중 ${result.completed}개 등록 완료. ${result.remaining[0]}부터 ${result.remaining.length}개는 등록을 완료하지 못했습니다. 일정 목록을 확인한 뒤 남은 일정을 등록해 주세요.`;
+          toast.warning(message);
+          if (mountedRef.current) {
+            setSubmitMessage(message);
+            onDateChange(result.remaining[0]);
+            if (isRepeating) setRepeatCount(String(result.remaining.length));
+          }
+          return;
+        }
+        if (isRepeating) toast.success(`매주 반복 일정 ${dates.length}개를 등록했습니다.`);
       }
-      await queryClient.invalidateQueries({ queryKey: ["schedules"] });
-      onClose();
+      if (mountedRef.current) onClose();
     } catch {
       alert(isEditMode ? "일정 수정에 실패했습니다." : "일정 등록에 실패했습니다.");
+    } finally {
+      // 일부만 등록됐거나 화면을 떠난 경우에도 완료된 일정은 목록에 반영한다.
+      void queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      submittingRef.current = false;
+      if (mountedRef.current) setIsSubmitting(false);
+      onSubmittingChange?.(false);
     }
   };
 
   return (
     <Box className={styles.form} bg="#fcfcfc">
       {isFixedGroup && <p className={styles.notice}>여기선 이 그룹의 일정만 가능합니다.</p>}
-      <div className={styles.row}>
+      <fieldset className={styles.row} disabled={isSubmitting} aria-busy={isSubmitting}>
         {/* 제목 */}
         <div className={`${styles.field} ${styles.fieldTitle}`}>
           <label className={styles.label}>제목</label>
@@ -263,6 +312,7 @@ export default function ScheduleForm({
         <div className={styles.field}>
           <label className={styles.label}>시작</label>
           <Select.Root
+            disabled={isSubmitting}
             collection={TIME_COLLECTION}
             value={[startTime]}
             onValueChange={(e) => {
@@ -310,6 +360,7 @@ export default function ScheduleForm({
         <div className={styles.field}>
           <label className={styles.label}>종료</label>
           <Select.Root
+            disabled={isSubmitting}
             collection={TIME_COLLECTION}
             value={[endTime]}
             onValueChange={(e) => {
@@ -444,21 +495,44 @@ export default function ScheduleForm({
           </div>
         )}
 
+        {allowWeeklyRepeat && !isEditMode && (
+          <>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor={`${repeatId}-mode`}>반복</label>
+              <select id={`${repeatId}-mode`} className={styles.select} value={repeatWeekly ? "weekly" : "none"} onChange={(event) => setRepeatWeekly(event.target.value === "weekly")}>
+                <option value="none">반복 안 함</option>
+                <option value="weekly">매주 반복</option>
+              </select>
+            </div>
+            {repeatWeekly && (
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor={`${repeatId}-count`}>총 횟수 (첫 일정 포함)</label>
+                <input id={`${repeatId}-count`} className={`${styles.input} ${styles.inputNarrow}`} type="number" min={1} max={MAX_WEEKLY_OCCURRENCES} step={1} value={repeatCount} onChange={(event) => setRepeatCount(event.target.value)} aria-describedby={`${repeatId}-summary`} />
+              </div>
+            )}
+            {repeatWeekly && <p id={`${repeatId}-summary`} className={styles.repeatSummary}>
+              {dates.length > 0 ? `${dates[0]}부터 ${dates[dates.length - 1]}까지 매주 같은 요일·시간에 총 ${dates.length}개의 일정을 등록합니다. 등록 후에는 각 일정을 개별 수정·삭제할 수 있습니다.` : `유효한 날짜와 1~${MAX_WEEKLY_OCCURRENCES} 사이의 정수 횟수를 입력해 주세요.`}
+            </p>}
+          </>
+        )}
+
         {/* 버튼 */}
         <div className={styles.actions}>
           <button
             type="button"
             className={styles.submitBtn}
-            disabled={!canSubmit}
+            disabled={!canSubmit || isSubmitting}
             onClick={handleSubmit}
           >
-            {isEditMode ? "수정" : "등록"}
+            {isSubmitting ? (isEditMode ? "수정 중…" : `등록 중 ${completedCount}/${dates.length}`) : isEditMode ? "수정" : isRepeating ? `${dates.length}개 등록` : "등록"}
           </button>
-          <button type="button" className={styles.cancelBtn} onClick={onClose}>
+          <button type="button" className={styles.cancelBtn} disabled={isSubmitting} onClick={onClose}>
             취소
           </button>
         </div>
-      </div>
+      </fieldset>
+      {isSubmitting && <p className={styles.repeatSummary} role="status">{isEditMode ? "일정을 수정하고 있습니다." : `${dates.length}개 중 ${completedCount}개 등록 완료. 화면을 나가면 진행 중인 요청 이후 등록을 중단합니다.`}</p>}
+      {submitMessage && <p className={styles.repeatSummary} role="alert">{submitMessage}</p>}
     </Box>
   );
 }
