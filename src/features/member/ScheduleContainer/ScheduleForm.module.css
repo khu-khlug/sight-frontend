@@ -5,11 +5,30 @@
   margin-bottom: 16px;
 }
 
+.notice {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #64748b;
+}
+
 .row {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
   display: flex;
   align-items: flex-end;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.repeatSummary {
+  flex-basis: 100%;
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #64748b;
+  overflow-wrap: anywhere;
 }
 
 .field {

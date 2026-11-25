@@ -1,0 +1,84 @@
+.tree {
+  width: max-content;
+  min-width: 100%;
+}
+
+.row {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: var(--repo-row-height);
+  padding-top: 0;
+  padding-right: 12px;
+  padding-bottom: 0;
+  border: 0;
+  background: transparent;
+  color: var(--chakra-colors-gray-700);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.ancestorGuide,
+.branch,
+.childStem {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ancestorGuide {
+  border-left: 1px solid var(--chakra-colors-gray-300);
+}
+
+.branch {
+  width: 8px;
+}
+
+.branch::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-left: 1px solid var(--chakra-colors-gray-300);
+  content: "";
+}
+
+.branch[data-last="true"]::before {
+  height: 50%;
+}
+
+.branch::after {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 8px;
+  border-top: 1px solid var(--chakra-colors-gray-300);
+  content: "";
+}
+
+.childStem {
+  top: calc(50% + 8px);
+  height: calc(50% - 8px);
+  border-left: 1px solid var(--chakra-colors-gray-300);
+}
+
+button.row {
+  cursor: pointer;
+}
+
+button.row:focus-visible {
+  outline: 2px solid var(--chakra-colors-blue-500);
+  outline-offset: -2px;
+}
+
+.row svg {
+  flex: none;
+}
+
+.name {
+  white-space: nowrap;
+}

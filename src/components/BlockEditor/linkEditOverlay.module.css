@@ -1,0 +1,93 @@
+/* 툴팁·주소 입력 상자가 기준으로 삼는 보이지 않는 요소 — 링크 아이콘과 같은 자리·크기에 둔다. */
+.anchor {
+  position: fixed;
+  pointer-events: none;
+}
+
+/* 아이콘을 누르면 열리는 주소 입력 상자 — 툴팁과 같은 자리(위쪽)에 뜬다. */
+.editor {
+  --link-editor-gap: 6px;
+  --link-editor-control-height: 28px;
+  --link-editor-border: var(--chakra-colors-gray-300, #d4d4d8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--link-editor-gap);
+  width: 300px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--chakra-colors-white, #ffffff);
+  box-shadow: var(--chakra-shadows-md, 0 4px 12px rgba(0, 0, 0, 0.12));
+}
+
+.input {
+  height: var(--link-editor-control-height);
+  padding: 0 8px;
+  border: 1px solid var(--link-editor-border);
+  border-radius: 4px;
+  font-size: var(--chakra-font-sizes-sm, 0.875rem);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--main-color, #00a0e9);
+}
+
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--link-editor-gap);
+  min-height: var(--link-editor-control-height);
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: var(--chakra-font-sizes-sm, 0.875rem);
+  text-align: left;
+  color: var(--chakra-colors-gray-700, #3f3f46);
+}
+
+.suggestionActive {
+  background: var(--chakra-colors-gray-100, #f4f4f5);
+}
+
+.suggestionTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--link-editor-gap);
+}
+
+.actionButton {
+  height: var(--link-editor-control-height);
+  padding: 0 10px;
+  border: 1px solid var(--link-editor-border);
+  border-radius: 4px;
+  background: var(--chakra-colors-white, #ffffff);
+  font-size: var(--chakra-font-sizes-sm, 0.875rem);
+  color: var(--chakra-colors-gray-700, #3f3f46);
+}
+
+.actionButton:hover {
+  background: var(--chakra-colors-gray-100, #f4f4f5);
+}
+
+.primaryButton {
+  border-color: var(--main-color, #00a0e9);
+  background: var(--main-color, #00a0e9);
+  color: var(--chakra-colors-white, #ffffff);
+}
+
+.primaryButton:hover {
+  border-color: var(--main-color-hover, #0077b6);
+  background: var(--main-color-hover, #0077b6);
+}

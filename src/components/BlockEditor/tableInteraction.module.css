@@ -1,0 +1,35 @@
+.layer { position: fixed; z-index: 1002; pointer-events: none; overflow: hidden; }
+.button {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--main-color, #00a0e9);
+  border-radius: 5px;
+  background: white;
+  color: var(--main-color, #00a0e9);
+  font-size: 18px; line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: none;
+}
+.button:hover { background: #e0f3fd; }
+.handle { cursor: grab; border-radius: 4px; font-size: 14px; }
+.horizontalControl { width: 24px; height: 12px; }
+.verticalControl { width: 12px; height: 24px; }
+.action { border-radius: 4px; font-size: 14px; }
+.action > svg { display: block; flex-shrink: 0; }
+.selection { position: absolute; border: 2px solid var(--main-color, #00a0e9); pointer-events: none; }
+.insertion { position: absolute; background: var(--main-color, #00a0e9); pointer-events: none; }
+.axisSelection :global(.selectedCell)::after { background: transparent !important; }
+.axisSelection :global(.selection), .axisSelection ::selection { background: transparent !important; }
+.rowDragging, .columnDragging { user-select: none !important; }
+.rowDragging *, .columnDragging * { user-select: none !important; }
+.rowDragging, .rowDragging * { cursor: ns-resize !important; }
+.columnDragging, .columnDragging * { cursor: ew-resize !important; }
+.rowDragging iframe, .columnDragging iframe { pointer-events: none !important; }
+.preview { position: fixed; z-index: 1003; pointer-events: none; opacity: 0.8; outline: 2px solid var(--main-color, #00a0e9); background: white; overflow: hidden; }
+.preview table, .removed table { border-collapse: collapse; table-layout: fixed; width: 100%; height: 100%; }
+.preview td, .preview th, .removed td, .removed th { border: 1px solid #d4d4d8; padding: 6px 10px; vertical-align: top; }
+.preview [data-drag-handle], .removed [data-drag-handle] { display: none; }
+.removed { position: fixed; z-index: 1001; pointer-events: none; transform-origin: top left; background: white; overflow: hidden; }

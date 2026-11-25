@@ -1,0 +1,561 @@
+/*
+ * height:100%는 이 컴포넌트를 height가 있는 flex 세로 컨테이너 안에 놓았을 때만 의미가
+ * 있다(예: EditWindow — Window의 .content가 flex:1로 윈도우 콘텐츠 영역 높이를 그대로 준다).
+ * 그런 부모가 없는 곳에서는 기준으로 삼을 높이가 없어서 height:100%도 아래 .contentScrollRoot의
+ * 스크롤도 작동하지 않고 내용만큼 자연스럽게 늘어난다 — 그래서 두 가지 쓰임을 prop 하나 없이
+ * "부모가 높이를 주는지"만으로 자동으로 구분한다.
+ */
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  border: 1px solid var(--chakra-colors-gray-300, #d4d4d8);
+  border-radius: 6px;
+  background: white;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 2px;
+  padding: 4px;
+  border-bottom: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+}
+
+.toolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
+  border-right: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+}
+
+.toolbarGroupSend {
+  display: flex;
+  margin-left: auto;
+}
+
+.toolbarButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--chakra-colors-gray-500, #718096);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.toolbarButton:hover:not(:disabled) {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+  color: var(--chakra-colors-blue-500, #3b82f6);
+}
+
+.toolbarButton:disabled {
+  color: var(--chakra-colors-gray-300, #d4d4d8);
+  cursor: not-allowed;
+}
+
+.toolbarButtonActive {
+  background-color: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+  color: var(--chakra-colors-blue-500, #3b82f6);
+}
+
+.usageDialogPositioner {
+  align-items: center;
+}
+
+.usageDialogContent {
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: 0;
+  overflow: auto;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.usageDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.usageDialogClose {
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--chakra-colors-gray-600, #52525b);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.usageDialogClose:hover {
+  background: var(--chakra-colors-blackAlpha-100, rgba(0, 0, 0, 0.06));
+}
+
+.usageDialogBody {
+  padding: 8px 24px 24px;
+}
+
+.usageGlossary {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: var(--chakra-colors-gray-700, #3f3f46);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.usageTableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.usageTable {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--chakra-colors-gray-800, #27272a);
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.usageTable th,
+.usageTable td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+}
+
+.usageTable thead th {
+  background: var(--chakra-colors-gray-100, #f4f4f5);
+  font-weight: 600;
+}
+
+.usageTable tbody th {
+  font-weight: 500;
+}
+
+.usageTable code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.usageTooltipGrid {
+  display: grid;
+  grid-template-columns: max-content max-content max-content;
+  gap: 4px 12px;
+  white-space: nowrap;
+}
+
+.usageTooltipGrid > span:nth-child(-n + 3) {
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+  font-weight: 600;
+}
+
+.usageTooltipFormat {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.headingMenuTrigger {
+  width: 40px;
+  gap: 1px;
+}
+
+.headingMenuContent {
+  width: 140px;
+  padding: 4px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.headingMenuOption {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: background-color 150ms ease;
+}
+
+.headingMenuOption:hover {
+  background-color: var(--chakra-colors-blackAlpha-50, rgba(0, 0, 0, 0.04));
+}
+
+.headingMenuOptionActive {
+  background-color: var(--chakra-colors-blackAlpha-200, rgba(0, 0, 0, 0.08));
+}
+
+/*
+ * flex:1 + min-height:0은 부모가 실제 높이를 줄 때만(위 .root 주석 참고) 의미가 있다 — 그럴 때
+ * ScrollArea.Viewport가 실제 스크롤(네이티브 overflow 기반, 겉모양만 HoverScrollbar가 입힌
+ * 커스텀 스킨)을 맡는다. 이 프로젝트의 스크롤 요소는 항상 hover-reveal 컨벤션을 쓰고 기본
+ * 브라우저 스크롤바를 노출하지 않는다 — VerticalScrollBox 등 완제품 컴포넌트를 통째로 덧씌우면
+ * 그 컴포넌트의 gutter/패딩 구조가 이 툴바+에디터+상태바 레이아웃과 안 맞아서, 그 부품
+ * (ScrollArea.Root/Viewport/Content + HoverScrollbar)만 가져다 직접 조립했다. ProseMirror
+ * 자신의 "커서를 스크롤해서 보여주는" 로직은 네이티브 스크롤 조상을 전제하므로
+ * (가상화된 스크롤 컨테이너였다면 깨질 수 있었다) ScrollArea.Viewport로도 문제없이 동작한다.
+ */
+.contentScrollRoot {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.editorViewport {
+  cursor: default;
+}
+
+/* 핸들은 블록 왼쪽에 absolute로 뜨므로, 잘리지 않도록 본문 왼쪽에 그 폭만큼 여백을 둔다.
+   오른쪽은 핸들이 없어서 왼쪽보다 작게, 글이 가장자리에 붙지 않을 만큼만 둔다. */
+.root {
+  --content-padding-right: 16px;
+}
+
+.content :global(.tiptap) {
+  padding: 8px var(--content-padding-right) 8px var(--drag-handle-gutter);
+  min-height: 60px;
+  outline: none;
+}
+
+/* withDragHandle이 만드는 래퍼 — 블록 하나와 그 왼쪽 핸들을 감싼다. */
+.blockHandleWrapper {
+  position: relative;
+}
+
+/* 문서 바깥에 표시해 항목의 DOM과 편집 내용에 영향을 주지 않는 삽입 안내선. */
+.dropCursor {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  background: var(--main-color, #00a0e9);
+}
+
+.dragPreview {
+  position: fixed;
+  z-index: 1001;
+  max-height: 200px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.65;
+  background: var(--chakra-colors-bg, white);
+}
+
+.dragPreview [data-drag-handle] {
+  display: none;
+}
+
+.blockDragging,
+.blockDragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+/* iframe 안으로 포인터가 들어가도 부모 문서가 이동·놓기·휠 이벤트를 계속 받는다.
+   드래그 종료 시 blockDragging 클래스가 제거되어 플레이어 조작이 복원된다. */
+.blockDragging iframe,
+.blockSelecting iframe {
+  pointer-events: none !important;
+}
+
+.blockSelecting,
+.blockSelecting * {
+  cursor: default !important;
+  user-select: none !important;
+}
+
+.selectedBlock {
+  outline: none !important;
+}
+
+/* 래퍼 뒤에 가려지지 않도록 실제 문단·목록 항목·인용 상자에 배경을 칠한다. */
+.content .selectedBlock:not(.selectedFrame):not([data-selected-block-type="taskItem"]) > :last-child {
+  background-color: color-mix(in srgb, var(--main-color, #00a0e9) 12%, white);
+}
+
+/* 체크박스 영역은 제외하고 오른쪽 내용 영역에만 선택 배경을 적용한다. */
+.content .selectedTaskContent {
+  background-color: color-mix(in srgb, var(--main-color, #00a0e9) 12%, white);
+}
+
+.content :global([data-type="taskList"] li > div) {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 미디어와 코드의 불투명한 렌더링 위에는 레이아웃 크기를 바꾸지 않는 테두리를 표시한다. */
+.content .selectedFrame:not([data-selected-block-type="codeBlock"]) > :last-child,
+.content .selectedFrame[data-selected-block-type="codeBlock"] > :last-child > :global([data-node-view-wrapper]) {
+  outline: 2px solid color-mix(in srgb, var(--main-color, #00a0e9) 75%, white);
+  outline-offset: -2px;
+}
+
+.content .selectedFrame[data-selected-block-type="codeBlock"] > :last-child > :global([data-node-view-wrapper]) {
+  border-color: color-mix(in srgb, var(--main-color, #00a0e9) 75%, white);
+}
+
+/* 블록 선택은 각 블록 배경으로 표시하고 브라우저·텍스트 선택 강조는 숨긴다. */
+.content :global(.tiptap[data-block-selection]) {
+  caret-color: transparent;
+}
+
+.content :global(.tiptap[data-block-selection] ::selection),
+.content :global(.tiptap[data-block-selection]::selection),
+.content :global(.tiptap[data-block-selection] .selection) {
+  background: transparent;
+  color: inherit;
+}
+
+.selectionMarquee {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  background-color: color-mix(in srgb, var(--main-color, #00a0e9) 12%, transparent);
+}
+
+.dragCount {
+  display: block;
+  padding: 2px 6px;
+  background: var(--main-color, #00a0e9);
+  color: white;
+  font-size: 12px;
+}
+
+/* 핸들이 놓이는 왼쪽 여백은 래퍼 박스 밖이라 그대로는 hover가 래퍼에 걸리지 않는다.
+   그 여백을 블록 높이만큼 덮는 투명한 영역을 래퍼의 일부로 두어, 여백에 올려도 핸들이 보이게 한다.
+   ::before는 Placeholder가 쓰므로 ::after를 쓴다. */
+.blockHandleWrapper::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--drag-handle-gutter));
+  width: var(--drag-handle-gutter);
+  content: "";
+}
+
+/* 핸들 칸이 본문 왼쪽 여백 전체를 덮어, 글에서 핸들로 마우스를 옮겨도 블록 hover가 끊기지 않는다.
+   높이는 첫 줄(line-height)에 맞춘다. */
+.blockHandle {
+  position: absolute;
+  top: 0;
+  left: calc(-1 * var(--drag-handle-gutter));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--drag-handle-gutter);
+  height: calc(1em * var(--block-line-height));
+  color: var(--chakra-colors-gray-400, #a1a1aa);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  visibility: hidden;
+  /* 같은 칸을 덮는 래퍼의 ::after(호버 영역)보다 위에 있어야 핸들이 마우스를 받는다. */
+  z-index: 1;
+}
+
+/* BlockContent의 첫/마지막 블록 마진 제거(`.document > :first-child/:last-child`, 접는 블록 본문의 `> :last-child`)와
+   제목+가로줄 간격 규칙은 래퍼가 생기면 래퍼에 걸리고 실제 블록(래퍼의 마지막 자식, 핸들이 첫 자식)에는
+   닿지 않으므로 같은 규칙을 래퍼 안쪽에 다시 둔다. 래퍼는 문서 최상위와 접는 블록 본문에 생기므로
+   부모를 따로 지정하지 않는다. 위쪽 마진 제거는 문서 첫 블록에만 둔다. */
+.content :global(.tiptap) > .blockHandleWrapper:first-child > :last-child {
+  margin-top: 0;
+}
+
+.blockHandleWrapper:last-child > :last-child {
+  margin-bottom: 0;
+}
+
+.blockHandleWrapper:has(+ .blockHandleWrapper > hr) > :is(h1, h2, h3, h4, h5, h6) {
+  margin-bottom: 0;
+}
+
+.blockHandleWrapper:has(> :is(h1, h2, h3, h4, h5, h6)) + .blockHandleWrapper > hr {
+  margin-top: 0.5em;
+}
+
+/* 제목은 본문보다 줄이 높아서, 핸들 높이를 그 제목의 한 줄 높이로 맞춰 여러 줄이어도 첫 줄 가운데에 오게 한다. */
+.blockHandleWrapper:has(> h1) > .blockHandle { height: var(--heading-1-line-height); }
+.blockHandleWrapper:has(> h2) > .blockHandle { height: var(--heading-2-line-height); }
+.blockHandleWrapper:has(> h3) > .blockHandle { height: var(--heading-3-line-height); }
+.blockHandleWrapper:has(> h4) > .blockHandle { height: var(--heading-4-line-height); }
+.blockHandleWrapper:has(> h5) > .blockHandle { height: var(--heading-5-line-height); }
+.blockHandleWrapper:has(> h6) > .blockHandle { height: var(--heading-6-line-height); }
+
+/* 접는 블록은 펼쳐도 핸들이 접혔을 때의 높이(요약 한 줄 + 위아래 padding·테두리) 기준 가운데에 머문다. */
+.blockHandleWrapper:has(> [data-type="details"]) > .blockHandle {
+  height: calc(1em * var(--block-line-height) + 2 * (var(--details-padding-block) + var(--details-border-width)));
+}
+
+/* 파일 블록은 파일명이 여러 줄로 늘어나도 핸들이 파일명 한 줄일 때의 높이(내용 + 위아래 padding·테두리) 기준
+   가운데에 머문다. 블록은 React NodeView라 래퍼와 블록 사이에 NodeView 요소가 한 겹 있다. */
+.blockHandleWrapper:has(> * > [data-type="file-attachment"]) > .blockHandle {
+  height: calc(var(--file-attachment-content-height) + 2 * (var(--file-attachment-padding-block) + var(--file-attachment-border-width)));
+}
+
+/* 오디오는 높이가 고정이라 핸들이 블록 전체 높이를 차지해 그 가운데에 놓인다. */
+.blockHandleWrapper:has(> audio) > .blockHandle {
+  height: 100%;
+}
+
+/* 래퍼가 중첩되면(접는 블록 안의 블록) 안쪽에 올려도 바깥 래퍼까지 :hover가 된다.
+   안쪽 래퍼가 호버됐거나, 접는 블록 본문(블록 사이 간격 포함)에 올라가 있으면 바깥 핸들은 숨기고
+   가장 안쪽 것만 보인다. */
+.blockHandleWrapper:hover:not(:has(.blockHandleWrapper:hover, [data-type="detailsContent"]:hover, blockquote:hover)) > .blockHandle {
+  visibility: visible;
+}
+
+/* 목록 항목의 래퍼는 목록의 padding-left 안쪽에 놓이므로, 핸들 칸을 그 padding만큼 더 왼쪽(목록 박스 왼쪽 바깥)에 둔다.
+   중첩된 목록은 항목 안에서 들여쓰기된 만큼 오른쪽에 놓이므로 핸들도 깊이만큼 따라간다. 체크 목록은 padding이 더 작다.
+   호버 영역도 핸들 칸부터 말머리/번호가 있는 padding까지 덮는다. */
+.blockHandleWrapper:has(> li) > .blockHandle {
+  left: calc(-1 * (var(--drag-handle-gutter) + var(--list-indent)));
+}
+
+.blockHandleWrapper:has(> li)::after {
+  left: calc(-1 * (var(--drag-handle-gutter) + var(--list-indent)));
+  width: calc(var(--drag-handle-gutter) + var(--list-indent));
+}
+
+/* 체크 항목은 에디터의 NodeView가 만든 li라서 data-type="taskItem" 속성이 없다(렌더 HTML에만 붙는다) —
+   체크 목록 ul(data-type="taskList")의 자식 래퍼로 구분한다. */
+[data-type="taskList"] > .blockHandleWrapper > .blockHandle {
+  left: calc(-1 * (var(--drag-handle-gutter) + var(--task-list-indent)));
+}
+
+[data-type="taskList"] > .blockHandleWrapper::after {
+  left: calc(-1 * (var(--drag-handle-gutter) + var(--task-list-indent)));
+  width: calc(var(--drag-handle-gutter) + var(--task-list-indent));
+}
+
+/* 인용 안쪽 블록은 핸들 칸이 인용 왼쪽 테두리에 붙지 않도록 칸의 왼쪽 끝을 오른쪽으로 민다
+   (칸의 오른쪽 끝은 블록 왼쪽 가장자리 그대로라 글자 위를 덮지 않는다). */
+blockquote .blockHandleWrapper::after,
+blockquote .blockHandleWrapper > .blockHandle {
+  left: calc(-1 * var(--drag-handle-gutter) + var(--blockquote-handle-inset));
+  width: calc(var(--drag-handle-gutter) - var(--blockquote-handle-inset));
+}
+
+/* 접는 블록 본문의 핸들 칸(왼쪽 여백)도 본문 영역으로 쳐서, 블록 사이 간격을 지날 때도 바깥 핸들이 나타나지 않게 한다. */
+.content :global([data-type="detailsContent"]) {
+  position: relative;
+}
+
+.content :global([data-type="detailsContent"])::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--drag-handle-gutter));
+  width: var(--drag-handle-gutter);
+  content: "";
+}
+
+.blockHandle svg { border-radius: 20%;}
+
+.blockHandle:hover svg {
+  background-color: var(--chakra-colors-blackAlpha-50);
+}
+
+.paletteOpen .content :global(.tiptap ::selection),
+.paletteOpen .content :global(.tiptap::selection) {
+  background: transparent;
+  color: inherit;
+}
+
+/* Selection 익스텐션이 에디터가 포커스를 잃은 선택 영역에 붙이는 클래스. 색 팔레트가 열려 있는 동안은
+   위 ::selection처럼 투명하게 둬서 글자색·배경색 미리보기가 가려지지 않게 한다. */
+.content :global(.tiptap .selection) {
+  background-color: var(--chakra-colors-blue-100, #dbeafe);
+}
+
+.paletteOpen .content :global(.tiptap .selection) {
+  background: transparent;
+}
+
+.content :global(.tiptap .tiptap-invisible-character::before) {
+  color: var(--chakra-colors-gray-200, #e4e4e7);
+}
+
+.content :global(.tiptap .tiptap-invisible-character--space::before) {
+  content: "·";
+}
+
+.content :global(.tiptap .tiptap-invisible-character--tab::before) {
+  content: "→";
+}
+
+.content :global(.tiptap .tiptap-invisible-character--break::before),
+.content :global(.tiptap .tiptap-invisible-character--paragraph::before),
+.content :global(.tiptap .tiptap-invisible-character--newline::before) {
+  content: "↵";
+}
+
+/* 팁탭 Placeholder 익스텐션의 공식 컨벤션(is-editor-empty 클래스 + data-placeholder 속성)을
+   그대로 쓴다. */
+/* 최상위 문단은 withDragHandle 래퍼 div가 클래스·속성을 받으므로 래퍼의 ::before에 그린다.
+   글자가 없으면 첫 블록이 코드 블록 등이어도 is-editor-empty를 받으므로, 문단을 품은 래퍼에만 그린다. */
+.content :global(.tiptap p.is-editor-empty:first-child::before),
+.content :global(.tiptap > .is-editor-empty:first-child:has(> p)::before) {
+  float: left;
+  height: 0;
+  color: var(--chakra-colors-gray-400, #a1a1aa);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+/* 접는 블록의 제목·본문 placeholder는 문서 전체가 비었을 때가 아니라 해당 줄이 비었을 때 보인다.
+   본문은 빈 문단 하나뿐일 때만 보이도록 :only-child로 제한해서 새 줄마다 나타나지 않게 한다. */
+.content :global(.tiptap [data-type="details"] summary.is-empty::before),
+.content :global(.tiptap [data-type="detailsContent"] > p.is-empty:only-child::before),
+.content :global(.tiptap [data-type="detailsContent"]) > .blockHandleWrapper:global(.is-empty):has(> p):only-child::before {
+  float: left;
+  height: 0;
+  color: var(--chakra-colors-gray-400, #a1a1aa);
+  pointer-events: none;
+}
+
+.content :global(.tiptap [data-type="details"] summary.is-empty::before) {
+  content: attr(data-placeholder);
+}
+
+.content :global(.tiptap [data-type="detailsContent"] > p.is-empty:only-child::before),
+.content :global(.tiptap [data-type="detailsContent"]) > .blockHandleWrapper:global(.is-empty):has(> p):only-child::before {
+  content: "본문";
+}
+
+.statusBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px;
+  border-top: 1px solid var(--chakra-colors-gray-200, #e4e4e7);
+  color: var(--chakra-colors-gray-500, #718096);
+  font-size: 12px;
+}
+
+/* TODO: 실시간 협업 기능이 추가되면 현재 이 기록을 같이 편집 중인 멤버 이름들을 여기에
+   표시한다(index.tsx 참고). */
+.statusBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.statusBarRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.inlineIcon {
+  display: inline-block;
+  vertical-align: -0.125em;
+}

@@ -29,5 +29,24 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
     },
+  },
+  {
+    // GroupDetailContainer/WindowLayer/windowManager.ts는 창 상태 전이·물리 배치의 내부
+    // 구현이다. WindowLayer 디렉토리 밖에서는 반드시 GroupDetailContainer/actions.ts가
+    // 재익스포트하는 것만 쓴다 — actions.ts 자신과 WindowLayer 내부(서로 참조하는 형제
+    // 파일들)만 예외로 둔다.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/features/member/GroupDetailContainer/WindowLayer/**",
+      "src/features/member/GroupDetailContainer/actions.ts",
+    ],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [{
+          group: ["**/WindowLayer/windowManager"],
+          message: "windowManager를 직접 import할 수 없습니다. ../actions 에서 재익스포트하는 함수/타입을 쓰세요.",
+        }],
+      }],
+    },
   }
 );

@@ -1,0 +1,70 @@
+/* 치수 변수(--file-attachment-*)는 드래그 핸들과 함께 쓰려고 style.module.css의 :root에 둔다.
+   파일명이 여러 줄이어도 아이콘·용량·다운로드 버튼은 첫 줄(높이 --file-attachment-content-height)의
+   가운데에 맞춘다 — 드래그 핸들과 같은 기준이다. */
+.file {
+  --file-attachment-gap: 10px;
+  --file-attachment-control-inset: calc((var(--file-attachment-content-height) - var(--file-attachment-control-size)) / 2);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--file-attachment-gap);
+  margin: 0 0 var(--block-gap);
+  padding: var(--file-attachment-padding-block) var(--file-attachment-gap);
+  border: var(--file-attachment-border-width) solid var(--chakra-colors-gray-300, #d4d4d8);
+  border-radius: 6px;
+  background: var(--chakra-colors-white, #ffffff);
+  white-space: normal;
+  cursor: grab;
+}
+
+.icon {
+  display: flex;
+  flex: none;
+  margin-block: var(--file-attachment-control-inset);
+}
+
+.icon > * {
+  width: var(--file-attachment-control-size);
+  height: var(--file-attachment-control-size);
+}
+
+/* 긴 파일명은 줄바꿈하고, 남는 폭을 차지해 용량을 오른쪽(다운로드 버튼 왼쪽)으로 민다.
+   아이콘이 한 줄보다 높으면 위아래를 같은 만큼 띄워 첫 줄이 아이콘 가운데에 오게 한다. */
+.name {
+  flex: 1;
+  min-width: 0;
+  padding-block: calc((var(--file-attachment-content-height) - var(--file-attachment-name-line-height)) / 2);
+  overflow-wrap: anywhere;
+  font-size: var(--file-attachment-name-font-size);
+  font-weight: var(--chakra-font-weights-medium, 500);
+  line-height: var(--block-line-height);
+}
+
+.size {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: var(--file-attachment-content-height);
+  white-space: nowrap;
+  font-size: var(--file-attachment-meta-font-size);
+  color: var(--chakra-colors-gray-500, #71717a);
+}
+
+/* 본문 링크 스타일(.document a의 색·밑줄)을 쓰지 않는 아이콘 버튼이다 — 그 규칙보다 우선하도록 .file로 한정한다. */
+.file .download {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--file-attachment-control-size);
+  height: var(--file-attachment-control-size);
+  margin-block: var(--file-attachment-control-inset);
+  border-radius: 6px;
+  color: var(--chakra-colors-gray-500, #71717a);
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.file .download:hover {
+  background-color: var(--chakra-colors-gray-100, #f4f4f5);
+  color: var(--chakra-colors-blue-500, #3b82f6);
+}

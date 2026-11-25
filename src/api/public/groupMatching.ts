@@ -18,7 +18,7 @@ export type GroupMatchingOptionDto = {
 
 export type MatchedGroupDto = {
   id: string;
-  groupId: number;
+  groupId: string;
   createdAt: string;
 };
 

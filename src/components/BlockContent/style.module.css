@@ -1,0 +1,369 @@
+/* 본문·제목 줄 높이 — 블록 핸들처럼 첫 줄에 높이를 맞추는 곳이 같은 값을 참조한다. */
+:global(:root) {
+  --block-line-height: 1.6;
+  /* 블록 사이 간격 — 가로줄(hr)을 뺀 모든 블록이 같은 값을 쓴다. 제목처럼 글자 크기가 다른 블록도
+     같은 간격이 되도록 em이 아니라 rem이다. */
+  --block-gap: 1rem;
+  /* 드래그 핸들 칸의 폭 — 에디터 왼쪽 여백과 인용 안쪽 왼쪽 padding이 같은 값을 참조한다. */
+  --drag-handle-size: 16px;
+  --drag-handle-gutter: calc(var(--drag-handle-size) + 6px);
+  --blockquote-border-width: 3px;
+  /* 글머리·순서 목록의 들여쓰기 — 항목 핸들이 말머리/번호 영역 왼쪽에 놓이도록 같은 값을 참조한다. */
+  --list-indent: 24px;
+  /* 체크 목록의 들여쓰기 — 체크박스가 다른 목록의 말머리보다 왼쪽으로 튀어나오지 않을 만큼만 둔다. */
+  --task-list-indent: 8px;
+  /* 인용 안쪽 블록의 핸들 칸을 인용 왼쪽 테두리에서 띄우는 만큼 — 칸의 왼쪽 끝만 오른쪽으로 민다. */
+  --blockquote-handle-inset: 4px;
+  /* 접는 블록 본문 안 블록 사이 간격 — 박스 안에서 바깥과 같은 간격이면 빈 줄처럼 커 보여서 줄인다.
+     문단 안 줄바꿈의 여백((줄 높이 1.6 - 1) × 글자 크기)보다는 커야 문단 구분이 된다. */
+  --details-block-gap: calc(var(--block-gap) * 0.7);
+  /* 접는 블록의 위아래 padding과 테두리 두께 — 드래그 핸들이 접힌 높이에 맞추려고 같은 값을 참조한다. */
+  /* 링크 글자색 — 링크 앞 종류 아이콘(link.module.css)도 같은 색을 쓴다. */
+  --link-color: var(--chakra-colors-blue-600, #2563eb);
+  --details-padding-block: 8px;
+  --details-border-width: 1px;
+  /* 파일 블록의 치수 — 드래그 핸들이 파일명이 한 줄일 때의 높이에 맞추려고 같은 값을 참조한다.
+     아이콘과 다운로드 버튼은 같은 크기다. 용량은 파일명과 같은 줄에 있어서, 내용 높이는 아이콘·버튼과
+     파일명 한 줄 중 큰 쪽이다. */
+  --file-attachment-padding-block: 8px;
+  --file-attachment-border-width: 1px;
+  --file-attachment-control-size: 28px;
+  --file-attachment-name-font-size: var(--chakra-font-sizes-sm, 0.875rem);
+  --file-attachment-meta-font-size: var(--chakra-font-sizes-xs, 0.75rem);
+  --file-attachment-name-line-height: calc(var(--file-attachment-name-font-size) * var(--block-line-height));
+  --file-attachment-content-height: max(var(--file-attachment-control-size), var(--file-attachment-name-line-height));
+  --heading-1-line-height: 2.75rem;
+  --heading-2-line-height: 2.75rem;
+  --heading-3-line-height: 2.375rem;
+  --heading-4-line-height: 2rem;
+  --heading-5-line-height: 1.875rem;
+  --heading-6-line-height: 1.75rem;
+}
+
+.document {
+  min-width: 0;
+  font-weight: var(--chakra-font-weights-normal, 400);
+  white-space: pre-wrap;
+  tab-size: 4;
+  font-size: var(--chakra-font-sizes-md, 1rem);
+  line-height: var(--block-line-height);
+  color: var(--chakra-colors-gray-800, #27272a);
+}
+
+/* 목차에서 제목으로 이동할 때 멈추는 위 여백 — 위에 붙어 있는 요소(카드 창 제목 줄 등)가 있는 곳이
+   --heading-scroll-margin으로 그 높이를 알려준다. 없으면 0이다. */
+.document :global(:is(h1, h2, h3, h4, h5, h6)) {
+  scroll-margin-top: var(--heading-scroll-margin, 0px);
+}
+
+/* H1은 4xl과 브랜드 색, H2~H6는 4xl~lg. 굵기는 본문과 같고 bold 마크로 제어한다. */
+.headingLevel1,
+.headingLevel2,
+.headingLevel3,
+.headingLevel4,
+.headingLevel5,
+.headingLevel6,
+.document :global(h1),
+.document :global(h2),
+.document :global(h3),
+.document :global(h4),
+.document :global(h5),
+.document :global(h6) {
+  font-family: var(--chakra-fonts-heading, sans-serif);
+  font-weight: inherit;
+}
+
+.headingLevel1,
+.document :global(h1) {
+  font-size: var(--chakra-font-sizes-4xl, 2.25rem);
+  line-height: var(--heading-1-line-height);
+  letter-spacing: -0.025em;
+  color: var(--chakra-colors-brand-500, #00a0e9);
+}
+
+.headingLevel2,
+.document :global(h2) {
+  font-size: var(--chakra-font-sizes-4xl, 2.25rem);
+  line-height: var(--heading-2-line-height);
+  letter-spacing: -0.025em;
+}
+
+.headingLevel3,
+.document :global(h3) {
+  font-size: var(--chakra-font-sizes-3xl, 1.875rem);
+  line-height: var(--heading-3-line-height);
+}
+
+.headingLevel4,
+.document :global(h4) {
+  font-size: var(--chakra-font-sizes-2xl, 1.5rem);
+  line-height: var(--heading-4-line-height);
+}
+
+.headingLevel5,
+.document :global(h5) {
+  font-size: var(--chakra-font-sizes-xl, 1.25rem);
+  line-height: var(--heading-5-line-height);
+}
+
+.headingLevel6,
+.document :global(h6) {
+  font-size: var(--chakra-font-sizes-lg, 1.125rem);
+  line-height: var(--heading-6-line-height);
+}
+
+/* Chakra preflight의 * { font: inherit }가 <em>의 기본 기울임꼴을 덮는다. */
+.document :global(em) {
+  font-style: italic;
+}
+
+.bold,
+.document :global(strong) {
+  font-weight: var(--chakra-font-weights-bold, 700);
+}
+
+.document :global(> :first-child) {
+  margin-top: 0;
+}
+
+.document :global(> :last-child) {
+  margin-bottom: 0;
+}
+
+.document :global(h1),
+.document :global(h2),
+.document :global(h3) {
+  margin: 0 0 var(--block-gap);
+}
+
+.document :global(p),
+.document :global(ul),
+.document :global(ol),
+.document :global(blockquote) {
+  margin: 0 0 var(--block-gap);
+}
+
+.document :global(li p) {
+  margin-bottom: 0;
+}
+
+/* 항목 안의 마지막 자식인 중첩 목록은 아래 마진을 두지 않는다 — 다음 형제 항목과 다른 블록처럼 떨어져 보이지 않게.
+   글머리·순서 항목은 목록이 li 바로 아래에, 체크 항목은 li > div 아래에 들어간다(체크 목록도 ul이다).
+   각 단계의 중첩 목록이 모두 이 관계라서 몇 단계로 중첩되어도 적용된다. */
+.document :global(li > :is(ul, ol):last-child),
+.document :global(li > div > :is(ul, ol):last-child) {
+  margin-bottom: 0;
+}
+
+/* 인용 안 마지막 블록은 인용의 padding이 이미 간격을 주므로 아래 마진을 두지 않는다. 에디터에서는 인용 안
+   블록이 핸들 래퍼로 감싸져 직계 자식이 아니므로, 같은 일을 BlockEditor의 래퍼 규칙(:last-child)이 한다. */
+.document :global(blockquote > p:last-child),
+.document :global(blockquote > blockquote:last-child) {
+  margin-bottom: 0;
+}
+
+.document :global(ul) {
+  padding-left: var(--list-indent);
+  list-style: disc;
+}
+
+.document :global(ol) {
+  padding-left: var(--list-indent);
+  list-style: decimal;
+}
+
+.document :global(blockquote) {
+  /* 안쪽 블록의 핸들이 테두리 안쪽에 들어오도록, 테두리와 padding을 합쳐 핸들 칸 폭이 되게 한다. */
+  padding: 8px 14px 8px calc(var(--drag-handle-gutter) - var(--blockquote-border-width));
+  border-left: var(--blockquote-border-width) solid #6b7280;
+  background: #f9fafb;
+  color: #374151;
+}
+
+.document :global(h4),
+.document :global(h5),
+.document :global(h6) {
+  margin: 0 0 var(--block-gap);
+}
+
+/*
+ * 접는 블록. Details 노드뷰는 [data-type="details"] > button(토글) + div(요약·본문 래퍼)로
+ * 그려지고, 본문(detailsContent)은 hidden 속성으로 접힘을 표현하므로 display를 건드리지 않는다.
+ * 중첩된 접는 블록은 바깥 블록의 padding이 간격을 주므로 아래 마진을 두지 않는다.
+ */
+.document :global([data-type="details"]) {
+  display: flex;
+  gap: 2px;
+  margin: 0 0 var(--block-gap);
+  padding: var(--details-padding-block) 14px var(--details-padding-block) 6px;
+  border: var(--details-border-width) solid var(--chakra-colors-gray-300, #d4d4d8);
+  border-radius: 4px;
+  background: #f9fafb;
+}
+
+.document :global([data-type="details"] [data-type="details"]) {
+  margin-bottom: 0;
+}
+
+/* 접힘은 ">", 펼침은 아래로 꺾인 화살표다. */
+.document :global([data-type="details"] > button) {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 1.6em;
+  cursor: pointer;
+  background: transparent;
+  color: #374151;
+}
+
+.document :global([data-type="details"] > button::before) {
+  width: 0.45em;
+  height: 0.45em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+  content: "";
+}
+
+.document :global([data-type="details"].is-open > button::before) {
+  transform: rotate(45deg);
+}
+
+.document :global([data-type="details"] > div) {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 요약줄은 기본 마커를 쓰지 않고, 펼쳤을 때만 아래에 구분선을 둔다. */
+.document :global([data-type="details"] > div > summary) {
+  display: block;
+  list-style: none;
+}
+
+.document :global([data-type="details"] > div > summary::-webkit-details-marker) {
+  display: none;
+}
+
+.document :global([data-type="details"].is-open > div > summary) {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--chakra-colors-gray-300, #d4d4d8);
+}
+
+/* 본문 안 블록은 --block-gap을 --details-block-gap으로 덮어써서 같은 마진 규칙을 그대로 쓴다.
+   마지막 블록만 아래 마진을 없애 접는 블록의 아래 padding이 그대로 간격이 되게 한다. */
+.document :global([data-type="details"] > div > [data-type="detailsContent"]) {
+  --block-gap: var(--details-block-gap);
+  margin-top: 8px;
+  padding-bottom: 4px;
+}
+
+.document :global([data-type="details"] > div > [data-type="detailsContent"] > :last-child) {
+  margin-bottom: 0;
+}
+
+.document :global(a) {
+  color: var(--link-color);
+  text-decoration: underline;
+}
+
+.document :global(pre) {
+  padding: 14px;
+  background: #ffffff;
+  color: #24292e;
+  border-radius: 6px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.document :global(pre code) {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.document :global(code) {
+  padding: 2px 5px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.92em;
+}
+
+.document :global(.tiptap-mathematics-render[data-type="block-math"]) {
+  margin: 0 0 var(--block-gap);
+  text-align: center;
+}
+
+.document :global(hr) {
+  margin: 1.4em 0;
+  border: none;
+  border-top: 1px solid var(--chakra-colors-gray-300, #d4d4d8);
+}
+
+.document :global(:is(h1, h2, h3, h4, h5, h6):has(+ hr)) {
+  margin-bottom: 0;
+}
+
+.document :global(:is(h1, h2, h3, h4, h5, h6) + hr) {
+  margin-top: 0.5em;
+}
+
+.document :global(ul[data-type="taskList"]) {
+  padding-left: var(--task-list-indent);
+  list-style: none;
+}
+
+.document :global(ul[data-type="taskList"] li) {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.document :global(ul[data-type="taskList"] li > label) {
+  margin-top: 3px;
+}
+
+.document :global(table) {
+  border-collapse: collapse;
+  margin: 0 0 var(--block-gap);
+  width: 100%;
+}
+
+.document :global(th),
+.document :global(td) {
+  padding: 6px 10px;
+  border: 1px solid var(--chakra-colors-gray-300, #d4d4d8);
+  text-align: left;
+}
+
+.document :global(th) {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.document :global(img) {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+/* inline이면 줄 상자(baseline 틈) 때문에 블록 높이가 오디오보다 커져서, 높이를 오디오에 맞추는 드래그 핸들이 어긋난다. */
+.document :global(audio) {
+  display: block;
+  width: 100%;
+}
+
+/* 오디오와 같은 이유로 block으로 둔다. 핸들은 이미지처럼 블록 위쪽 첫 줄 높이에 놓인다. */
+.document :global(video) {
+  display: block;
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+.document :global(div[data-youtube-video]) iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+}

@@ -1,0 +1,21 @@
+/* 링크 글자 앞 종류 아이콘 — 글자 크기를 따라가고 링크 글자색(--link-color, style.module.css)과 같은 색을 쓴다. */
+.icon {
+  --link-icon-gap: 2px;
+  display: inline-flex;
+  align-items: center;
+  margin-right: var(--link-icon-gap);
+  border-radius: 3px;
+  vertical-align: -0.125em;
+  color: var(--link-color);
+  cursor: pointer;
+  user-select: none;
+}
+
+.icon:hover {
+  background: var(--chakra-colors-gray-100, #f4f4f5);
+}
+
+.icon svg {
+  width: 1em;
+  height: 1em;
+}

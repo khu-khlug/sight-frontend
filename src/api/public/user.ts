@@ -58,6 +58,15 @@ const checkFirstTodayLogin = async (): Promise<void> => {
   await apiV2Client.post("/users/@me/check-first-today-login");
 };
 
+// 그룹 아이디를 받지 않는 회원 전역 설정이다.
+export type UpdateUserPreferenceRequestDto = {
+  usePersonalGithubUsage: boolean;
+};
+
+const updatePreference = async (input: UpdateUserPreferenceRequestDto): Promise<void> => {
+  await apiV2Client.patch("/users/@me/preference", input);
+};
+
 export type UserPublicApiDto = {
   GetDiscordIntegrationResponseDto: GetDiscordIntegrationResponseDto;
 };
@@ -68,4 +77,6 @@ export const UserPublicApi = {
   issueAndRedirectToDiscordOAuth2Url,
   disconnectDiscordIntegration,
   checkFirstTodayLogin,
+  updatePreference,
+  getPreference: async (): Promise<UpdateUserPreferenceRequestDto> => (await apiV2Client.get<UpdateUserPreferenceRequestDto>("/users/@me/preference")).data,
 };

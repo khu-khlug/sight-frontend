@@ -5,7 +5,7 @@ import { getCategoryColor } from "./categoryColors";
 import styles from "./WeeklySchedule.module.css";
 
 export type ScheduleItem = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   location: string | null;
@@ -14,7 +14,7 @@ export type ScheduleItem = {
   endAt: string; // ISO 8601
   expoint: number;
   author: number;
-  groupId: number | null;
+  groupId: string | null;
 };
 
 type Props = {
